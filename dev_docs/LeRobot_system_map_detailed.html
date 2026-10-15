@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LeRobot 詳細マップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EDF1F4; --panel:#F8FAFB; --ink:#15212B; --muted:#5B6B78; --line:#B9C6CF; --zone:#E2E9EE; --zone-ink:#6D7E8B;
+  --node:#FFFFFF; --node-edge:#9FB0BC; --accent:#1E7A5B; --code:#EEF2F5; --hit:#D9941E; --bad:#C8413B;
+  --m-token:#D9941E; --m-motion:#7E9720; --m-sensor:#3A9A55; --m-audio:#169C8F; --m-video:#1F8FCF;
+  --m-text:#4C5CD8; --m-pixel:#7A4FD0; --m-control:#C04883; --m-event:#E0622F; --m-http:#8A6A3A;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; --sans:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark; --bg:#0F161D; --panel:#151F28; --ink:#E4ECF1; --muted:#8FA1AE; --line:#34434F; --zone:#17222C; --zone-ink:#7F92A0;
+  --node:#1C2833; --node-edge:#3F5260; --accent:#58C29A; --code:#0F171F; --hit:#F0B040; --bad:#F2706A;
+  --m-token:#F0B040; --m-motion:#B4CF3C; --m-sensor:#5DBE70; --m-audio:#2CC4B4; --m-video:#4FB3EF;
+  --m-text:#8592F2; --m-pixel:#A187F0; --m-control:#E36BA6; --m-event:#F58152; --m-http:#D2A86A;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --bg:#0F161D; --panel:#151F28; --ink:#E4ECF1; --muted:#8FA1AE; --line:#34434F; --zone:#17222C; --zone-ink:#7F92A0;
+  --node:#1C2833; --node-edge:#3F5260; --accent:#58C29A; --code:#0F171F; --hit:#F0B040; --bad:#F2706A;
+  --m-token:#F0B040; --m-motion:#B4CF3C; --m-sensor:#5DBE70; --m-audio:#2CC4B4; --m-video:#4FB3EF;
+  --m-text:#8592F2; --m-pixel:#A187F0; --m-control:#E36BA6; --m-event:#F58152; --m-http:#D2A86A;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;padding-inline:20px;padding-block:24px 40px}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:2200px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 32px}
+h1{font-weight:900;font-size:26px;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 small{font-family:var(--mono);font-weight:400;font-size:12px;color:var(--muted);margin-left:10px;letter-spacing:.04em}
+.lede{margin:4px 0 0;color:var(--muted);max-width:72ch}
+.facts{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flows{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 11px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:default;border-color:var(--line)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.spacer{flex:1}
+label.speed{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.search{position:relative;flex:1 1 280px;max-width:420px}
+.search input{width:100%;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px 6px 30px}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);pointer-events:none}
+.results{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);margin:0;padding:4px;list-style:none;max-height:360px;overflow:auto}
+.results li button{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:6px 8px;background:transparent;color:var(--ink)}
+.results li button:hover,.results li button.act{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.results .k{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--muted);margin-right:6px}
+.results .sub{display:block;font-size:11.5px;color:var(--muted)}
+.results .none{padding:8px;color:var(--muted);font-size:12.5px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
+@media (max-width:1400px){.main{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){body{padding-inline:16px}}
+.stage{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;position:relative}
+.stagebar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);position:sticky;left:0}
+.stagebar b{color:var(--ink)}
+svg#map{display:block;width:100%;min-width:1280px;height:auto;font-family:var(--sans)}
+.side{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h2{font-size:15px;margin:0 0 6px;font-weight:700;text-wrap:balance}
+.card h3{font-size:12.5px;margin:10px 0 4px;font-weight:700}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px;display:flex;justify-content:space-between;gap:8px}
+.card p{margin:0 0 8px}
+.tech{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:8px;word-break:break-word}
+.note{font-size:12px;color:var(--muted)}
+.stepnav{display:flex;gap:6px;align-items:center;margin:8px 0 10px;flex-wrap:wrap}
+.stepnav .pos{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
+ol.steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px;max-height:380px;overflow:auto}
+ol.steps li button{display:grid;grid-template-columns:22px 12px 1fr;gap:6px;align-items:start;width:100%;text-align:left;border:0;background:transparent;padding:4px 6px;border-radius:5px;font-size:12.5px;line-height:1.45;color:var(--ink)}
+ol.steps li button:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+ol.steps .n{font-family:var(--mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:1px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+ol.steps .dot{margin-top:4px}
+ol.steps .ft{font-family:var(--mono);font-size:10.5px;color:var(--muted);display:block}
+ol.steps li.on button{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.now .route{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:6px;flex-wrap:wrap}
+.now .item+.item{border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+.now .lbl{font-weight:700;font-size:14px;margin:0 0 4px}
+.file{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;margin:4px 0 6px}
+.file::before{content:"FILE  ";letter-spacing:.06em;color:var(--accent)}
+pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.plhead{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--muted);margin:6px 0 3px}
+button.term{font:inherit;padding:0 1px;border:0;border-bottom:1px dotted var(--accent);border-radius:0;background:transparent;color:inherit;cursor:help}
+button.term:hover{color:var(--accent)}
+.io{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;max-height:190px;overflow:auto}
+.io button{display:flex;gap:7px;align-items:baseline;width:100%;text-align:left;border:0;background:transparent;padding:3px 4px;border-radius:4px;font-size:12px;line-height:1.4;color:var(--ink)}
+.io button:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.io .dot{width:8px;height:8px;transform:translateY(1px)}
+.io small{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-left:auto;white-space:nowrap;padding-left:6px}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.legend button{display:flex;gap:8px;align-items:center;text-align:left;padding:5px 8px;font-size:12px;line-height:1.3}
+.legend button[aria-pressed="false"]{opacity:.4}
+.legend button[aria-pressed="true"]{background:var(--panel);color:var(--ink);border-color:var(--line)}
+.legend svg{flex:none}
+.legend small{display:block;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.gloss h2{font-size:17px;margin:0 0 2px}
+.gloss .gtools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.gloss input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;width:min(280px,100%)}
+dl.terms{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:4px 22px;margin:0}
+dl.terms div{padding:7px 8px;border-radius:6px;transition:background .3s}
+dl.terms div.flash{background:color-mix(in srgb,var(--hit) 22%,transparent)}
+dl.terms dt{font-weight:700;font-size:13px}
+dl.terms dt span{font-family:var(--mono);font-weight:400;font-size:10.5px;color:var(--muted);margin-left:6px}
+dl.terms dd{margin:0;font-size:12.5px;color:var(--muted);line-height:1.55}
+#tip{position:fixed;z-index:50;max-width:340px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.2);padding:10px 12px;font-size:12.5px;pointer-events:none}
+#tip.pin{pointer-events:auto}
+#tip .tt{font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+#tip .rt{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:6px}
+/* svg */
+.zone rect{fill:var(--zone);stroke:none}
+.zone text{fill:var(--zone-ink);font-family:var(--mono);font-size:11px;letter-spacing:.1em}
+.edge{fill:none;stroke:var(--line);stroke-width:1.4;transition:opacity .3s}
+.edge.dim{opacity:.14}
+.edge.hot{stroke:var(--accent);stroke-width:2.2}
+.node{cursor:pointer;transition:opacity .3s}
+.node rect{fill:var(--node);stroke:var(--node-edge);stroke-width:1.2}
+.node:hover rect,.node.sel rect{stroke:var(--accent);stroke-width:2.2}
+.node.hit rect{stroke:var(--hit);stroke-width:3}
+.node:focus{outline:none}.node:focus-visible rect{stroke:var(--accent);stroke-width:2.6}
+.node .t{fill:var(--ink);font-size:13px;font-weight:700}
+.node .s{fill:var(--muted);font-family:var(--mono);font-size:9.5px}
+.node.dim{opacity:.3}
+.node.hasiss rect{stroke:var(--bad);stroke-width:2}
+.node .issmark{fill:var(--bad);font-family:var(--mono);font-size:10px;font-weight:700}
+.node.iss rect{stroke:var(--bad)!important;stroke-width:3!important;stroke-dasharray:none!important}
+ul.iss{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:460px;overflow:auto}
+ul.iss li>button{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;padding:5px 6px;border-radius:5px;font-size:12.5px;line-height:1.45;color:var(--ink)}
+ul.iss li>button:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+ul.iss li.on>button{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+ul.iss li.closed .it{opacity:.6}
+.sev{flex:none;font-family:var(--mono);font-size:10px;font-weight:700;border-radius:4px;padding:0 5px;border:1px solid currentColor;margin-top:2px}
+.sev.s0{color:var(--bad)}.sev.s1{color:var(--hit)}.sev.s2{color:var(--muted)}
+.it small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.idet{padding:2px 8px 8px 36px;font-size:12.5px}
+.idet p{margin:0 0 4px}
+.inodes{display:flex;flex-wrap:wrap;gap:4px}
+.inodes button{font-size:11px;padding:1px 7px}
+.io .sev{margin-top:0}
+
+.node.plan rect{stroke-dasharray:5 3}
+.node .tag{fill:var(--hit);font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.04em}
+.node .tag.done{fill:var(--accent)}
+.node .tag.vendor{fill:var(--m-video)}
+.pill.vendor{color:var(--m-video);border-color:var(--m-video)}
+.ncode{margin-bottom:8px}
+.pill.done{color:var(--accent);border-color:var(--accent)}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--hit);border:1px solid var(--hit);border-radius:4px;padding:0 5px;text-transform:none}
+.mol{cursor:help}
+.mlabel{font-size:11px;font-weight:500;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.bond{stroke-width:1.3}
+@media (prefers-reduced-motion: reduce){.edge,.node{transition:none}}
+
+/* ---- フローの選択 ---- */
+.flows{display:flex;flex-direction:column;gap:8px}
+.frow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.flab{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted);min-width:8.5em}
+.frow button{padding:5px 9px}
+.frow .arr{color:var(--muted);font-size:14px;line-height:1}
+.fnum{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--zone);color:var(--muted);font-family:var(--mono);font-size:10.5px;font-weight:700;margin-right:6px;vertical-align:1px}
+button[aria-pressed="true"] .fnum{background:var(--bg);color:var(--ink)}
+/* ---- 図の見方 ---- */
+details.howto{margin-top:6px;max-width:80ch;font-size:13px;color:var(--muted)}
+details.howto summary{cursor:pointer;color:var(--accent);font-weight:700;width:max-content}
+details.howto ul{margin:6px 0 0;padding-left:1.2em}
+details.howto li{margin:2px 0}
+details.howto b{color:var(--ink)}
+/* ---- 経路（フローの全手順） ---- */
+.routes .rline{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rline.next{stroke-width:1.5;stroke-dasharray:3 5;opacity:.5}
+.rline.past{stroke-width:2;opacity:.55}
+.rline.cur{stroke-width:3.6}
+.rhead.next{opacity:.5}.rhead.past{opacity:.55}
+.rbadge{cursor:pointer}
+.rbadge circle{fill:var(--panel);stroke-width:1.6}
+.rbadge text{fill:var(--ink);font-family:var(--mono);font-size:10px;font-weight:700;pointer-events:none}
+.rbadge.next circle{stroke-dasharray:2 2}
+.rbadge.next text{fill:var(--muted)}
+.rbadge.cur circle{fill:var(--ink);stroke-width:2.4}
+.rbadge.cur text{fill:var(--bg);font-size:11.5px}
+.rbadge:hover circle{stroke-width:3}
+svg.routed .edge{opacity:.06}
+svg.routed .node.dim{opacity:.16}
+svg.routed .node.hasiss rect{stroke:var(--node-edge);stroke-width:1.2}
+svg.routed .node .issmark{display:none}
+svg.routed .node.curnode rect{stroke:var(--ink);stroke-width:2.4}
+.rkey{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.rkey i{display:inline-block;width:22px;height:0;border-top:2px solid var(--muted);vertical-align:middle;margin-right:4px}
+.rkey i.cur{border-top-width:4px;border-color:var(--ink)}
+.rkey i.next{border-top-style:dashed}
+/* ---- 手順の一覧（図の下） ---- */
+.seq{border-top:1px solid var(--line);padding:10px 12px 12px}
+.seqhead{margin:0 0 8px;font-weight:700;font-size:13px}
+.seqhead span{font-weight:400;font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:8px}
+.seq ol.steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;max-height:none;overflow:visible}
+.seq ol.steps li button{height:100%;border:1px solid var(--line);background:var(--bg);padding:6px 8px;grid-template-columns:24px 12px 1fr}
+.seq ol.steps li button:hover{border-color:var(--accent)}
+.seq ol.steps .n{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--muted);font-weight:700;font-size:10.5px;color:var(--ink);padding:0}
+.seq ol.steps li.done button{opacity:.62}
+.seq ol.steps li.on button{border-color:var(--ink);background:color-mix(in srgb,var(--accent) 14%,var(--bg))}
+.seq ol.steps li.on .n{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+/* フローを選んでいる間は、解説と手順の操作を右の列の先頭に出す */
+.side.flowmode #flowcard{order:-2}
+.side.flowmode #now{order:-1}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>LeRobot × SO-ARM101 詳細マップ<small>huggingface/lerobot 0.6.2 のソース・docs ＋ Seeed Wiki · 調査日 2026-10-15</small></h1>
+      <p class="lede">SO-ARM101 の 3D プリント・配線から、モーター ID 設定・校正・遠隔操作・データ収集・学習・実機配備（同期 / RTC / リモート推論）・強化学習まで、データがどの箱をどう流れるかを、分子の動きで示します。前版は文書のみから組みましたが、本版はローカルの lerobot-main（version 0.6.2）のソースコードを読んで、クラス名・既定値・ファイルの行番号まで確認しました。Seeed Wiki の手順（ハード・3D プリント・電源）も統合し、本家との食い違いは右の「注意点」に並べています。</p>
+      <details class="howto"><summary>図の見方</summary><ul><li><b>流れを追う</b>：下の「実機の一生」から 1 つ選ぶと、その流れの全手順が番号つきの矢印で図に出ます。「次へ」か ← → キーで 1 手順ずつ進みます。図の下に、同じ番号で手順の一覧が並びます。</li><li><b>線の描き分け</b>：太線がいまの手順、細い実線が済んだ手順、点線がこの後の手順。矢印がデータの向きです。</li><li><b>箱の右上のタグ</b>：緑の「ソース確認」はコードを読んで確認、緑の「公式文書」はリポジトリ内 docs で確認、青の「Seeed Wiki」は Seeed の手順書のみ、橙の「推定」は推測です。箱を開くと、該当ファイルと行番号、コード片が出ます。</li><li><b>赤枠と「!」</b>：未確認・要注意の項目がある箱（右の「注意点・未確認事項」と対応）。フローを選んでいる間は隠します。</li><li><b>分子</b>にカーソルを合わせると中身の例、<b>箱</b>をクリックするとその箱に出入りするデータの一覧が出ます。</li></ul></details>
+    </div>
+    <div class="facts" id="facts"></div>
+  </header>
+
+  <div class="controls">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".6"/><path d="M9.5 9.5L13 13" stroke="currentColor" stroke-width="1.5" opacity=".6"/></svg>
+      <input id="q" type="search" placeholder="検索：ノード名・メソッド名・用語（例 Homing_Offset, finalize, refill_seconds）" autocomplete="off" aria-label="ノード・手順・用語を検索" aria-controls="results">
+      <ul class="results" id="results" hidden></ul>
+    </div>
+    <span class="spacer"></span>
+    <label class="speed" for="speed">速度 <input type="range" id="speed" min="0.25" max="2" step="0.25" value="1"> <span id="speedv">1.0×</span></label>
+    <button id="play" type="button" aria-pressed="false">一時停止</button>
+  </div>
+  <div class="flows" id="flows" role="group" aria-label="表示するデータフロー"></div>
+
+  <div class="main">
+    <div class="stage">
+      <div class="stagebar" id="stagebar"></div>
+      <svg id="map" viewBox="0 0 1800 1010" role="img" aria-label="LeRobot のシステム構成図とデータフロー"></svg>
+      <div class="seq" id="seq" hidden><p class="seqhead">手順の流れ<span>番号は図の番号と同じ · クリックでその手順へ · ← → キーでも進めます</span></p></div>
+    </div>
+    <aside class="side">
+      <div class="card" id="issues"></div>
+      <div class="card now" id="now"></div>
+      <div class="card" id="flowcard">
+        <p class="eyebrow"><span id="flowEyebrow">全体</span></p>
+        <h2 id="flowTitle">全データフローを同時再生</h2>
+        <p class="note" id="flowDesc"></p>
+        <div class="stepnav" id="stepnav" hidden>
+          <button type="button" id="prev" aria-label="前の手順">◀ 前へ</button>
+          <button type="button" id="next" aria-label="次の手順">次へ ▶</button>
+          <button type="button" id="auto" aria-pressed="true">自動再生</button>
+          <span class="pos" id="pos"></span>
+        </div>
+        <ol class="steps" id="steps"></ol>
+      </div>
+      <div class="card" id="detail"></div>
+      <div class="card">
+        <p class="eyebrow"><span>分子の種類（クリックで表示切替）</span></p>
+        <div class="legend" id="legend"></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="card gloss" id="gloss" aria-labelledby="glossTitle">
+    <div class="gtools"><h2 id="glossTitle">用語集</h2><span class="note" id="gcount"></span><span class="spacer"></span><input id="gq" type="search" placeholder="用語を絞り込み" aria-label="用語を絞り込み"></div>
+    <dl class="terms" id="terms"></dl>
+  </section>
+
+  <p class="note">調査日: 2026-10-15。出典：ローカルの lerobot-main（pyproject の version 0.6.2）の src/lerobot 配下のソースと docs/source（so100 / so101 / inference / remote_inference / rtc / hilserl ほか）、および Seeed Studio Wiki「SO-ARM100/101 LeRobot」（lerobot_so100m_new、末尾約 5% は未取得）。各箱の FILE 欄がソースの位置です。</p>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+(()=>{
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('map');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ---------- data types (molecules) ---------- */
+const TYPES={
+  token:{name:'モデル重み',sub:'3原子 = チェックポイント',v:'--m-token'},
+  reward:{name:'報酬・人の介入（RL）',sub:'6員環 = reward / intervention',v:'--m-audio'},
+  phys:{name:'物理（部品・配線・電源）',sub:'十字 = 印刷物 / ケーブル / 電力',v:'--m-http'},
+  video:{name:'カメラ画像',sub:'5員環 = フレーム',v:'--m-video'},
+  control:{name:'呼び出し・設定',sub:'2原子 = CLI / メソッド',v:'--m-control'},
+  event:{name:'遷移・メタ情報',sub:'三方型 = EnvTransition / 区切り',v:'--m-event'},
+  text:{name:'言語指示・トークン',sub:'鎖状 = タスク文',v:'--m-text'},
+  sensor:{name:'観測・状態',sub:'4原子格子 = observation.state',v:'--m-sensor'},
+  motion:{name:'アクション（関節指令）',sub:'くの字 = action',v:'--m-motion'},
+  pixel:{name:'バッチ・テンソル',sub:'五員環+核 = 学習用バッチ',v:'--m-pixel'},
+  http:{name:'Hub 通信',sub:'菱形 = Parquet / MP4 / 重み',v:'--m-pixel'}
+};
+const SHAPES={
+  token:{a:[[-7,0],[0,0],[7,0]],b:[[0,1],[1,2]]},
+  reward:(()=>{const a=[];for(let i=0;i<6;i++){const t=i*Math.PI/3;a.push([6*Math.cos(t),6*Math.sin(t)])}return{a,b:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]}})(),
+  video:(()=>{const a=[];for(let i=0;i<5;i++){const t=i*2*Math.PI/5-Math.PI/2;a.push([7*Math.cos(t),7*Math.sin(t)])}return{a,b:[[0,1],[1,2],[2,3],[3,4],[4,0]]}})(),
+  control:{a:[[-4,0],[4,0]],b:[[0,1]]},
+  event:{a:[[0,0],[0,-7],[6,3.5],[-6,3.5]],b:[[0,1],[0,2],[0,3]]},
+  text:{a:[[-9,2],[-3,-2],[3,2],[9,-2]],b:[[0,1],[1,2],[2,3]]},
+  sensor:{a:[[-4,-4],[4,-4],[4,4],[-4,4]],b:[[0,1],[1,2],[2,3],[3,0]]},
+  motion:{a:[[-7,4],[0,-5],[7,4]],b:[[0,1],[1,2]]},
+  http:{a:[[0,-7],[6,0],[0,7],[-6,0]],b:[[0,1],[1,2],[2,3],[3,0],[0,2]]},
+  phys:{a:[[0,0],[0,-7],[7,0],[0,7],[-7,0]],b:[[0,1],[0,2],[0,3],[0,4]]},
+  pixel:(()=>{const a=[[0,0]];for(let i=0;i<5;i++){const t=i*2*Math.PI/5-Math.PI/2;a.push([7*Math.cos(t),7*Math.sin(t)])}return{a,b:[[1,2],[2,3],[3,4],[4,5],[5,1],[0,1],[0,3]]}})()
+};
+
+/* ---------- nodes ---------- */
+const DONE_TAGS=["ソース確認","公式文書"];
+const TAGCLS={'ソース確認':'done','公式文書':'done','Seeed Wiki':'vendor','推定':''};
+const N={
+ /* ===== SO-ARM101 実機（Seeed キット） ===== */
+ prints:{x:130,y:95,w:184,t:'3D プリント部品',s:'PLA+ · 充填 15%',tech:'STL：Ender / Prusa 版',tag:'Seeed Wiki',d:'本体は PLA+。ソフトグリッパーの指 2 本だけ TPU（任意）。ノズル 0.4mm・層 0.2mm、または 0.6mm・0.4mm。充填 15%。サポートは全面に付けるが、水平から 45° を超える斜面は無視し、横向きのねじ穴にはサポートを入れない。造形面 220×220mm（Ender）用は Ender_Follower_SO101.stl / Ender_Leader_SO101.stl、205×250mm（Prusa/Up）用は Prusa_Follower_SO101.stl / Prusa_Leader_SO101.stl。組立はリーダー 20 手順、フォロワー 17 手順で、差はステップ 12 以降の手先（グリッパー / ハンドル）だけ。SO101 の印刷物は SO100 のモーターキットにも合う。'},
+ servoF:{x:130,y:175,w:184,t:'フォロワー用サーボ ×6',s:'STS3215 · 1/345',tech:'ID 1–6 · 12bit（0–4095）',tag:'ソース確認',d:'コードでは 6 個とも型番 "sts3215"。ID は shoulder_pan=1、shoulder_lift=2、elbow_flex=3、wrist_flex=4、wrist_roll=5、gripper=6（so_follower.py）。分解能は 4096（tables.py）。Seeed Wiki：標準版は ST-3215-C001（7.4V・1/345）、Pro 版は ST-3215-C018 / C047（12V・1/345）。',file:'src/lerobot/robots/so_follower/so_follower.py',code:'"shoulder_pan": Motor(1, "sts3215", norm_mode_body),\n...\n"gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100)'},
+ servoL:{x:130,y:255,w:184,t:'リーダー用サーボ ×6',s:'1/191 · 1/345 · 1/147',tech:'すべて 7.4V',tag:'公式文書',d:'リーダーは自重を支えつつ軽い力で動かせるよう、関節ごとにギア比を変える（docs/so101.mdx）。L1 肩パン 1/191（C044）、L2 肩リフト 1/345（C001）、L3 肘 1/191（C044）、L4 手首屈曲・L5 手首回転・L6 グリッパー 1/147（C046）。型番の対応は Seeed Wiki。SO-100 のリーダーは、6 個のモーターからギアを抜いて使う（docs/so100.mdx）。'},
+ adapter:{x:130,y:335,w:184,t:'バスサーボ アダプタ',s:'1 アーム = 1 枚',tech:'TTL シリアル ↔ USB',tag:'Seeed Wiki',d:'各アームに 1 枚。モーターはデイジーチェーンで直列につなぎ、肩パン（ID 1）のケーブルを基板へ挿す。通信速度はコードの既定で 1,000,000 bps、Feetech プロトコル 0（feetech.py の DEFAULT_BAUDRATE / DEFAULT_PROTOCOL_VERSION）。'},
+ power:{x:130,y:415,w:184,t:'電源',s:'5V 標準 · 12V Pro フォロワー',tech:'USB は給電しない',tag:'Seeed Wiki',d:'標準版はすべて 5V。Pro 版はリーダー 5V、フォロワー 12V で、校正も含め全工程でこの組み合わせを守る。電源と USB の両方をつなぐ必要がある（USB からは給電されない）。5V と 12V を取り違えるとモーターを壊す。'},
+ usb:{x:130,y:495,w:184,t:'USB シリアルポート',s:'/dev/ttyACM0 · COMx',tech:'lerobot-find-port',tag:'Seeed Wiki',d:'Linux では先に挿した方が /dev/ttyACM0（Wiki ではフォロワー）、次が /dev/ttyACM1。権限は sudo chmod 666 /dev/ttyACM*。macOS は /dev/tty.usbmodem…。Windows では COM 番号になるはずだが、公式・Seeed とも手順は Linux 前提で、Windows の動作は確認が取れていない。USB ハブは避け、USB 3.0 に直挿しを推奨。'},
+ follower:{x:130,y:590,w:184,h:60,t:'フォロワー腕',s:'--robot.type=so101_follower',tech:'方策・リーダーに従って動く',tag:'ソース確認',d:'so100_follower と so101_follower は同じ SOFollowerRobotConfig に 2 つの名前で登録されている（config_so_follower.py）。クラスも SO100Follower = SO101Follower = SOFollower の別名。'},
+ leader:{x:130,y:680,w:184,h:60,t:'リーダー腕',s:'--teleop.type=so101_leader',tech:'人が手で動かす',tag:'ソース確認',d:'so100_leader / so101_leader も同じ SOLeaderTeleopConfig。トルクを切った状態で位置を読み続けるだけで、モーターは駆動しない（send_feedback を呼ばれたときだけ Goal_Position を書く）。'},
+ hwcam:{x:130,y:770,w:184,t:'カメラ',s:'USB(UVC) · RealSense · Orbbec',tech:'lerobot-find-cameras',tag:'Seeed Wiki',d:'公式コードのカメラ実装は opencv、realsense、reachy2_camera、zmq（src/lerobot/cameras）。Orbbec は Seeed フォークの手順で、本家 main には実装がない。MJPG 指定で 1920×1080・30fps を 3 台まで動いた報告（Wiki）。2 台を 1 つの USB ハブにつながない。D405 は 7–50cm の近距離向け。'},
+ gpu:{x:130,y:860,w:184,t:'GPU・計算機',s:'cuda · mps · xpu · cpu',tech:'Python ≥ 3.12 · torch ≥ 2.7',tag:'ソース確認',d:'pyproject.toml（lerobot 0.6.2）：requires-python >=3.12、torch >=2.7,<2.12。Seeed Wiki は Ubuntu 22.04・CUDA 12+、Jetson Orin は JetPack 6.0/6.1。RTX 50 系は nightly の cu128 版 torch と --dataset.video_backend=pyav を勧める。Apple Silicon は --policy.device=mps。'},
+ human:{x:130,y:945,w:184,t:'操作者のキー入力',s:'→ ← ESC · space · tab',tech:'pynput / 端末入力',tag:'ソース確認',d:'記録中は → でエピソードを早く終える、← で破棄して撮り直し、ESC で記録全体を終える（utils/keyboard_input.py）。DAgger では space で一時停止、tab で人の修正の開始 / 終了。キーが効かない場合、Wiki は $DISPLAY の確認と pynput==1.6.8 を挙げる。'},
+
+ /* ===== ドライバ層 ===== */
+ feetech:{x:362,y:100,w:184,h:66,t:'FeetechMotorsBus',s:'motors/feetech/feetech.py',tech:'sync_read · sync_write',tag:'ソース確認',d:'シリアルのモーターバス。1 回のパケットで 6 個まとめて読む・書く（GroupSyncRead / GroupSyncWrite）。読み取りの失敗（"Incorrect status packet!"）には num_read_retries=2 回の即時再試行。connect 後の configure_motors で、応答遅延 Return_Delay_Time を 0（既定 500µs → 2µs）、Maximum_Acceleration と Acceleration を 254 にし、STS3215 は Phase レジスタの bit4 を落として位置を 0–4095 に収める。',file:'src/lerobot/motors/feetech/feetech.py:209',code:'self.write("Return_Delay_Time", motor, 0)\nself.write("Maximum_Acceleration", motor, 254)\nself.write("Acceleration", motor, 254)'},
+ ctrl:{x:362,y:190,w:184,t:'制御テーブル',s:'motors/feetech/tables.py',tech:'ID@5 · Goal@42 · Present@56',tag:'ソース確認',d:'STS/SMS 系（sts3215）のレジスタ表。名前 → (アドレス, バイト数)。ID (5,1)、Baud_Rate (6,1)、Min_Position_Limit (9,2)、Max_Position_Limit (11,2)、Homing_Offset (31,2)、Operating_Mode (33,1)、Torque_Enable (40,1)、Goal_Position (42,2)、Lock (55,1)、Present_Position (56,2・読み取り専用)。前半が EEPROM（電源を切っても残る）、後半が RAM。',file:'src/lerobot/motors/feetech/tables.py:41'},
+ norm:{x:362,y:275,w:184,t:'正規化',s:'MotorNormMode',tech:'raw 0–4095 ↔ 度 / %',tag:'ソース確認',d:'raw 値と、ユーザーが扱う値の変換。本体 5 関節は use_degrees=True（既定）で DEGREES：(raw − (min+max)/2) × 360 / 4095。gripper は RANGE_0_100：(raw − min)/(max − min) × 100。use_degrees=False なら −100〜100。RANGE 系は min/max にクランプされるが、DEGREES はクランプされない。',file:'src/lerobot/motors/motors_bus.py:854',code:'mid = (min_ + max_) / 2\nnormalized = (val - mid) * 360 / max_res'},
+ calib:{x:362,y:360,w:184,t:'校正ファイル',s:'{id}.json',tech:'~/.cache/huggingface/lerobot/calibration',tag:'ソース確認',d:'保存先は HF_LEROBOT_CALIBRATION / robots / so_follower / {id}.json（リーダーは teleoperators / so_leader / {id}.json）。クラス名で決まるため、SO-100 と SO-101 は同じフォルダに入り、--robot.id だけで区別される。環境変数 HF_LEROBOT_HOME / HF_LEROBOT_CALIBRATION で場所を変えられる。中身は関節ごとの id・drive_mode・homing_offset・range_min・range_max。',file:'src/lerobot/robots/robot.py:39',code:'{"shoulder_pan": {"id": 1, "drive_mode": 0,\n  "homing_offset": -312, "range_min": 780, "range_max": 3310}, ...}\n(数値は例)'},
+ camlib:{x:362,y:450,w:184,h:60,t:'Camera / OpenCVCamera',s:'cameras/opencv',tech:'read_latest(max_age_ms=500)',tag:'ソース確認',d:'カメラの抽象。設定項目は index_or_path、fps、width、height、color_mode（既定 RGB）、rotation、warmup_s（既定 1）、fourcc（MJPG など）、backend。SOFollower.get_observation は read_latest を使い、裏で取り込み続けた最新フレームを返す（500ms より古いとエラー）。深度カメラ（DepthCamera）なら "<名前>_depth" も足す。',file:'src/lerobot/cameras/camera.py:153'},
+ kbd:{x:362,y:540,w:184,t:'キーボード監視',s:'utils/keyboard_input.py',tech:'events 辞書',tag:'ソース確認',d:'record_loop と共有する events 辞書を書き換える。right → exit_early、left → rerecord_episode + exit_early、esc → stop_recording + exit_early。pynput か端末入力のどちらでも同じ動作。',file:'src/lerobot/utils/keyboard_input.py:155'},
+ timer:{x:362,y:625,w:184,t:'CycleTimer',s:'utils/cycle_timer.py',tech:'fps 固定の周期と計測',tag:'ソース確認',d:'制御ループを 1/fps に合わせて待ち、区間（observe、process_obs、teleop / infer、send、record）ごとの時間を測る。終了時に「Cadence summary」を出し、何 Hz 出たか・どこが遅いかが分かる。record・teleoperate・replay・rollout が共通で使う。'},
+ viz:{x:362,y:710,w:184,t:'可視化',s:'Rerun · Foxglove',tech:'--display_data=true',tag:'ソース確認',d:'観測・行動・カメラ映像を Rerun（既定）か Foxglove に送る。--display_mode、--display_ip、--display_port。Wiki は不具合時に rerun-sdk==0.23 を挙げる。'},
+ safety:{x:362,y:800,w:184,t:'安全制限',s:'max_relative_target',tech:'1 ステップの変位を制限',tag:'ソース確認',d:'max_relative_target を設定すると、send_action のたびに現在位置を読み、目標との差を上限で切る（そのぶん fps が落ちる）。gripper は Max_Torque_Limit=500（50%）、Protection_Current=250、Overload_Torque=25 で焼損を防ぐ。切断時は既定でトルク OFF（disable_torque_on_disconnect=True）。位置制御の PID は P=16、I=0、D=32。',file:'src/lerobot/robots/so_follower/so_follower.py:209'},
+ replay:{x:362,y:890,w:184,t:'lerobot-replay',s:'scripts/lerobot_replay.py',tech:'記録した行動を再生',tag:'Seeed Wiki',d:'データセットの 1 エピソードの action 列を、そのままフォロワーへ送る。記録の確認に使う。例：lerobot-replay --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=my_awesome_follower_arm --dataset.repo_id=… --dataset.episode=0'},
+
+ /* ===== 抽象と CLI ===== */
+ robot:{x:592,y:110,w:184,h:72,t:'Robot（SOFollower）',s:'robots/so_follower/so_follower.py',tech:'get_observation · send_action',tag:'ソース確認',d:'抽象メソッドは observation_features、action_features、is_connected、connect、is_calibrated、calibrate、configure、get_observation、send_action、disconnect（robots/robot.py）。SOFollower の観測は "<関節>.pos" 6 個 + カメラ画像、行動は "<関節>.pos" 6 個。send_action は実際に送った（クリップ後の）行動を返す。with 文でも使える。',file:'src/lerobot/robots/robot.py:30',code:'obs = robot.get_observation()\n# {"shoulder_pan.pos": 3.1, ..., "front": uint8[480,640,3]}\nrobot.send_action({"shoulder_pan.pos": 5.0, ...})'},
+ teleop:{x:592,y:225,w:184,h:72,t:'Teleoperator（SOLeader）',s:'teleoperators/so_leader/so_leader.py',tech:'get_action · send_feedback',tag:'ソース確認',d:'操作側の抽象。SOLeader.get_action は Present_Position を sync_read して "<関節>.pos" の dict を返すだけ。send_feedback は Goal_Position を書く（力覚・位置のフィードバック用）。対応：so_leader、koch_leader、omx_leader、openarm、gamepad、keyboard、phone、homunculus、reachy2、unitree_g1 など。',file:'src/lerobot/teleoperators/so_leader/so_leader.py:169'},
+ clis:{x:592,y:345,w:184,h:72,t:'CLI 群',s:'pyproject [project.scripts]',tech:'lerobot-* 21 本',tag:'ソース確認',d:'find-port、find-cameras、setup-motors、calibrate、teleoperate、record、replay、dataset-viz、edit-dataset、train、train-tokenizer、eval、rollout、policy-server、find-joint-limits、info、imgtransform-viz、annotate、setup-can、convert-dcp、build-mp4-sidecar。実体は src/lerobot/scripts/lerobot_*.py の main()。'},
+ cfg:{x:592,y:455,w:184,t:'設定パーサ',s:'draccus · configs/parser.py',tech:'--robot.type=… → dataclass',tag:'ソース確認',d:'CLI 引数を dataclass に読み込む。--robot.type の値は RobotConfig.register_subclass("so101_follower") などの登録名で、対応するクラスが選ばれる。--config_path で JSON / YAML からも読める。'},
+ plug:{x:592,y:545,w:184,t:'拡張プラグイン',s:'lerobot_robot_* など',tech:'自動検出',tag:'公式文書',d:'lerobot_robot_、lerobot_teleoperator_、lerobot_camera_ で始まるパッケージを入れると自動で読み込まれ、--robot.type=<名前> で使える。rollout の戦略も lerobot_strategy_<名前> で追加できる（docs/inference.mdx）。'},
+ hist:{x:592,y:635,w:184,t:'旧版との違い',s:'0.6.2（本リポジトリ）',tech:'async_inference → remote_inference',tag:'ソース確認',d:'このリポジトリ（version 0.6.2）には lerobot.async_inference が無い。非同期推論は lerobot.remote_inference（Zenoh）＋ lerobot-policy-server と、rollout の --inference.type=rtc / remote に置き換わっている。Seeed Wiki の async_inference 手順（gRPC・8080 番）は Seeed フォーク向け。'},
+
+ /* ===== 変換とデータセット ===== */
+ p_obs:{x:832,y:95,w:224,t:'robot_observation_processor',s:'既定 = 恒等変換',tech:'obs → obs',tag:'ソース確認',d:'ロボットの素の観測に掛ける Pipeline。record では make_default_processors() の既定が恒等なので、SO-101 では観測がそのまま通る。EE（手先）制御の例（examples/so100_to_so100_EE）では、ここで順運動学を足す。',file:'src/lerobot/processor/factory.py:81'},
+ p_tel:{x:832,y:170,w:224,t:'teleop_action_processor',s:'(action, obs) → action',tech:'操作器の行動を整える',tag:'ソース確認',d:'操作器の生の行動に掛ける Pipeline。入力は (行動, 観測) の組。既定は恒等。phone や EE 系の操作器では、ここで相対移動を目標へ直す。データセットに保存される action は、この出力。'},
+ p_act:{x:832,y:245,w:224,t:'robot_action_processor',s:'(action, obs) → robot action',tech:'ロボットへ送る直前',tag:'ソース確認',d:'ロボットへ送る直前の Pipeline。既定は恒等。IK（逆運動学）で手先座標を関節角に直すならここ。record と rollout の両方で使われる。'},
+ trans:{x:832,y:320,w:224,t:'EnvTransition・変換関数',s:'processor/converters.py',tech:'dict ⇄ transition ⇄ batch',tag:'ソース確認',d:'Pipeline の中を流れる共通の型付き辞書 EnvTransition（OBSERVATION、ACTION、REWARD、DONE、TRUNCATED、INFO、COMPLEMENTARY_DATA）。DataProcessorPipeline は to_transition で入力を変換し、各 ProcessorStep を順に通し、to_output で戻す。RobotProcessorPipeline と PolicyProcessorPipeline は、同じ DataProcessorPipeline の別名（pipeline.py:1864）。',file:'src/lerobot/processor/pipeline.py:274'},
+ feat:{x:832,y:395,w:224,t:'フィーチャー契約',s:'aggregate_pipeline_dataset_features',tech:'保存する形を先に確定',tag:'ソース確認',d:'create_initial_features(action=teleop.action_features / observation=robot.observation_features) を各 Pipeline の transform_features に通し、処理後のキー・形・型を求める。それを LeRobotDataset.create(features=…) に渡す。',file:'src/lerobot/scripts/lerobot_record.py:419'},
+ record:{x:832,y:480,w:224,h:66,t:'record_loop()',s:'scripts/lerobot_record.py:228',tech:'観測 → 操作 → 送信 → 保存',tag:'ソース確認',d:'1 周の中身：robot.get_observation → robot_observation_processor → teleop.get_action → teleop_action_processor → robot_action_processor → robot.send_action → dataset.add_frame → 可視化 → timer.wait。エピソード後に reset_time_s の間（記録なしで）同じループを回して環境を戻す。teleop が無いとエラー（方策の配備は lerobot-rollout を使えと出る）。',file:'src/lerobot/scripts/lerobot_record.py:228'},
+ writer:{x:832,y:575,w:224,t:'DatasetWriter',s:'image_writer · 動画エンコード',tech:'PNG → MP4（save_episode 時）',tag:'ソース確認',d:'add_frame はフレームをバッファし、画像は image_writer のスレッド（既定 1 カメラ 4 本）で PNG に書き出す。save_episode で、エピソードの画像を MP4 にエンコードし、Parquet に追記する。--dataset.streaming_encoding=true なら記録中に逐次エンコードする。'},
+ ds:{x:832,y:665,w:224,h:66,t:'LeRobotDataset v3.0',s:'datasets/lerobot_dataset.py',tech:'data/*.parquet + videos/*.mp4 + meta/',tag:'ソース確認',d:'CODEBASE_VERSION = "v3.0"。表は data/chunk-000/file-000.parquet、映像は videos/<カメラキー>/chunk-000/file-000.mp4。複数エピソードを 1 ファイルに連結し、Parquet は約 100MB、MP4 は約 200MB で次のファイルへ、1 chunk に最大 1000 ファイル。各フレームは timestamp、frame_index、episode_index、index、task_index を必ず持つ。torch の Dataset として __getitem__ で tensor の dict を返す。',file:'src/lerobot/datasets/utils.py:92',code:'data/chunk-000/file-000.parquet\nvideos/observation.images.front/chunk-000/file-000.mp4\nmeta/info.json  meta/stats.json\nmeta/tasks.parquet  meta/episodes/chunk-000/file-000.parquet'},
+ meta:{x:832,y:760,w:224,t:'meta/',s:'info · stats · tasks · episodes',tech:'エピソード境界と統計',tag:'ソース確認',d:'info.json（fps、features、パスの書式）、stats.json（平均・標準偏差・最小・最大・分位点 1/10/50/90/99%）、tasks.parquet（タスク文 ⇄ task_index）、episodes/*.parquet（各エピソードの開始・終了位置）。finalize() を呼ばないと、Parquet のフッタが書かれず読めなくなる。'},
+ stream:{x:832,y:845,w:224,t:'StreamingLeRobotDataset',s:'datasets/streaming_dataset.py',tech:'Hub から直接読む',tag:'ソース確認',d:'全体をダウンロードせずに学習する。lerobot-train では --dataset.streaming=true。Storage Bucket は repo_type="bucket"。ストリーミング時は EpisodeAwareSampler が使えない（map-style でないため）。'},
+ dtools:{x:832,y:930,w:224,t:'データセット編集',s:'lerobot-edit-dataset',tech:'削除 · 分割 · 結合 · 特徴追加',tag:'公式文書',d:'エピソードの削除、分割、複数データセットの結合（aggregate.py）、特徴量の追加・削除。可視化は lerobot-dataset-viz --repo-id <repo>。'},
+
+ /* ===== 学習と評価 ===== */
+ train:{x:1072,y:95,w:184,t:'lerobot-train',s:'scripts/lerobot_train.py',tech:'steps 100k · batch 8',tag:'ソース確認',d:'既定値（configs/train.py）：steps=100_000、batch_size=8、num_workers=4、log_freq=200、save_freq=20_000、env_eval_freq=20_000、seed=1000。accelerate で複数 GPU・混合精度。WandB は --wandb.enable。例：lerobot-train --dataset.repo_id=${HF_USER}/so101_test --policy.type=act --output_dir=outputs/train/act_so101_test --policy.device=cuda --wandb.enable=false',file:'src/lerobot/configs/train.py:142'},
+ factory:{x:1072,y:175,w:184,t:'ファクトリ',s:'policies/factory.py',tech:'make_policy · make_pre_post_processors',tag:'ソース確認',d:'make_policy が --policy.type から方策クラスを作り、データセットのメタから入出力特徴量を決める。make_pre_post_processors が方策ごとの前処理・後処理を返す（ACT なら make_act_pre_post_processors → 既定構成）。'},
+ pproc:{x:1072,y:260,w:184,h:66,t:'Policy 前処理・後処理',s:'PolicyProcessorPipeline',tech:'Rename→Batch→Device→Normalize',tag:'ソース確認',d:'既定（make_default_pre_post_processors）：前処理は RenameObservations → AddBatchDimension → Device（GPU）→ Normalizer、後処理は Unnormalizer → Device（cpu）。VLA は Tokenizer などを挟む。正規化には meta/stats.json の統計を使い、policy_preprocessor.json / policy_postprocessor.json として重みと一緒に保存される。',file:'src/lerobot/processor/factory.py:167'},
+ policy:{x:1072,y:355,w:184,h:72,t:'Policy（ACT ほか）',s:'PreTrainedPolicy',tech:'forward · select_action',tag:'ソース確認',d:'学習は policy(batch) → (loss, 情報)、推論は select_action。ACT の既定：chunk_size=100、n_action_steps=100、視覚 backbone は resnet18（ImageNet 重み）、dim_model=512、n_heads=8、VAE あり。src/lerobot/policies には act、diffusion、vqbet、multi_task_dit、tdmpc、gaussian_actor（RL）、pi0、pi0_fast、pi05、smolvla、groot、xvla、eo1、evo1、molmoact2、wall_x、dm05、fastwam、lawam、lingbot_va、vla_jepa、fineart_vla、flux3 など。',file:'src/lerobot/policies/act/configuration_act.py'},
+ loader:{x:1072,y:455,w:184,t:'DataLoader',s:'EpisodeAwareSampler',tech:'batch_size · num_workers',tag:'ソース確認',d:'map-style のデータセットでは EpisodeAwareSampler でエピソード境界を考慮してサンプルする。delta_timestamps で過去フレームや未来の行動列（ACT ならチャンク 100 本）を一緒に取り出す。'},
+ optim:{x:1072,y:540,w:184,t:'最適化・Accelerate',s:'optim/ · accelerate',tech:'backward · clip · step',tag:'ソース確認',d:'update_policy：accelerator.autocast の下で loss を計算 → accelerator.backward → 勾配クリップ（grad_clip_norm）→ optimizer.step → scheduler。勾配累積・FSDP・EMA に対応。--accelerator.mixed_precision=bf16 など。',file:'src/lerobot/scripts/lerobot_train.py:201'},
+ ckpt:{x:1072,y:625,w:184,t:'チェックポイント',s:'checkpoints/<step>/',tech:'pretrained_model · training_state',tag:'ソース確認',d:'outputs/train/<名前>/checkpoints/<step>/pretrained_model/（設定・重み safetensors・前後処理）と training_state/（optimizer_state.safetensors、scheduler_state.json、training_step.json）。最新へのリンクが checkpoints/last。再開は --config_path=…/train_config.json --resume=true。'},
+ eval:{x:1072,y:710,w:184,t:'lerobot-eval',s:'scripts/lerobot_eval.py',tech:'--env.type · --eval.n_episodes',tag:'ソース確認',d:'シミュレーション環境で方策を複数エピソード動かし、成功率などを集計する。例：lerobot-eval --policy.path=lerobot/pi0_libero_finetuned --env.type=libero --env.task=libero_object --eval.n_episodes=10。ヘッドレスでは MUJOCO_GL=egl。実機の評価には使わない。'},
+ envs:{x:1072,y:795,w:184,t:'シミュレーション環境',s:'envs/factory.py',tech:'make_env',tag:'ソース確認',d:'envs/ に libero、metaworld、robocasa、robomme、robotwin、vlabench。Hub 上の環境（EnvHub）は、trust_remote_code=True を明示しないと読み込まない（envs/factory.py:63、既定 False）。',file:'src/lerobot/envs/factory.py:63'},
+ bench:{x:1072,y:880,w:184,t:'ベンチマーク',s:'LIBERO · Meta-World …',tech:'標準タスク群',tag:'公式文書',d:'LIBERO、LIBERO-plus、Meta-World、RoboTwin 2.0、RoboCasa、RoboCerebra、RoboMME、IsaacLab Arena、VLABench（docs）。'},
+ imgaug:{x:1072,y:960,w:184,t:'画像拡張（学習時のみ）',s:'transforms/',tech:'ColorJitter など',tag:'公式文書',d:'記録時は生画像を保存し、拡張は学習時だけ掛ける。既定は無効。'},
+
+ /* ===== 配備（rollout） ===== */
+ rollout:{x:1302,y:110,w:196,h:72,t:'lerobot-rollout',s:'rollout/ · scripts/lerobot_rollout.py',tech:'方策を実機で動かす唯一の CLI',tag:'ソース確認',d:'--policy.path（Hub か outputs/…/pretrained_model）、--robot.*、--task、--fps（既定 30）、--duration（0 = 無限）、--device、--interactive（/start、/subtask、/reset、/stop を端末から）、--interpolation_multiplier。終了時は既定で初期姿勢へ戻る（--return_to_initial_position）。',file:'docs/source/inference.mdx'},
+ strat:{x:1302,y:215,w:196,t:'戦略 --strategy.type',s:'base · sentry · highlight · dagger · episodic',tech:'記録の仕方を決める',tag:'公式文書',d:'base：記録なし。sentry：連続記録して N エピソードごとに Hub へ。highlight：直近 N 秒をリングバッファに持ち、s キーで保存。dagger：方策と人の修正を交互に（修正フレームに intervention=True）。episodic：lerobot-record と同じエピソード単位の記録で、方策が動かし、リセット中だけ人が操作。'},
+ engine:{x:1302,y:300,w:196,t:'推論エンジン',s:'--inference.type',tech:'sync（既定）· rtc · remote',tag:'ソース確認',d:'sync：制御 1 周ごとに方策を呼び、計算中は待つ。rtc：同じプロセスの裏スレッドでチャンクを作る。remote：別の計算機の policy server に任せ、ロボット側は重みを読まない（inference/factory.py の SyncInferenceConfig / RTCInferenceConfig / RemoteInferenceConfig）。',file:'src/lerobot/inference/factory.py:74'},
+ rtc:{x:1302,y:385,w:196,t:'RTC（Real-Time Chunking）',s:'policies/rtc',tech:'前のチャンクに合わせて次を生成',tag:'公式文書',d:'裏スレッドが次のチャンクを計算し、まだ実行していない残りの軌道に沿うよう、推論そのものを誘導する。Pi0、Pi0.5、SmolVLA 向け。主な引数：--inference.rtc.execution_horizon、--inference.rtc.max_guidance_weight、--inference.rtc.mode（guided / trained）。行動が尽きると、対応ロボット（SO など）は action_starvation_grace_s（既定 1 秒）だけ位置を保持して待つ。'},
+ rclient:{x:1302,y:470,w:196,t:'リモート推論クライアント',s:'--inference.type=remote',tech:'endpoint tcp/127.0.0.1:7447',tag:'ソース確認',d:'ロボット側。--inference.endpoint（既定 tcp/127.0.0.1:7447）、--inference.deployment、--inference.semantics（例 so101-degrees-gripper-percent-v1）。サーバと名前・行動の単位と順序が一致しないと、動き出す前に拒否される。--policy.path は渡さない。',file:'src/lerobot/inference/factory.py:102'},
+ abuf:{x:1302,y:555,w:196,t:'アクションバッファ',s:'refill_seconds = 0.5',tech:'残りが少なくなったら次を要求',tag:'ソース確認',d:'実行待ちの行動の列。残りが refill_seconds（既定 0.5 秒）ぶんを切ったら、新しい観測をサーバへ送り、その間も手元の行動で動き続ける。旧 async_inference の chunk_size_threshold に当たる役割。'},
+ merge:{x:1302,y:640,w:196,t:'チャンクの結合',s:'chunk_merge',tech:'append · aligned · blend',tag:'公式文書',d:'新しいチャンクをどう継ぐか。append：古いチャンクの後ろに足す。aligned（既定）：すでに過ぎたステップを捨て、未来だけ置き換える。blend：重なる部分を q + w(i − q) で混ぜる（--inference.blend_steps、blend_weight、blend_components。グリッパーは除外を推奨）。'},
+ interp:{x:1302,y:725,w:196,t:'補間・保持',s:'--interpolation_multiplier',tech:'fps × N Hz でモーターへ',tag:'公式文書',d:'方策の 1 行動の間にモーター指令を N 回補間して滑らかにする。一時停止や行動切れのとき、位置保持に対応したロボット（SO、OMX、Koch、HopeJr、Rebot）は最後の目標を保持する。保持はソフトウェア上のもので、把持の維持を保証しない（docs）。'},
+ hdag:{x:1302,y:815,w:196,t:'人の修正（DAgger）',s:'space=停止 · tab=修正',tech:'intervention=True で記録',tag:'公式文書',d:'方策の実行中に tab で人がリーダーから引き継ぎ、修正区間を記録する。既定は修正区間だけを 1 エピソードとして保存。--strategy.record_autonomous=true なら自律区間も含め連続記録。足踏みペダルにも対応。'},
+
+ /* ===== Hub・外部 ===== */
+ hub:{x:1532,y:110,w:150,h:64,t:'HF Hub',s:'データ · 重み · 環境',tech:'push_to_hub · from_pretrained',tag:'公式文書',d:'データセット、学習済み方策（pretrained_model）、環境の共有場所。ログインは huggingface-cli login、ユーザー名は HF_USER=$(huggingface-cli whoami | head -n 1)（Wiki）。ローカルのキャッシュは ~/.cache/huggingface/lerobot（HF_LEROBOT_HOME）。'},
+ bucket:{x:1692,y:110,w:150,t:'Storage Bucket',s:'repo_type="bucket"',tech:'データの置き場',tag:'公式文書',d:'HF Storage Bucket に置いたデータセットも、ストリーミングで読める。'},
+ hfjobs:{x:1532,y:200,w:150,t:'HF Jobs',s:'クラウド GPU',tech:'学習の実行先',tag:'公式文書',d:'LeLab からクラウド GPU で学習を投げる先。'},
+ lelab:{x:1692,y:200,w:150,t:'LeLab',s:'GUI',tech:'huggingface/leLab',tag:'公式文書',d:'機体の追加・校正・遠隔操作・記録・学習・実行を GUI で行う。中身の処理は同じ。'},
+ seeed:{x:1532,y:285,w:150,t:'Seeed 版 lerobot',s:'Seeed-Projects/lerobot',tech:'Wiki 手順の前提',tag:'Seeed Wiki',d:'Seeed Wiki の手順はこのフォークを git clone して pip install -e ".[feetech]" する。Orbbec カメラ、旧 async_inference など、本家 main と内容が違う箇所がある。'},
+ wandb:{x:1692,y:285,w:150,t:'Weights & Biases',s:'--wandb.enable',tech:'学習ログ',tag:'ソース確認',d:'log_freq（既定 200 ステップ）ごとに損失・学習率・勾配ノルムなどを記録する。'},
+
+ /* ===== リモート推論サーバ ===== */
+ pserver:{x:1532,y:400,w:150,h:64,t:'policy server',s:'lerobot-policy-server',tech:'GPU 側で重みを持つ',tag:'公式文書',d:'server.yaml（model.repo_or_path、model.device、model.revision、features、action_feature、semantics、robot_type、execution.action_fps）を読み、重みを読み込んでウォームアップし、"Policy server ready" を出してクライアント 1 台を待つ。CLI で --model.device=cuda などと上書きできる。'},
+ zenoh:{x:1692,y:400,w:150,h:64,t:'Zenoh 通信',s:'transport/zenoh.py',tech:'tcp/<ip>:7447',tag:'ソース確認',d:'リモート推論の通信路（zenoh 1.9–1.10）。LAN で使うときは --zenoh.listen_endpoints=[tcp/<サーバ IP>:7447] と --inference.endpoint を合わせる。インターフェースを絞っても相手の認証にはならないため、研究室の外では認証付きの接続を使う（docs）。'},
+ srvcfg:{x:1612,y:480,w:170,t:'server.yaml',s:'examples/remote_inference',tech:'deployment · semantics',tag:'公式文書',d:'クライアントの --inference.deployment と --inference.semantics は、この設定と一致させる。例は「SO-101・6 関節・前カメラ 1 台」を想定。'},
+
+ /* ===== RL · HIL-SERL ===== */
+ gym:{x:1532,y:600,w:150,h:64,t:'gym_manipulator',s:'rl/gym_manipulator.py',tech:'実機の gym 環境',tag:'ソース確認',d:'RobotEnv（gym.Env）に robot・teleop・processor をまとめる。mode は record / replay / None（学習）。制御 fps の既定は 10。'},
+ actor:{x:1692,y:600,w:150,h:64,t:'Actor',s:'rl/actor.py',tech:'実機で探索',tag:'ソース確認',d:'実機で方策を動かして遷移を集め、learner へ送る。learner から新しい重みを受け取る。'},
+ learner:{x:1532,y:695,w:150,h:64,t:'Learner',s:'rl/learner.py',tech:'SAC で更新',tag:'ソース確認',d:'リプレイバッファから取り出して SAC で更新。重みを actor へ送る間隔は policy_parameters_push_frequency=4 秒（gaussian_actor の設定）。SAC の既定：discount=0.99、temperature_init=1.0、utd_ratio=1。'},
+ buffer:{x:1692,y:695,w:150,t:'ReplayBuffer',s:'rl/buffer.py',tech:'online / offline 各 100k',tag:'ソース確認',d:'online_buffer_capacity と offline_buffer_capacity は既定 100,000。先に集めたデモのデータセットを offline 側に入れられる。'},
+ grpc:{x:1692,y:780,w:150,t:'gRPC LearnerService',s:'transport/services.proto',tech:'Stream · Send · Ready',tag:'ソース確認',d:'actor ⇄ learner の通信。rpc は StreamParameters（重みの配信）、SendTransitions（遷移）、SendInteractions（介入などの統計）、Ready。'},
+ rewcls:{x:1532,y:785,w:150,t:'報酬分類器',s:'rewards/classifier',tech:'画像 → 成功確率',tag:'公式文書',d:'画像から成功か失敗かを判定する学習済みモデル（任意）。RewardClassifierProcessorStep で使う。無ければキー入力で成功を与える。'},
+ hil:{x:1532,y:870,w:150,t:'人の介入',s:'InterventionActionProcessorStep',tech:'space で引き継ぐ',tag:'ソース確認',d:'学習中に人がリーダーやゲームパッドで割り込み、方策の行動を置き換える。介入の有無は遷移に記録され、learner へ送られる。'},
+ ee:{x:1692,y:870,w:150,t:'EE 空間処理',s:'robot_kinematic_processor.py',tech:'IK · 境界 · 安全',tag:'ソース確認',d:'手先の x/y/z の変位を、境界と安全の制約をかけて関節角へ直す（so_follower/robot_kinematic_processor.py、model/kinematics.py）。URDF が必要。範囲は lerobot-find-joint-limits で測る。'},
+ crop:{x:1612,y:955,w:170,t:'ROI 切り出し',s:'rl/crop_dataset_roi.py',tech:'ImageCropResizeProcessorStep',tag:'ソース確認',d:'画像の注目領域 (top, left, height, width) を選び、切り出し・縮小（推奨 128×128）したデータセットを作る。'}
+};
+const ZONES=[
+ {x:28,y:38,w:204,h:962,t:'SO-ARM101 · 実機（Seeed キット）'},
+ {x:260,y:38,w:204,h:962,t:'DRIVER · モーター/カメラ層'},
+ {x:490,y:38,w:204,h:962,t:'LEROBOT · 抽象と CLI'},
+ {x:710,y:38,w:244,h:962,t:'LEROBOT · 変換とデータセット'},
+ {x:970,y:38,w:204,h:962,t:'LEROBOT · 学習と評価'},
+ {x:1194,y:38,w:216,h:962,t:'LEROBOT · 配備 rollout'},
+ {x:1440,y:38,w:344,h:285,t:'HUGGING FACE · 外部'},
+ {x:1440,y:340,w:344,h:180,t:'REMOTE INFERENCE · サーバ'},
+ {x:1440,y:540,w:344,h:460,t:'RL · HIL-SERL'}];
+for(const k in N){const n=N[k];n.w=n.w||150;n.h=n.h||52;n.id=k}
+
+/* ---------- flows ---------- */
+const S=(a,b,type,label,ex,file,pl)=>({a,b,type,label,ex,file,pl});
+const FLOWS=[
+ {id:'build',t:'キット組立',d:'3D プリントから配線・給電まで。ソフトウェアに入る前の物理的な準備です。',steps:[
+  [S('prints','follower','phys','フォロワー部品を印刷','PLA+、ノズル 0.4mm・層 0.2mm（または 0.6/0.4）、充填 15%。45° を超える斜面以外はサポートを付け、横向きのねじ穴には付けない。','Seeed Wiki · 3D Printing Guide','Ender_Follower_SO101.stl（220×220）/ Prusa_Follower_SO101.stl（205×250）'),
+   S('prints','leader','phys','リーダー部品を印刷','フォロワーとの差は手先（ハンドル）だけ。','Seeed Wiki','Ender_Leader_SO101.stl / Prusa_Leader_SO101.stl')],
+  S('servoF','follower','phys','フォロワーに 1/345 を 6 個','全関節が同じギア比。標準 7.4V（C001）、Pro は 12V（C018/C047）。組立は 17 手順。','docs/source/so101.mdx:35 · Seeed Wiki','F1–F6：ST-3215 1/345'),
+  S('servoL','leader','phys','リーダーに混合ギア','軽く動かせて自重も支えるよう関節ごとに違うギア。組立は 20 手順。SO-100 ではリーダーのギアを抜く。','docs/source/so101.mdx:37','L1 1/191 · L2 1/345 · L3 1/191 · L4–L6 1/147'),
+  [S('follower','adapter','phys','デイジーチェーン配線','肩パン（ID 1）のケーブルを基板へ。1 アームに 1 枚。','Seeed Wiki','ID1 ─ ID2 ─ … ─ ID6 ─ 基板'),
+   S('leader','adapter','phys','リーダーも同様','','Seeed Wiki','—')],
+  S('power','adapter','phys','電源をつなぐ','USB は給電しない。標準 5V、Pro はフォロワーだけ 12V。取り違えるとモーター破損。','Seeed Wiki','5V / 12V DC'),
+  S('adapter','usb','phys','USB で PC へ','Linux なら /dev/ttyACM*。権限を付ける。','Seeed Wiki','sudo chmod 666 /dev/ttyACM*'),
+  S('usb','gpu','phys','PC 側の環境','Python 3.12 以上の仮想環境に、feetech 付きでインストール。','pyproject.toml · Seeed Wiki','conda create -n lerobot python=3.12\npip install -e ".[feetech]"')
+ ]},
+
+ {id:'setup',t:'ポート検出と ID 設定',d:'新品のモーターは ID が全部 1 なので、1 個ずつつないで ID とボーレートを書き込みます。初回だけの作業です。',steps:[
+  S('clis','usb','control','lerobot-find-port','抜く前と抜いた後のポート一覧の差から、アームのポートを特定する。2 本のアームで 2 回行う。','scripts/lerobot_find_port.py','lerobot-find-port'),
+  S('clis','robot','control','lerobot-setup-motors','フォロワーとリーダーで 1 回ずつ。','scripts/lerobot_setup_motors.py','lerobot-setup-motors --robot.type=so101_follower --robot.port=/dev/ttyACM0\nlerobot-setup-motors --teleop.type=so101_leader --teleop.port=/dev/ttyACM1'),
+  S('robot','feetech','control','逆順に 1 個ずつ','gripper → wrist_roll → … → shoulder_pan の順に「その 1 個だけ基板につないで Enter」を求める。','so_follower.py setup_motors()','for motor in reversed(self.bus.motors):\n    input("Connect the controller board to the ... motor only")'),
+  S('servoF','feetech','sensor','ボーレートを総当たりで探索','対応ボーレートを順に試して ping し、ちょうど 1 個見つかることと型番が合うことを確かめる。','motors/feetech/feetech.py:165','scan → (baudrate, id=1)'),
+  S('feetech','ctrl','control','ID と Baud_Rate を書く','トルクを切り、ID（アドレス 5）を目標の番号へ、Baud_Rate（アドレス 6）を 1,000,000 へ。','motors/motors_bus.py:589','write ID: 1 → 6\nwrite Baud_Rate → 1_000_000'),
+  S('ctrl','servoF','control','EEPROM に残る','電源を切っても保持。全部つないでから肩パン側を基板へ挿す。','docs/source/so101.mdx:104','"gripper" motor id set to 6')
+ ]},
+
+ {id:'calib',t:'校正',d:'関節の中央と可動域をモーターと JSON の両方に書きます。これがあるので、別の個体で学習した方策が動きます。',steps:[
+  S('clis','robot','control','lerobot-calibrate','--robot.id が校正ファイルの名前になる。以後の teleoperate・record・rollout で同じ id を使う。','scripts/lerobot_calibrate.py','lerobot-calibrate --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=my_awesome_follower_arm'),
+  S('calib','robot','event','既存の校正を確認','Robot の初期化時に {id}.json を読む。あれば Enter で再利用（モーターへ書き戻すだけ）、c で校正し直す。','robots/robot.py:39 · so_follower.py calibrate()','~/.cache/huggingface/lerobot/calibration/robots/so_follower/my_awesome_follower_arm.json'),
+  S('robot','feetech','control','トルク OFF・位置モード','手で動かせる状態にする。','so_follower.py calibrate()','disable_torque(); Operating_Mode = POSITION'),
+  S('servoF','feetech','sensor','中央姿勢の位置を読む','画面の ASCII 図の姿勢（各関節を可動域の中央）にして Enter。','motors/motors_bus.py:775','Present_Position（raw）'),
+  S('feetech','ctrl','control','Homing_Offset を書く','いまの位置がちょうど半回転（2047）になるよう、オフセット = 位置 − 2047 を書く（±2047 にクランプ）。','motors/feetech/feetech.py:278','Homing_Offset = pos − 2047'),
+  S('servoF','feetech','sensor','可動域を記録','wrist_roll 以外を端から端まで動かす。20ms ごとに min / max を更新し、Enter で終了。wrist_roll は一周回るので 0–4095 に固定。','motors/motors_bus.py:803','NAME            |    MIN |    POS |    MAX\nshoulder_pan    |    780 |   2047 |   3310'),
+  S('feetech','ctrl','control','位置の上限・下限を書く','write_calibration が Homing_Offset、Min_Position_Limit、Max_Position_Limit をモーターへ。','motors/feetech/feetech.py:268','Min_Position_Limit / Max_Position_Limit'),
+  S('robot','calib','event','JSON に保存','draccus で書き出す。','robots/robot.py _save_calibration()','{"shoulder_pan": {"id": 1, "drive_mode": 0, "homing_offset": …, "range_min": …, "range_max": …}, …}'),
+  S('calib','norm','control','以後の正規化に使う','5 関節は度（中央が 0°）、gripper は 0–100%。','motors/motors_bus.py:854','shoulder_pan.pos = (raw − 中点) × 360 / 4095')
+ ]},
+
+ {id:'teleop',t:'遠隔操作',d:'リーダーの関節角を読み、そのままフォロワーの目標角として書く。1 周ごとに fps で待ちます。データは残しません。',steps:[
+  S('clis','robot','control','lerobot-teleoperate','両方の id を指定する。--display_data=true でカメラも表示。','scripts/lerobot_teleoperate.py','lerobot-teleoperate --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=my_awesome_follower_arm --teleop.type=so101_leader --teleop.port=/dev/ttyACM1 --teleop.id=my_awesome_leader_arm'),
+  [S('robot','feetech','control','フォロワーを configure','PID P=16・I=0・D=32。gripper はトルク 50% 上限など焼損対策。','so_follower.py:209','P_Coefficient=16, D_Coefficient=32\ngripper: Max_Torque_Limit=500'),
+   S('teleop','feetech','control','リーダーを configure','トルクは切ったまま（人が動かす）。','so_leader.py configure()','disable_torque()')],
+  S('leader','teleop','sensor','関節角を読む','get_action：Present_Position を一括読み出し、度に直す。失敗時は即 2 回まで再試行。','so_leader.py:169','{"shoulder_pan.pos": 12.3, …, "gripper.pos": 40.0}'),
+  S('teleop','p_tel','motion','teleop_action_processor','既定は恒等。','processor/factory.py:81','(action, obs) → action'),
+  S('p_tel','p_act','motion','robot_action_processor','既定は恒等。','processor/factory.py:81','(action, obs) → robot_action'),
+  S('p_act','robot','motion','send_action()','"<関節>.pos" から ".pos" を外して目標位置にする。','so_follower.py send_action()','goal_pos = {"shoulder_pan": 12.3, …}'),
+  S('robot','safety','motion','変位の制限（任意）','max_relative_target があれば現在位置を読み、差を切る。','robots/utils.py ensure_safe_goal_position','（既定 None = 制限なし）'),
+  S('robot','norm','motion','度 → raw へ逆変換','校正の min/max と中点を使う。','motors/motors_bus.py:883','12.3° → raw 2187'),
+  S('norm','feetech','motion','Goal_Position を一括書き込み','sync_write で 6 個同時。','motors/motors_bus.py:1221','Goal_Position（アドレス 42）'),
+  S('feetech','follower','motion','フォロワーが追従','','—','—'),
+  S('timer','robot','event','fps で待つ','次の周期まで待って繰り返す。','scripts/lerobot_teleoperate.py:140','fps = 60（teleoperate の既定）')
+ ]},
+
+ {id:'record',t:'データ収集',d:'遠隔操作しながら、観測・行動・タスク文を 1 フレームずつ積み、エピソードごとに動画化して保存します。',steps:[
+  S('clis','record','control','lerobot-record を起動','既定：fps 30、episode_time_s 60、reset_time_s 60、num_episodes 50、video True、push_to_hub True。','configs/dataset.py · Seeed Wiki','lerobot-record --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=my_awesome_follower_arm --robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30, fourcc: MJPG}}" --teleop.type=so101_leader --teleop.port=/dev/ttyACM1 --teleop.id=my_awesome_leader_arm --dataset.repo_id=${HF_USER}/so101_test --dataset.num_episodes=5 --dataset.single_task="Grab the black cube" --dataset.episode_time_s=30 --dataset.reset_time_s=30'),
+  S('robot','feat','control','素の特徴量','観測は関節 6 個 + カメラ (H, W, 3)、行動は関節 6 個。','so_follower.py observation_features','{"shoulder_pan.pos": float, …, "front": (480, 640, 3)}'),
+  S('feat','ds','control','データセットを作成','Pipeline を通した後の形でスキーマを確定。共通列 timestamp・frame_index・episode_index・index・task_index も付く。','scripts/lerobot_record.py:419','LeRobotDataset.create(repo_id, fps=30, features=…)'),
+  [S('hwcam','camlib','video','フレーム取得','裏で取り込み続けた最新フレーム。','cameras/camera.py:153','uint8[480, 640, 3]（RGB）'),
+   S('servoF','feetech','sensor','関節角を読む','sync_read Present_Position。','so_follower.py get_observation()','raw → 度')],
+  S('camlib','robot','video','観測にまとめる','get_observation が関節と画像を 1 つの dict に。','so_follower.py get_observation()','{"shoulder_pan.pos": 3.1, …, "front": 画像}'),
+  S('robot','p_obs','sensor','robot_observation_processor','既定は恒等。','scripts/lerobot_record.py:312','obs_processed'),
+  S('leader','teleop','sensor','操作者の入力','','so_leader.py:169','act = teleop.get_action()'),
+  S('teleop','p_tel','motion','teleop_action_processor','この出力がデータセットの action になる。','scripts/lerobot_record.py:325','act_processed_teleop'),
+  S('p_act','robot','motion','send_action()','robot_action_processor を通してから送る。','scripts/lerobot_record.py:351','robot.send_action(robot_action_to_send)'),
+  [S('p_obs','record','sensor','観測フレームを作る','build_dataset_frame で "observation.state" と "observation.images.<名前>" へ。','scripts/lerobot_record.py:315','observation.state: float32[6]\nobservation.images.front'),
+   S('p_tel','record','motion','行動フレームを作る','保存するのは操作器側の行動で、安全制限でクリップされた実送信値ではない（コード内に TODO あり）。','scripts/lerobot_record.py:367','action: float32[6]')],
+  S('record','writer','event','add_frame()','観測 + 行動 + タスク文。画像はスレッドで PNG に書き出す。','datasets/lerobot_dataset.py:500','frame = {**observation_frame, **action_frame, "task": single_task}'),
+  S('human','kbd','event','キー操作','→ 早く終える、← 撮り直し、ESC 全体を終える。','utils/keyboard_input.py:155','events["exit_early"] / ["rerecord_episode"] / ["stop_recording"]'),
+  S('kbd','record','event','ループへ反映','← の場合は clear_episode_buffer して同じ番号を撮り直す。','scripts/lerobot_record.py:543','—'),
+  S('writer','ds','video','save_episode()','エピソードの画像を MP4 にエンコードし、Parquet とメタに追記。その後 reset_time_s の間は記録せずに操作だけ続ける。','scripts/lerobot_record.py:552','videos/observation.images.front/chunk-000/file-000.mp4'),
+  S('record','meta','event','finalize()（必須）','全エピソード後に必ず呼ぶ。Parquet を閉じてフッタを書く。','scripts/lerobot_record.py:569','dataset.finalize()'),
+  S('ds','hub','http','push_to_hub()','--dataset.push_to_hub=false ならローカルだけ（~/.cache/huggingface/lerobot/<repo_id>）。','scripts/lerobot_record.py:584','dataset.push_to_hub(tags=…, private=…)')
+ ]},
+
+ {id:'train',t:'学習',d:'データセットから方策を学習し、チェックポイントを保存・共有するまで。正規化の統計はデータセットのメタから来ます。',steps:[
+  S('clis','train','control','lerobot-train を起動','','scripts/lerobot_train.py · Seeed Wiki','lerobot-train --dataset.repo_id=${HF_USER}/so101_test --policy.type=act --output_dir=outputs/train/act_so101_test --job_name=act_so101_test --policy.device=cuda --wandb.enable=false'),
+  S('cfg','train','control','TrainPipelineConfig へ','steps 100k、batch 8、save_freq 20k など。','configs/train.py','TrainPipelineConfig(dataset=…, policy=ACTConfig(...), steps=100_000, batch_size=8)'),
+  S('hub','ds','http','データセットを取得','ローカルに無ければダウンロード。','datasets/lerobot_dataset.py','LeRobotDataset("<user>/so101_test")'),
+  S('meta','factory','control','特徴量と統計','入出力の形と、正規化用の mean / std / min / max。','policies/factory.py','dataset.meta.features, dataset.meta.stats'),
+  [S('factory','policy','control','方策を構築','ACT：chunk_size 100、resnet18、Transformer 512 次元。','policies/act/configuration_act.py','ACTPolicy(config)'),
+   S('factory','pproc','control','前処理・後処理を構築','Rename → AddBatch → Device → Normalize / Unnormalize → CPU。','processor/factory.py:167','preprocessor, postprocessor')],
+  S('ds','loader','pixel','DataLoader','EpisodeAwareSampler。行動はチャンク長ぶんの未来列。','scripts/lerobot_train.py:342','{"observation.state": [8, 6], "observation.images.front": [8, 3, 480, 640], "action": [8, 100, 6]}'),
+  S('loader','pproc','pixel','前処理','正規化して GPU へ。','scripts/lerobot_train.py:187','batch = preprocessor(batch)'),
+  S('pproc','gpu','pixel','デバイスへ移動','','processor/device_processor.py','DeviceProcessorStep(device="cuda")'),
+  S('gpu','policy','pixel','forward で損失','policy(batch) を呼ぶ（FSDP のため forward 直呼びはしない）。','scripts/lerobot_train.py:259','loss, output_dict = policy(batch)'),
+  S('policy','optim','event','backward・更新','accelerator.backward → 勾配クリップ → optimizer.step → scheduler.step。','scripts/lerobot_train.py:286','accelerator.backward(loss)'),
+  S('optim','policy','token','重みが更新される','','—','—'),
+  S('train','wandb','event','ログ','200 ステップごと。','scripts/lerobot_train.py','loss, lr, grad_norm, update_s'),
+  S('train','ckpt','token','チェックポイント保存','20,000 ステップごとと最後に。','common/train_utils.py','outputs/train/act_so101_test/checkpoints/020000/pretrained_model/'),
+  S('ckpt','hub','token','Hub へ上げる（任意）','--policy.push_to_hub、または手動 upload。','Seeed Wiki','huggingface-cli upload ${HF_USER}/act_so101_test outputs/train/act_so101_test/checkpoints/last/pretrained_model')
+ ]},
+
+ {id:'rollout',t:'実機で実行（同期）',d:'学習済み方策で実機を動かす基本形。1 周ごとに方策を呼び、計算の間はロボットが待ちます。',steps:[
+  S('clis','rollout','control','lerobot-rollout を起動','記録しない base 戦略。--interactive=true にすると /start まで動かない。','docs/source/inference.mdx','lerobot-rollout --strategy.type=base --policy.path=${HF_USER}/my_policy --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=my_awesome_follower_arm --robot.cameras="{front: {type: opencv, index_or_path: 0, width: 640, height: 480, fps: 30}}" --task="Put lego brick into the box" --duration=60'),
+  [S('hub','policy','token','重みを読み込む','pretrained_model の safetensors。','policies/pretrained.py','from_pretrained("<user>/my_policy")'),
+   S('hub','pproc','control','前後処理と統計','policy_preprocessor.json / postprocessor.json。','processor/factory.py:205','load_pretrained_policy_processors(path)')],
+  S('rollout','strat','control','戦略を準備','base は記録なし。','rollout/strategies/base.py','BaseStrategy.setup(ctx)'),
+  S('robot','p_obs','sensor','観測','','rollout/robot_wrapper.py','obs = robot.get_observation()'),
+  S('p_obs','engine','sensor','推論エンジンへ','sync：その場で方策を呼ぶ。','inference/sync.py','—'),
+  S('engine','pproc','sensor','前処理','カメラキーと形は学習時と同じでなければならない。','processor/pipeline.py','observation.images.front: [1, 3, 480, 640]'),
+  S('pproc','policy','pixel','select_action','チャンクを作ったら、次の n_action_steps の間はキューから出すだけ。','policies/act/modeling_act.py','action = policy.select_action(batch)'),
+  S('policy','pproc','motion','後処理','非正規化して CPU へ。','processor/factory.py:183','度に戻った 6 次元'),
+  S('pproc','engine','motion','行動を返す','','—','—'),
+  S('engine','interp','motion','補間（任意）','--interpolation_multiplier=N なら fps×N Hz でモーターへ。','docs/source/inference.mdx','N = 1（既定）'),
+  S('interp','p_act','motion','robot_action_processor','','rollout/strategies/core.py send_next_action','—'),
+  S('p_act','robot','motion','send_action()','終了時は初期姿勢へ戻る。','so_follower.py','robot.send_action(action)')
+ ]},
+
+ {id:'rtc',t:'RTC で滑らかに',d:'同じプロセスの裏スレッドで次のチャンクを計算し、動きを止めずに継ぎ目を合わせる方式。重い VLA 向け。',steps:[
+  S('clis','rollout','control','--inference.type=rtc','','docs/source/inference.mdx','lerobot-rollout --strategy.type=base --inference.type=rtc --inference.rtc.execution_horizon=10 --inference.rtc.max_guidance_weight=10.0 --policy.path=${HF_USER}/pi0_policy --robot.type=so101_follower … --device=cuda'),
+  S('rollout','engine','control','RTC エンジン','','inference/rtc.py','RTCInferenceConfig'),
+  S('robot','rtc','sensor','最新の観測','観測は max_observation_age_s（既定 5 秒）より古いと使わない。','docs/source/inference.mdx','—'),
+  S('rtc','policy','pixel','残りの軌道を条件に推論','まだ実行していない部分と矛盾しないよう誘導（guided）。','policies/rtc/modeling_rtc.py','execution_horizon, guidance weight'),
+  S('policy','rtc','motion','新しいチャンク','','—','—'),
+  S('rtc','interp','motion','実行中に差し替え','行動が尽きたら最大 1 秒（action_starvation_grace_s）その位置で保持して待つ。','docs/source/inference.mdx','—'),
+  S('interp','robot','motion','送信','','—','—')
+ ]},
+
+ {id:'remote',t:'リモート推論',d:'GPU のある別 PC で方策を動かし、ロボット側の PC はカメラ・モーターだけを担当。Zenoh で観測とチャンクをやり取りします。',steps:[
+  S('clis','pserver','control','サーバを起動','server.yaml をコピーして model と features を書き換える。','docs/source/remote_inference.mdx','cp examples/remote_inference/server.yaml server.yaml\nlerobot-policy-server --config_path=server.yaml'),
+  S('srvcfg','pserver','control','設定を読む','robot_type、semantics、action_fps を学習時に合わせる。','examples/remote_inference/server.yaml','model.repo_or_path, model.device, semantics'),
+  S('hub','pserver','token','重みを読み込みウォームアップ','','docs/source/remote_inference.mdx','Policy server ready: deployment=<name> …'),
+  S('clis','rclient','control','クライアントを起動','rollout に --inference.type=remote。--policy.path は渡さない。','docs/source/remote_inference.mdx','lerobot-rollout --inference.type=remote --inference.endpoint=tcp/127.0.0.1:7447 --inference.deployment=manipulation --inference.chunk_merge=aligned --inference.semantics=so101-degrees-gripper-percent-v1 --robot.type=so101_follower --robot.port=/dev/ttyACM0 --fps=30 --task="pick up the cube" --interactive=true'),
+  S('rclient','zenoh','control','受け入れ確認','deployment・semantics・ロボットの保持対応を照合。合わなければ動く前に拒否。','remote_inference/protocol.py','admission'),
+  S('robot','rclient','sensor','観測を取得','','rollout/robot_wrapper.py','—'),
+  S('rclient','zenoh','sensor','観測 + 指示を送信','バッファの残りが refill_seconds を切ったとき。','inference/factory.py:118','refill_seconds = 0.5'),
+  S('zenoh','pserver','sensor','サーバへ','','transport/zenoh.py','tcp/<ip>:7447'),
+  S('pserver','policy','pixel','次のチャンクを推論','','remote_inference/engine.py','—'),
+  S('pserver','zenoh','motion','チャンクを返す','','—','—'),
+  S('zenoh','merge','motion','チャンクを結合','aligned：過ぎたステップを捨てて未来だけ置き換える。','docs/source/remote_inference.mdx','chunk_merge = aligned'),
+  S('merge','abuf','motion','バッファへ','この間もロボットは止まらない。','—','—'),
+  S('abuf','interp','motion','1 ステップずつ取り出す','','—','—'),
+  S('interp','robot','motion','送信','','—','—')
+ ]},
+
+ {id:'dagger',t:'人の修正つき収集',d:'方策を動かしながら、まずい場面だけ人がリーダーで修正し、その区間をデータに足す（DAgger）。',steps:[
+  S('clis','rollout','control','--strategy.type=dagger','','docs/source/inference.mdx','lerobot-rollout --strategy.type=dagger --strategy.num_episodes=20 --policy.path=${HF_USER}/my_policy --robot.type=so101_follower --robot.port=/dev/ttyACM0 --teleop.type=so101_leader --teleop.port=/dev/ttyACM1 --dataset.repo_id=${HF_USER}/rollout_dagger_data --dataset.single_task="Grasp the block"'),
+  S('rollout','strat','control','DAgger 戦略','','rollout/strategies/dagger.py','—'),
+  S('strat','engine','control','方策で自律実行','','—','—'),
+  S('human','hdag','event','tab で修正開始','space は一時停止。足踏みペダルも可。','docs/source/inference.mdx','Tab = start / stop correction'),
+  S('leader','teleop','sensor','人の操作','滑らかに引き継ぐ（smooth_handover 既定 true）。','—','—'),
+  S('teleop','p_tel','motion','行動を変換','','—','—'),
+  S('p_act','robot','motion','ロボットへ','','—','—'),
+  S('hdag','ds','event','修正区間を保存','intervention=True の列が付く。','rollout/strategies/dagger.py','1 修正 = 1 エピソード'),
+  S('ds','hub','http','5 エピソードごとに Hub へ','--strategy.upload_every_n_episodes。','docs/source/inference.mdx','upload_every_n_episodes = 5')
+ ]},
+
+ {id:'replay',t:'記録の再生',d:'記録したエピソードの行動列を、そのまま実機に流して確認します。',steps:[
+  S('clis','replay','control','lerobot-replay','','Seeed Wiki','lerobot-replay --robot.type=so101_follower --robot.port=/dev/ttyACM0 --robot.id=my_awesome_follower_arm --dataset.repo_id=${HF_USER}/so101_test --dataset.episode=0'),
+  S('ds','replay','motion','action 列を読む','','scripts/lerobot_replay.py','action: [T, 6]'),
+  S('replay','robot','motion','send_action を順に','','scripts/lerobot_replay.py','—'),
+  S('timer','replay','event','記録時の fps で','','utils/cycle_timer.py','—')
+ ]},
+
+ {id:'eval',t:'シミュレーション評価',d:'学習済みの方策を、ベンチマーク環境で複数エピソード動かして評価します。',steps:[
+  S('clis','eval','control','lerobot-eval','','README','lerobot-eval --policy.path=lerobot/pi0_libero_finetuned --env.type=libero --env.task=libero_object --eval.n_episodes=10'),
+  S('hub','policy','token','重み','','—','—'),
+  S('eval','envs','control','make_env','','envs/factory.py','—'),
+  S('bench','envs','control','タスク群','','—','libero_object'),
+  S('envs','pproc','sensor','観測（env_processor 経由）','','processor/env_processor.py','—'),
+  S('pproc','policy','pixel','前処理して方策へ','','—','—'),
+  S('policy','pproc','motion','行動を後処理','','—','—'),
+  S('pproc','envs','motion','環境を 1 ステップ','','—','—'),
+  S('envs','eval','event','報酬・終了','成功率に集計。','scripts/lerobot_eval.py','reward, terminated, truncated, info')
+ ]},
+
+ {id:'dataset',t:'データセットの読み方',d:'ダウンロードして読むか、ストリームで読むか。',steps:[
+  S('hub','ds','http','ダウンロード','HF_LEROBOT_HOME/hub にリビジョンごとにキャッシュ。','utils/constants.py:90','LeRobotDataset(repo_id)'),
+  S('hub','stream','http','ストリーム','','datasets/streaming_dataset.py','StreamingLeRobotDataset(repo_id)'),
+  S('bucket','stream','http','Bucket から','','—','repo_type="bucket"'),
+  S('ds','meta','event','メタで位置を引く','episode_index → Parquet の行範囲と MP4 の時刻範囲。','datasets/dataset_metadata.py','—'),
+  S('ds','imgaug','video','必要なフレームだけデコード','torchcodec か PyAV。','datasets/video_utils.py','[T, C, H, W]'),
+  S('imgaug','loader','pixel','拡張して学習へ','','—','—'),
+  S('dtools','ds','control','編集','','scripts/lerobot_edit_dataset.py','—')
+ ]},
+
+ {id:'hilsetup',t:'HIL-SERL の準備',d:'強化学習の前に、動かす範囲・デモ・切り出し・報酬分類器を用意します。',steps:[
+  S('clis','ee','control','動かす範囲を測る','','docs/source/hilserl.mdx','lerobot-find-joint-limits --robot.type=so100_follower --teleop.type=so100_leader …'),
+  S('ee','gym','control','境界を設定へ','','—','end_effector_bounds: {min: […], max: […]}'),
+  S('leader','gym','reward','デモを記録','mode="record"。成功で報酬 1。','rl/gym_manipulator.py','python -m lerobot.rl.gym_manipulator --config_path …'),
+  S('gym','ds','event','LeRobotDataset へ','','—','—'),
+  S('ds','crop','video','注目領域を選ぶ','','rl/crop_dataset_roi.py','python -m lerobot.rl.crop_dataset_roi --repo-id …'),
+  S('crop','ds','pixel','切り出したデータセット','','—','(top, left, height, width) → 128×128'),
+  S('ds','rewcls','pixel','報酬分類器を学習（任意）','','—','lerobot-train --config_path …'),
+  S('rewcls','gym','reward','報酬を自動判定','','processor/hil_processor.py:581','success_threshold')
+ ]},
+
+ {id:'hiltrain',t:'HIL-SERL の学習',d:'learner と actor の 2 プロセスを gRPC でつなぎ、人が介入しながら実機で強化学習します。',steps:[
+  S('clis','learner','control','Learner を起動','','rl/learner.py','python -m lerobot.rl.learner --config_path …'),
+  S('clis','actor','control','Actor を起動','','rl/actor.py','python -m lerobot.rl.actor --config_path …'),
+  S('learner','grpc','token','重みを配信','4 秒ごと。','rl/learner.py:422','StreamParameters'),
+  S('grpc','actor','token','actor が受信','','rl/actor.py:486','—'),
+  S('actor','gym','motion','環境で方策を実行','10 Hz。','rl/gym_manipulator.py','—'),
+  S('gym','ee','motion','手先 → 関節','','so_follower/robot_kinematic_processor.py','—'),
+  S('ee','robot','motion','ロボットへ','','—','—'),
+  S('hil','actor','reward','人の介入','','processor/hil_processor.py:471','—'),
+  S('rewcls','actor','reward','報酬','','—','reward ∈ {0, 1}'),
+  S('actor','grpc','event','遷移を送る','','rl/actor.py:540','SendTransitions'),
+  S('grpc','learner','event','learner が受信','','—','—'),
+  S('learner','buffer','event','バッファへ','','rl/buffer.py','—'),
+  S('buffer','learner','event','サンプルして SAC 更新','','rl/algorithms/sac/','discount 0.99, utd_ratio 1')
+ ]},
+
+ {id:'plugin',t:'自前ハードの追加',d:'独自のロボット・操作器・カメラを、LeRobot の道具に載せる経路です。',steps:[
+  S('plug','robot','control','Robot を実装','パッケージ名 lerobot_robot_<名前>。','docs/source/integrate_hardware.mdx','pip install lerobot_robot_<name>'),
+  S('plug','teleop','control','Teleoperator を実装','','—','lerobot_teleoperator_<name>'),
+  S('plug','camlib','control','カメラを実装','','—','lerobot_camera_<name>'),
+  S('plug','cfg','control','type 名で登録','','—','@RobotConfig.register_subclass("<name>")'),
+  S('cfg','clis','control','CLI から使える','','—','--robot.type=<name>')
+ ]},
+
+ {id:'lelab',t:'LeLab から使う',d:'コマンドの代わりに GUI から、同じ処理を呼び出します。',steps:[
+  S('lelab','robot','control','機体を追加・校正','','docs/source/lelab.mdx','—'),
+  S('lelab','record','control','記録','','—','—'),
+  S('lelab','hfjobs','control','クラウドで学習','','—','—'),
+  S('hfjobs','hub','token','結果を Hub へ','','—','—'),
+  S('lelab','rollout','control','実機で実行','','—','—')
+ ]}
+];
+FLOWS.forEach(f=>{f.groups=f.steps.map(s=>Array.isArray(s)?s:[s]);f.groups.forEach((g,gi)=>g.forEach(st=>{st.flow=f;st.gi=gi}))});
+const ALL=FLOWS.flatMap(f=>f.groups.flat());
+
+/* ---------- glossary ---------- */
+const GLOSS=[
+ ['LeRobot',[],'Hugging Face の、実ロボット向け PyTorch ライブラリ。本リポジトリは version 0.6.2、Python 3.12 以上。'],
+ ['SO-ARM101',['SO-101','SO101'],'6 自由度の低価格アーム。リーダーとフォロワーの 2 本で使う。SO-100 の改良版で、配線クリップとリーダーのギア比が違う。'],
+ ['STS3215',['ST-3215','サーボ'],'Feetech のシリアルバスサーボ。12bit エンコーダ（0–4095）。ギア比 1/345・1/191・1/147、電圧 7.4V / 12V の版がある。'],
+ ['ギア比',['gear ratio'],'1/345 は力が強く遅い。リーダーは軽く動かせるよう 1/147 や 1/191 を混ぜる。'],
+ ['デイジーチェーン',['daisy-chain'],'モーターを数珠つなぎに配線すること。1 本のバスを全モーターで共有し、ID で区別する。'],
+ ['モーター ID',['ID'],'バス上でモーターを区別する番号。新品はすべて 1。lerobot-setup-motors で 1–6 を割り当てる。'],
+ ['ボーレート',['baudrate','Baud_Rate'],'シリアル通信の速さ。LeRobot の Feetech 既定は 1,000,000 bps。全モーターと基板で揃える。'],
+ ['制御テーブル',['control table'],'モーター内部のレジスタの一覧。名前 → (アドレス, バイト数)。EEPROM は電源を切っても残る。'],
+ ['Present_Position',[],'モーターの現在位置を読むレジスタ（アドレス 56）。'],
+ ['Goal_Position',[],'モーターの目標位置を書くレジスタ（アドレス 42）。'],
+ ['Homing_Offset',[],'エンコーダ値のずらし量。校正で、中央姿勢が 2047 になるよう書く。'],
+ ['sync_read',['sync_write'],'複数モーターを 1 パケットでまとめて読む / 書く命令。6 個を 1 回の通信で扱える。'],
+ ['トルク',['torque','Torque_Enable'],'モーターが力を出す状態。OFF にすると手で動かせる。リーダーは常に OFF。'],
+ ['MotorNormMode',['正規化モード'],'raw 値の換算方法。DEGREES（度・中央 0）、RANGE_0_100（gripper）、RANGE_M100_100。'],
+ ['calibration',['校正','キャリブレーション'],'各関節の中央と可動域を測り、モーターと JSON に保存すること。--robot.id で読み込む。'],
+ ['max_relative_target',[],'1 回の send_action で動ける量の上限。安全用。既定は無し。'],
+ ['Robot',['robot'],'機体の抽象クラス。connect、get_observation、send_action が基本。'],
+ ['Teleoperator',['teleop'],'操作する側の抽象。get_action で行動を出す。'],
+ ['follower',['フォロワー'],'実際に動かされる側の腕。'],
+ ['leader',['リーダー'],'人が手で動かす側の腕。'],
+ ['観測',['observation','get_observation'],'ロボットの今の状態。関節角とカメラ画像。'],
+ ['行動',['action','send_action'],'ロボットへの指令。SO-101 では 6 関節の目標角。'],
+ ['EnvTransition',['transition'],'Processor の中を流れる共通の入れ物。OBSERVATION、ACTION、REWARD、DONE、TRUNCATED、INFO、COMPLEMENTARY_DATA。'],
+ ['ProcessorStep',[],'変換の最小単位。__call__ と transform_features を実装する。'],
+ ['RobotProcessorPipeline',[],'ロボット側の Pipeline。record では観測用・操作器用・ロボット行動用の 3 本がある。'],
+ ['PolicyProcessorPipeline',[],'方策側の前処理・後処理。正規化やデバイス移動。'],
+ ['フィーチャー契約',['transform_features'],'Pipeline が変えるデータの形を先に確定する仕組み。'],
+ ['LeRobotDataset',['データセット'],'標準のデータ形式 v3.0。表は Parquet、映像は MP4、メタは JSON / Parquet。'],
+ ['Parquet',[],'列指向の表形式。関節角・行動・時刻を入れる。'],
+ ['MP4',[],'カメラ映像。カメラごとに複数エピソードを連結。'],
+ ['エピソード',['episode'],'1 回の試行。記録では episode_time_s（既定 60 秒）ごとに区切る。'],
+ ['finalize',[],'記録の最後に必ず呼ぶ。Parquet を閉じる。'],
+ ['stats.json',['dataset.meta.stats'],'特徴量の統計。正規化に使う。'],
+ ['delta_timestamps',[],'現在時刻からの相対秒で、過去・未来のフレームも取り出す指定。'],
+ ['CycleTimer',['Cadence'],'制御ループを fps に合わせて待ち、どこに時間がかかったかを報告する。'],
+ ['Policy',['方策','ポリシー'],'観測から行動を決めるモデル。'],
+ ['ACT',[],'模倣学習の方策。100 ステップぶんの行動をまとめて出す。SO-101 の入門でよく使う。'],
+ ['SmolVLA',[],'軽量な VLA（約 450M パラメータ、Wiki）。'],
+ ['VLA',['Vision-Language-Action'],'画像・言語・行動を扱う大きなモデル。Pi0、SmolVLA、GR00T など。'],
+ ['行動チャンク',['action chunk','チャンク'],'方策が一度に出す、複数ステップぶんの行動。'],
+ ['select_action',[],'推論用メソッド。'],
+ ['正規化',['normalizer','Normalizer'],'値を学習向けの範囲に揃える処理。'],
+ ['チェックポイント',['checkpoint','pretrained_model'],'学習途中の保存。pretrained_model に設定・重み・前後処理が入る。'],
+ ['rollout',['lerobot-rollout'],'方策を実機で動かす CLI。戦略と推論エンジンを選ぶ。'],
+ ['戦略',['strategy'],'rollout の記録の仕方。base、sentry、highlight、dagger、episodic。'],
+ ['DAgger',[],'方策の実行中に人が修正し、その修正をデータに足して再学習する方式。'],
+ ['RTC',['Real-Time Chunking'],'まだ実行していない軌道に合わせて次のチャンクを生成し、継ぎ目を滑らかにする手法。'],
+ ['リモート推論',['remote inference'],'GPU のある別 PC で方策を動かす方式。旧 async_inference の後継。'],
+ ['Zenoh',[],'リモート推論の通信ライブラリ。既定のエンドポイントは tcp/127.0.0.1:7447。'],
+ ['refill_seconds',[],'行動バッファの残りがこの秒数を切ったら次のチャンクを要求する。既定 0.5。'],
+ ['chunk_merge',[],'新しいチャンクの継ぎ方。append、aligned（既定）、blend。'],
+ ['interpolation_multiplier',[],'1 行動の間にモーター指令を何回補間するか。'],
+ ['HIL-SERL',[],'人の介入つきの実機強化学習。'],
+ ['SAC',['Soft Actor Critic'],'HIL-SERL の learner が使う強化学習アルゴリズム。'],
+ ['gRPC',[],'HIL-SERL の actor と learner の通信。'],
+ ['end-effector',['EE','手先'],'ロボットの手先。'],
+ ['URDF',[],'ロボットの形状・関節の記述ファイル。IK に必要。'],
+ ['ROI',[],'画像の注目領域。'],
+ ['draccus',[],'CLI 引数を dataclass に読み込むライブラリ。'],
+ ['PLA+',['PLA','TPU'],'3D プリントの樹脂。本体は PLA+、柔らかい指は TPU。'],
+ ['充填率',['infill'],'3D プリントの内部の詰まり具合。SO-101 は 15%。']
+];
+const ISSUES=[
+ {id:'power',sev:'高',st:'確認済み',t:'5V と 12V の取り違えでモーター破損',nodes:['power','servoF','adapter'],ref:'Seeed Wiki',
+  d:'Pro 版はフォロワーだけ 12V、リーダーは 5V。標準版はすべて 5V。USB は給電しないため、電源をつながないとモーターが見つからない（"Motor gripper was not found"）。'},
+ {id:'finalize',sev:'高',st:'確認済み',t:'finalize() を呼ばないとデータセットが壊れる',nodes:['record','ds','meta'],ref:'scripts/lerobot_record.py:569 · docs',
+  d:'record は最後に finalize() を呼ぶ。自作のスクリプトや途中で強制終了した場合は、Parquet のフッタが書かれず読めなくなる。'},
+ {id:'seeedfork',sev:'中',st:'資料の食い違い',t:'Seeed Wiki はフォーク前提で、本家と手順が違う',nodes:['seeed','hist','rclient','pserver'],ref:'Seeed Wiki · src/lerobot（0.6.2）',
+  d:'Wiki は Seeed-Projects/lerobot を clone する。非同期推論は python -m lerobot.async_inference.policy_server（gRPC・8080 番）だが、本リポジトリには async_inference が無く、lerobot-policy-server と --inference.type=remote（Zenoh・7447 番）に置き換わっている。本家を使うなら、本家の docs に従う。'},
+ {id:'evalrecord',sev:'中',st:'資料の食い違い',t:'実機評価：Wiki は record、本家は rollout',nodes:['record','rollout','clis'],ref:'Seeed Wiki · lerobot_record.py:192',
+  d:'Wiki は lerobot-record --policy.path=… で評価する（repo_id は eval_ で始める）。本家の RecordConfig は teleop が無いとエラーになり、「方策の配備は lerobot-rollout を使う」と表示する。本家では lerobot-rollout --strategy.type=episodic などを使う。'},
+ {id:'steps',sev:'低',st:'資料の食い違い',t:'学習ステップの既定値が違う',nodes:['train'],ref:'configs/train.py:142 · Seeed Wiki',
+  d:'Wiki は「既定 800000」と書くが、本リポジトリの TrainPipelineConfig は steps=100_000。Wiki の例は --steps=300000 を明示している。'},
+ {id:'windows',sev:'中',st:'未確認',t:'Windows での動作は手順が無い',nodes:['usb','gpu','human'],ref:'Seeed Wiki · docs',
+  d:'公式・Seeed とも Linux（/dev/ttyACM*）と macOS 前提。Windows では COM ポート名になり、--robot.port=COM3 のように指定すると推定するが、確認が取れていない。torchcodec は Windows 用 wheel が 0.7.0 以降にある（pyproject の注記）。'},
+ {id:'recordaction',sev:'低',st:'確認済み',t:'保存される action はクリップ前の値',nodes:['record','safety','p_tel'],ref:'scripts/lerobot_record.py:361',
+  d:'データセットに入る action は teleop_action_processor の出力で、max_relative_target でクリップされた実送信値ではない（コード中に TODO）。安全制限を強く掛けると、記録と実際の動きがずれる。'},
+ {id:'degrees',sev:'低',st:'確認済み',t:'度モードは可動域でクランプされない',nodes:['norm','calib'],ref:'motors/motors_bus.py:874',
+  d:'RANGE_0_100 / RANGE_M100_100 は min/max で丸めてから換算するが、DEGREES は丸めずに換算する。校正の可動域外の値もそのまま出る。'},
+ {id:'calibname',sev:'低',st:'確認済み',t:'SO-100 と SO-101 の校正は同じフォルダ',nodes:['calib','follower','leader'],ref:'robots/robot.py:39',
+  d:'フォルダ名はクラス名 so_follower / so_leader で決まるため、両機種の校正は同じ場所に入り、--robot.id だけで区別される。別の機体に同じ id を使うと誤った校正を読む。'},
+ {id:'magnitude',sev:'中',st:'確認済み',t:'"Magnitude … exceeds 2047" エラー',nodes:['feetech','ctrl','calib'],ref:'Seeed Wiki · feetech.py:278',
+  d:'Homing_Offset は ±2047 の符号付きで、範囲外を書こうとすると出る。Wiki の対処は電源の入れ直し、再校正、または Seeed_RoboController の中央位置ツールで 2048 に合わせてから再校正。本リポジトリでは ±2047 にクランプする処理が入っている。'},
+ {id:'zenohauth',sev:'中',st:'確認済み',t:'リモート推論の通信は認証されない',nodes:['zenoh','pserver'],ref:'docs/source/remote_inference.mdx',
+  d:'インターフェースを絞っても相手は認証されない。研究室の信頼できる LAN 以外では、認証付きの接続を使う。'},
+ {id:'trustcode',sev:'低',st:'確認済み',t:'Hub 環境は trust_remote_code の明示が必要',nodes:['envs','hub'],ref:'envs/factory.py:63',
+  d:'EnvHub の環境は Hub の Python コードを実行するため、既定 False。True にするのは信頼できるリポジトリだけ。'}
+];
+
+const TERM={};GLOSS.forEach(([k,al,d])=>{[k,...al].forEach(n=>TERM[n.toLowerCase()]={k,d})});
+const termRe=new RegExp('(?<![A-Za-z_.-])('+Object.keys(TERM).sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![A-Za-z_-])','gi');
+const linkify=t=>esc(t).replace(termRe,m=>`<button type="button" class="term" data-t="${esc(m.toLowerCase())}">${m}</button>`);
+
+/* ---------- edges with auto routing ---------- */
+const edges={};const key=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+ALL.forEach(({a,b})=>{const k=key(a,b);if(!edges[k])edges[k]={a:a<b?a:b,b:a<b?b:a,k,act:0}});
+function hits(e,off){
+  const A=N[e.a],B=N[e.b],mx=(A.x+B.x)/2,my=(A.y+B.y)/2,dx=B.x-A.x,dy=B.y-A.y,L=Math.hypot(dx,dy)||1;
+  const cx=mx-dy/L*off,cy=my+dx/L*off;let h=0;
+  for(let i=1;i<24;i++){const t=i/24,x=(1-t)*(1-t)*A.x+2*(1-t)*t*cx+t*t*B.x,y=(1-t)*(1-t)*A.y+2*(1-t)*t*cy+t*t*B.y;
+    for(const k in N){if(k===e.a||k===e.b)continue;const n=N[k];if(Math.abs(x-n.x)<n.w/2+8&&Math.abs(y-n.y)<n.h/2+8)h++}}
+  return {h,cx,cy};
+}
+for(const k in edges){const e=edges[k];let best=null;
+  for(const off of [0,30,-30,60,-60,95,-95,135,-135,180,-180,240,-240]){const r=hits(e,off);if(!best||r.h<best.h)best=r;if(r.h===0)break}
+  e.cx=best.cx;e.cy=best.cy}
+
+/* ---------- draw ---------- */
+const el=(t,a,p)=>{const x=document.createElementNS(NS,t);for(const k in a)x.setAttribute(k,a[k]);if(p)p.appendChild(x);return x};
+const gZ=el('g',{},svg),gE=el('g',{},svg),gP=el('g',{},svg),gN=el('g',{},svg),gL=el('g',{},svg);
+ZONES.forEach(z=>{const g=el('g',{class:'zone'},gZ);el('rect',{x:z.x,y:z.y,width:z.w,height:z.h,rx:12},g);el('text',{x:z.x+12,y:z.y+20},g).textContent=z.t});
+for(const k in edges){const e=edges[k],A=N[e.a],B=N[e.b];e.el=el('path',{class:'edge',d:`M${A.x},${A.y} Q${e.cx},${e.cy} ${B.x},${B.y}`},gE)}
+for(const k in N){const n=N[k];const g=el('g',{class:'node'+(n.plan?' plan':''),tabindex:0,role:'button','aria-label':n.t+(n.tag?'（'+n.tag+'）':'')},gN);
+  el('rect',{x:n.x-n.w/2,y:n.y-n.h/2,width:n.w,height:n.h,rx:7},g);
+  el('text',{class:'t',x:n.x,y:n.y-(n.h>60?8:3),'text-anchor':'middle'},g).textContent=n.t;
+  el('text',{class:'s',x:n.x,y:n.y+(n.h>60?10:14),'text-anchor':'middle'},g).textContent=n.s;
+  if(n.h>60)el('text',{class:'s',x:n.x,y:n.y+26,'text-anchor':'middle'},g).textContent=n.tech;
+  if(n.tag)el('text',{class:'tag '+(TAGCLS[n.tag]||''),x:n.x+n.w/2-6,y:n.y-n.h/2+11,'text-anchor':'end'},g).textContent=n.tag;
+  n.g=g;g.addEventListener('click',ev=>{ev.stopPropagation();selectNode(focus===k?null:k)});
+  g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();selectNode(focus===k?null:k)}});
+}
+svg.addEventListener('click',ev=>{if(!ev.target.closest('.node')&&!ev.target.closest('.mol'))selectNode(null)});
+
+/* ---------- molecules ---------- */
+function drawShape(parent,type,sc){const sh=SHAPES[type],c=`var(${TYPES[type].v})`;
+  sh.b.forEach(([i,j])=>el('line',{class:'bond',x1:sh.a[i][0]*sc,y1:sh.a[i][1]*sc,x2:sh.a[j][0]*sc,y2:sh.a[j][1]*sc,stroke:c,'stroke-width':1.3},parent));
+  sh.a.forEach(([x,y],i)=>el('circle',{cx:x*sc,cy:y*sc,r:((type==='pixel'&&i===0)?3.6:2.8)*(sc>1?1.15:1),fill:c},parent))}
+function molecule(p){
+  const g=el('g',{class:'mol'},gP);el('circle',{r:13,fill:'transparent'},g);const inner=el('g',{},g);drawShape(inner,p.st.type,1.35);p.inner=inner;
+  g.addEventListener('mouseenter',ev=>{hoverFreeze=true;showMolTip(p,ev)});
+  g.addEventListener('mousemove',ev=>placeTip(ev.clientX,ev.clientY));
+  g.addEventListener('mouseleave',()=>{hoverFreeze=false;if(!tip.classList.contains('pin'))hideTip()});
+  g.addEventListener('click',ev=>{ev.stopPropagation();showMolTip(p,ev);tip.classList.add('pin')});
+  return g;
+}
+
+/* ---------- tooltip ---------- */
+const tip=document.getElementById('tip');
+function placeTip(x,y){const w=tip.offsetWidth,h=tip.offsetHeight;let L=x+16,T=y+16;if(L+w>innerWidth-8)L=x-w-16;if(T+h>innerHeight-8)T=Math.max(8,y-h-16);tip.style.left=Math.max(8,L)+'px';tip.style.top=T+'px'}
+function hideTip(){tip.hidden=true;tip.classList.remove('pin')}
+function showMolTip(p,ev){const st=p.st,T=TYPES[st.type];
+  tip.innerHTML=`<div class="tt"><span class="dot" style="background:var(${T.v})"></span>${esc(st.label)}</div><div class="rt">${esc(N[st.a].t)} → ${esc(N[st.b].t)} · ${esc(T.name)}</div><div class="plhead">中身の例</div><pre>${esc(st.pl)}</pre><div class="note" style="margin-top:6px">${esc(st.flow.t)} / 手順 ${st.gi+1}</div>`;
+  tip.hidden=false;placeTip(ev.clientX,ev.clientY)}
+function showTermTip(btn){const t=TERM[btn.dataset.t];if(!t)return;const r=btn.getBoundingClientRect();
+  tip.innerHTML=`<div class="tt">${esc(t.k)}</div><div>${esc(t.d)}</div>`;tip.hidden=false;tip.classList.add('pin');placeTip(r.left,r.bottom-8)}
+document.addEventListener('click',ev=>{const b=ev.target.closest('button.term');if(b){ev.stopPropagation();showTermTip(b);return}
+  if(!ev.target.closest('#tip')&&!ev.target.closest('.mol'))hideTip()});
+document.addEventListener('mouseover',ev=>{const b=ev.target.closest('button.term');if(b&&!tip.classList.contains('pin')){const t=TERM[b.dataset.t];if(!t)return;const r=b.getBoundingClientRect();tip.innerHTML=`<div class="tt">${esc(t.k)}</div><div>${esc(t.d)}</div>`;tip.hidden=false;placeTip(r.left,r.bottom-8)}});
+document.addEventListener('mouseout',ev=>{if(ev.target.closest&&ev.target.closest('button.term')&&!tip.classList.contains('pin'))hideTip()});
+
+/* ---------- legend ---------- */
+const enabled=new Set(Object.keys(TYPES));const legend=document.getElementById('legend');
+for(const t in TYPES){const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed','true');
+  const s=document.createElementNS(NS,'svg');s.setAttribute('width','26');s.setAttribute('height','22');s.setAttribute('viewBox','-13 -11 26 22');drawShape(s,t,1);
+  b.appendChild(s);const sp=document.createElement('span');sp.innerHTML=`${TYPES[t].name}<small>${TYPES[t].sub}</small>`;b.appendChild(sp);
+  b.addEventListener('click',()=>{enabled.has(t)?enabled.delete(t):enabled.add(t);b.setAttribute('aria-pressed',enabled.has(t))});legend.appendChild(b)}
+
+
+/* ---------- flow route ---------- */
+// 選んだフローの全手順を、番号つきの矢印で描く。線は進む向きの左に 3.5px ずらし、
+// 行きと帰りが重ならないようにする。済んだ手順は細い実線、いまの手順は太線、この後は点線。
+const gR=el('g',{class:'routes'});svg.insertBefore(gR,gP);
+const gB=el('g',{class:'badges'});svg.insertBefore(gB,gL);
+const sideEl=document.querySelector('.side'),seqEl=document.getElementById('seq');
+seqEl.appendChild(document.getElementById('steps'));
+function inBox(n,x,y,pad){return Math.abs(x-n.x)<n.w/2+pad&&Math.abs(y-n.y)<n.h/2+pad}
+function routePts(st){const e=edges[key(st.a,st.b)],fwd=st.a===e.a,A=N[st.a],B=N[st.b],P=[];
+  for(let i=0;i<=64;i++){const u=i/64;P.push(pos(e,fwd?u:1-u))}
+  let s=0;while(s<P.length-3&&inBox(A,P[s][0],P[s][1],2))s++;
+  let t=P.length-1;while(t>s+2&&inBox(B,P[t][0],P[t][1],4))t--;
+  const Q=[];for(let i=s;i<=t;i++){const p=P[Math.max(s,i-1)],q=P[Math.min(t,i+1)],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy)||1;
+    Q.push([P[i][0]+dy/L*3.5,P[i][1]-dx/L*3.5])}
+  return Q}
+function renderRoute(){gR.textContent='';gB.textContent='';for(const k in N)N[k].g.classList.remove('curnode');
+  const on=mode!=='all'&&!focus&&!issueFocus;svg.classList.toggle('routed',on);if(!on)return;
+  const f=flowOf(mode),c0=cur<0?0:cur,cnt={},idx={},items=[];
+  f.groups.flat().forEach(st=>{const k=key(st.a,st.b);cnt[k]=(cnt[k]||0)+1});
+  f.groups.forEach((g,gi)=>g.forEach(st=>{
+    const cls=gi<c0?'past':gi===c0?'cur':'next',c=`var(${TYPES[st.type].v})`,Q=routePts(st);
+    const line=el('path',{class:'rline '+cls,stroke:c,d:'M'+Q.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L')});
+    const [x2,y2]=Q[Q.length-1],[x1,y1]=Q[Math.max(0,Q.length-5)],L=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/L,uy=(y2-y1)/L,h=cls==='cur'?11:8,w=cls==='cur'?5.5:4;
+    const head=el('polygon',{class:'rhead '+cls,fill:c,points:`${x2.toFixed(1)},${y2.toFixed(1)} ${(x2-ux*h-uy*w).toFixed(1)},${(y2-uy*h+ux*w).toFixed(1)} ${(x2-ux*h+uy*w).toFixed(1)},${(y2-uy*h-ux*w).toFixed(1)}`});
+    // 番号は線の左（進む向きの左）に置き、行きと帰りの番号が重ならないようにする。
+    // 同じ向きに複数あるときは、線に沿って少しずつずらす
+    const k=key(st.a,st.b),j=idx[k]=(idx[k]||0)+1,fr=Math.min(.8,Math.max(.2,.5+(j-1-(cnt[k]-1)/2)*.2)),m=Math.round(fr*(Q.length-1)),
+      p0=Q[Math.max(0,m-1)],p1=Q[Math.min(Q.length-1,m+1)],ql=Math.hypot(p1[0]-p0[0],p1[1]-p0[1])||1,
+      bx=Q[m][0]+(p1[1]-p0[1])/ql*9,by=Q[m][1]-(p1[0]-p0[0])/ql*9;
+    const b=el('g',{class:'rbadge '+cls,transform:`translate(${bx.toFixed(1)},${by.toFixed(1)})`,role:'button',tabindex:0,'aria-label':`手順 ${gi+1}：${st.label}`});
+    el('circle',{r:cls==='cur'?11:9,stroke:c},b);el('text',{'text-anchor':'middle',y:cls==='cur'?4:3.5},b).textContent=gi+1;
+    el('title',{},b).textContent=`${gi+1}. ${st.label}（${N[st.a].t} → ${N[st.b].t}）`;
+    b.addEventListener('click',ev=>{ev.stopPropagation();goStep(gi)});
+    b.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();goStep(gi)}});
+    if(cls==='cur'){N[st.a].g.classList.add('curnode');N[st.b].g.classList.add('curnode')}
+    items.push({z:cls==='cur'?2:cls==='past'?1:0,line,head,b})}));
+  // いまの手順が一番上に来るよう、この後 → 済んだ → いまの順に重ねる
+  items.sort((a,b)=>a.z-b.z).forEach(it=>{gR.appendChild(it.line);gR.appendChild(it.head);gB.appendChild(it.b)})}
+
+/* ---------- state ---------- */
+let mode='all',focus=null,stepMode=false,cur=-1,timeline=[],tlLen=0,tlClock=0,stepLis=[];
+let particles=[],paused=false,hoverFreeze=false,speed=1,last=performance.now(),spawnAcc=0;
+const flowsEl=document.getElementById('flows'),stepsEl=document.getElementById('steps'),nav=document.getElementById('stepnav'),posEl=document.getElementById('pos'),autoBtn=document.getElementById('auto');
+function addBtn(id,label,parent,num){const b=document.createElement('button');b.type='button';b.dataset.id=id;b.innerHTML=(num?`<span class="fnum">${num}</span>`:'')+esc(label);const f=FLOWS.find(x=>x.id===id);if(f)b.title=f.d;b.addEventListener('click',()=>setMode(id));parent.appendChild(b);return b}
+function addRow(label){const r=document.createElement('div');r.className='frow';r.innerHTML=`<span class="flab">${esc(label)}</span>`;flowsEl.appendChild(r);return r}
+const LIFE=["build","setup","calib","teleop","record","train","rollout"];
+{const r0=addRow('重ねて見る');addBtn('all','全体',r0);
+ const r1=addRow('実機の一生（順に）');let n=0;
+ LIFE.forEach(id=>{const f=FLOWS.find(x=>x.id===id);if(!f)return;if(n){const a=document.createElement('span');a.className='arr';a.textContent='›';a.setAttribute('aria-hidden','true');r1.appendChild(a)}addBtn(f.id,f.t,r1,++n)});
+ const r2=addRow('配備の発展・その他');FLOWS.filter(f=>!LIFE.includes(f.id)).forEach(f=>addBtn(f.id,f.t,r2))}
+const flowOf=id=>FLOWS.find(f=>f.id===id);
+
+function clearParticles(){particles.forEach(p=>{p.g.remove();p.lab&&p.lab.remove()});particles=[]}
+function setMode(id){if(issueFocus){issueFocus=null;renderIssues()}
+  mode=id;stepMode=false;cur=-1;tlClock=0;clearParticles();
+  flowsEl.querySelectorAll('button[data-id]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===id));
+  stepsEl.innerHTML='';stepLis=[];timeline=[];
+  const eb=document.getElementById('flowEyebrow'),tt=document.getElementById('flowTitle'),dd=document.getElementById('flowDesc');
+  if(id==='all'){eb.textContent='全体';tt.textContent='全データフローを同時再生';dd.textContent=`${FLOWS.length} つのフローから分子をランダムに流しています。上のボタンでフローを選ぶと、手順ごとの解説つきで再生します。`;nav.hidden=true;
+  }else{const f=flowOf(id);eb.textContent='データフロー · '+f.groups.length+' 段階';tt.textContent=f.t;dd.textContent=f.d;nav.hidden=false;
+    let t=0;f.groups.forEach((g,gi)=>{const li=document.createElement('li');const b=document.createElement('button');b.type='button';
+      b.innerHTML=g.map((st,j)=>`${j?'':`<span class="n">${gi+1}</span>`}${j?'<span></span>':''}<span class="dot" style="background:var(${TYPES[st.type].v})"></span><span>${esc(st.label)}<span class="ft">${esc(N[st.a].t)} → ${esc(N[st.b].t)}</span></span>`).join('');
+      b.addEventListener('click',()=>goStep(gi));li.appendChild(b);stepsEl.appendChild(li);stepLis.push(li);timeline.push({t0:t,gi});t+=1.25});
+    tlLen=t+1.6}
+  refreshDim();updateNav();renderNow(null);renderStageBar();
+  sideEl.classList.toggle('flowmode',id!=='all');seqEl.hidden=id==='all';if(id!=='all')goStep(0);
+}
+function refreshDim(){
+  let E=new Set(),V=new Set();
+  if(focus){for(const k in edges){const e=edges[k];if(e.a===focus||e.b===focus){E.add(k);V.add(e.a);V.add(e.b)}}}
+  else if(mode==='all'){for(const k in edges)E.add(k);for(const k in N)V.add(k)}
+  else flowOf(mode).groups.flat().forEach(st=>{E.add(key(st.a,st.b));V.add(st.a);V.add(st.b)});
+  const hot=new Set();if(mode!=='all'&&stepMode&&cur>=0)flowOf(mode).groups[cur].forEach(st=>hot.add(key(st.a,st.b)));
+  for(const k in edges){edges[k].el.classList.toggle('dim',!E.has(k));edges[k].el.classList.toggle('hot',hot.has(k))}
+  for(const k in N){N[k].g.classList.toggle('dim',!V.has(k));N[k].g.classList.toggle('sel',k===focus)}
+  applyIssue();
+  renderRoute();
+}
+function updateNav(){if(mode==='all')return;const n=flowOf(mode).groups.length;
+  document.getElementById('prev').disabled=stepMode&&cur<=0;document.getElementById('next').disabled=stepMode&&cur>=n-1;
+  autoBtn.setAttribute('aria-pressed',!stepMode);posEl.textContent=stepMode?`手順 ${cur+1} / ${n}`:'自動再生中';
+  stepLis.forEach((li,i)=>{li.classList.toggle('on',stepMode&&i===cur);li.classList.toggle('done',i<cur)})}
+function goStep(i){if(mode==='all')return;const f=flowOf(mode);stepMode=true;cur=Math.max(0,Math.min(f.groups.length-1,i));clearParticles();
+  f.groups[cur].forEach(st=>spawn(st,true,true));renderNow(f.groups[cur]);refreshDim();updateNav()}
+document.getElementById('prev').addEventListener('click',()=>goStep(stepMode?cur-1:0));
+document.getElementById('next').addEventListener('click',()=>goStep(stepMode?cur+1:0));
+autoBtn.addEventListener('click',()=>{if(!stepMode)return;stepMode=false;clearParticles();tlClock=timeline[cur]?timeline[cur].t0-.01:0;refreshDim();updateNav()});
+document.addEventListener('keydown',ev=>{if(ev.target.closest('input'))return;if(mode==='all')return;
+  if(ev.key==='ArrowRight'){ev.preventDefault();goStep(stepMode?cur+1:0)}else if(ev.key==='ArrowLeft'){ev.preventDefault();goStep(stepMode?cur-1:0)}});
+
+/* ---------- "now" card ---------- */
+const nowEl=document.getElementById('now');
+function renderNow(group){
+  if(!group){nowEl.innerHTML=`<p class="eyebrow"><span>いま起きていること</span></p><h2>${mode==='all'?'フローを選ぶと解説が出ます':'再生中の手順を解説します'}</h2><p class="note">${mode==='all'?'上のボタンからフローを 1 つ選んでください。「次へ」で 1 手順ずつ進めると、何が・なぜ・どのファイルで起きているかを表示します。':'「次へ ▶」または → キーで 1 手順ずつ進められます。'}点線の用語はクリックすると意味を表示します。</p>`;return}
+  const f=group[0].flow;
+  nowEl.innerHTML=`<p class="eyebrow"><span>いま起きていること</span><span>手順 ${group[0].gi+1} / ${f.groups.length}</span></p>`+group.map(st=>`<div class="item"><p class="lbl">${esc(st.label)}</p><div class="route"><span class="dot" style="background:var(${TYPES[st.type].v})"></span>${esc(N[st.a].t)} → ${esc(N[st.b].t)} · ${esc(TYPES[st.type].name)}</div><p>${linkify(st.ex)}</p><div class="file">${esc(st.file)}</div><div class="plhead">運ばれるデータの例</div><pre>${esc(st.pl)}</pre></div>`).join('');
+}
+
+/* ---------- node detail ---------- */
+const detail=document.getElementById('detail');
+function ioList(list,dirIn){if(!list.length)return '<p class="note">なし</p>';const seen=new Set();
+  return '<ul class="io">'+list.filter(st=>{const k=st.label+st.a+st.b;if(seen.has(k))return false;seen.add(k);return true}).map(st=>`<li><button type="button" data-f="${st.flow.id}" data-g="${st.gi}"><span class="dot" style="background:var(${TYPES[st.type].v})"></span><span>${esc(st.label)}</span><small>${dirIn?'← '+esc(N[st.a].t):'→ '+esc(N[st.b].t)}</small></button></li>`).join('')+'</ul>'}
+function renderDetail(){
+  if(!focus){detail.innerHTML=`<p class="eyebrow"><span>ノード詳細</span></p><h2>ノードを選択してください</h2><p class="note">図中の箱をクリックすると、そのノードにつながる経路だけを強調し、受け取るデータと送り出すデータを一覧にします。もう一度クリックするか、図の余白をクリックすると解除します。</p>`;return}
+  const n=N[focus],inc=ALL.filter(s=>s.b===focus),out=ALL.filter(s=>s.a===focus);
+  detail.innerHTML=`<p class="eyebrow"><span>ノード詳細${n.tag?` <span class="pill ${TAGCLS[n.tag]||''}">${esc(n.tag)}</span>`:''}</span><button type="button" id="unsel" style="padding:1px 8px;font-size:11px">選択解除</button></p><h2>${esc(n.t)}</h2><div class="tech">${esc(n.s)}${n.tech?'<br>'+esc(n.tech):''}</div><p>${linkify(n.d)}</p>${n.file?`<div class="file">${esc(n.file)}</div>`:''}${n.code?`<div class="plhead">コード / データの例</div><pre class="ncode">${esc(n.code)}</pre>`:''}<h3>受け取るデータ（${inc.length}）</h3>${ioList(inc,true)}<h3>送り出すデータ（${out.length}）</h3>${ioList(out,false)}${nodeIssues(focus)}`;
+  detail.querySelector('#unsel').addEventListener('click',()=>selectNode(null));
+  detail.querySelectorAll('button[data-iss]').forEach(b=>b.addEventListener('click',()=>focusIssue(b.dataset.iss)));
+  detail.querySelectorAll('.io button').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f,g=+b.dataset.g;selectNode(null);if(mode!==f)setMode(f);goStep(g)}));
+}
+function selectNode(k){if(k&&issueFocus){issueFocus=null;renderIssues()}focus=k;if(mode==='all')clearParticles();refreshDim();renderDetail();renderStageBar()}
+
+
+/* ---------- issues ---------- */
+var issueFocus=null;
+const CLOSED_ST=["確認済み"];
+const isOpen=i=>!CLOSED_ST.includes(i.st);
+const SEVORD={'高':0,'中':1,'低':2};
+const issueCard=document.getElementById('issues');
+function issuesOf(k){return ISSUES.filter(i=>i.nodes.includes(k))}
+function nodeIssues(k){const l=issuesOf(k);if(!l.length)return '';
+  return `<h3>関連する注意点（${l.length}）</h3><ul class="io">${l.map(i=>`<li><button type="button" data-iss="${i.id}"><span class="sev s${SEVORD[i.sev]}">${esc(i.sev)}</span>${esc(i.t)}<small>${esc(i.st)}</small></button></li>`).join('')}</ul>`}
+// 未解決の問題があるノードは、いつでも赤枠と「!」で示す（どこで問題が起きているかを一目で見せる）。
+function markIssueNodes(){
+  for(const k in N){const n=N[k],l=issuesOf(k).filter(isOpen);if(!l.length)continue;
+    n.g.classList.add('hasiss');
+    el('text',{class:'issmark',x:n.x-n.w/2+6,y:n.y-n.h/2+12},n.g).textContent='!'+(l.length>1?l.length:'');}
+}
+function applyIssue(){
+  const it=issueFocus?ISSUES.find(i=>i.id===issueFocus):null;
+  for(const k in N)N[k].g.classList.toggle('iss',!!it&&it.nodes.includes(k));
+  if(!it)return;
+  for(const k in N)N[k].g.classList.toggle('dim',!it.nodes.includes(k));
+  for(const k in edges){const e=edges[k];e.el.classList.toggle('dim',!(it.nodes.includes(e.a)&&it.nodes.includes(e.b)))}
+}
+function renderIssues(){
+  const open=ISSUES.filter(isOpen).length;
+  const list=[...ISSUES].sort((a,b)=>(isOpen(b)-isOpen(a))||(SEVORD[a.sev]-SEVORD[b.sev]));
+  issueCard.innerHTML=`<p class="eyebrow"><span>注意点・未確認事項 · 要確認 ${open} · 確認済み ${ISSUES.length-open}</span>${issueFocus?'<button type="button" id="issClr" style="padding:1px 8px;font-size:11px">解除</button>':''}</p>`+
+    `<ul class="iss">${list.map(i=>`<li class="${i.id===issueFocus?'on':''}${isOpen(i)?'':' closed'}"><button type="button" data-i="${i.id}" aria-expanded="${i.id===issueFocus}"><span class="sev s${SEVORD[i.sev]}">${esc(i.sev)}</span><span class="it">${esc(i.t)}<small>${esc(i.st)} · ${i.nodes.length} ノード</small></span></button>`+
+    (i.id===issueFocus?`<div class="idet"><p>${linkify(i.d)}</p><div class="file">${esc(i.ref)}</div><div class="inodes">${i.nodes.map(k=>`<button type="button" data-n="${k}">${esc(N[k].t)}</button>`).join('')}</div></div>`:'')+`</li>`).join('')}</ul>`;
+  issueCard.querySelectorAll('button[data-i]').forEach(b=>b.addEventListener('click',()=>focusIssue(issueFocus===b.dataset.i?null:b.dataset.i)));
+  issueCard.querySelectorAll('button[data-n]').forEach(b=>b.addEventListener('click',()=>selectNode(b.dataset.n)));
+  const c=issueCard.querySelector('#issClr');if(c)c.addEventListener('click',()=>focusIssue(null));
+}
+function focusIssue(id){issueFocus=id;if(id&&focus){focus=null;renderDetail()}refreshDim();renderIssues();renderStageBar()}
+
+/* ---------- stage bar ---------- */
+const bar=document.getElementById('stagebar');
+function renderStageBar(){
+  const m=mode==='all'?'全体':flowOf(mode).t;
+  bar.innerHTML=`表示中 <b>${esc(m)}</b>${focus?` · 注目ノード <b>${esc(N[focus].t)}</b>`:''}${issueFocus?` · 注意点 <b>${esc(ISSUES.find(i=>i.id===issueFocus).t)}</b>`:''}<span class="spacer" style="flex:1"></span>${mode!=='all'&&!focus&&!issueFocus?'<span class="rkey"><span><i class="cur"></i>いまの手順</span><span><i></i>済んだ手順</span><span><i class="next"></i>この後</span><span>○の数字 = 手順の番号 · 矢印 = 向き</span></span>':'<span>分子にカーソル → 中身 · ノードをクリック → 出入り一覧</span>'}`}
+
+/* ---------- search ---------- */
+const q=document.getElementById('q'),res=document.getElementById('results');
+const IDX=[];
+for(const k in N){const n=N[k];IDX.push({kind:'node',id:k,title:n.t,sub:n.s,text:[n.t,n.s,n.tech,n.d].join(' ')})}
+ALL.forEach(st=>IDX.push({kind:'step',st,title:st.label,sub:st.flow.t+' / 手順 '+(st.gi+1),text:[st.label,st.ex,st.file,st.pl].join(' ')}));
+GLOSS.forEach(([k,al,d])=>IDX.push({kind:'term',id:k,title:k,sub:d.slice(0,40)+'…',text:[k,...al,d].join(' ')}));
+let hitsList=[],act=-1;
+function doSearch(){const s=q.value.trim().toLowerCase();for(const k in N)N[k].g.classList.remove('hit');
+  if(!s){res.hidden=true;return}
+  const sc=it=>{const t=it.title.toLowerCase();if(t===s)return 0;if(t.startsWith(s))return 1;if(t.includes(s))return 2;return 3};
+  hitsList=IDX.filter(it=>it.text.toLowerCase().includes(s)).sort((a,b)=>sc(a)-sc(b)||['node','term','step'].indexOf(a.kind)-['node','term','step'].indexOf(b.kind)).slice(0,14);
+  const hitN=new Set();IDX.filter(it=>it.text.toLowerCase().includes(s)).forEach(it=>{if(it.kind==='node')hitN.add(it.id);if(it.kind==='step'){hitN.add(it.st.a);hitN.add(it.st.b)}});
+  hitN.forEach(k=>N[k].g.classList.add('hit'));
+  const K={node:'NODE',step:'STEP',term:'用語'};act=-1;
+  res.innerHTML=hitsList.length?hitsList.map((it,i)=>`<li><button type="button" data-i="${i}"><span class="k">${K[it.kind]}</span>${esc(it.title)}<span class="sub">${esc(it.sub)}</span></button></li>`).join(''):'<li class="none">該当なし。メソッド名（select_action）、コマンド（lerobot-record）、用語（EnvTransition）などで探せます。</li>';
+  res.hidden=false;res.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>pick(hitsList[+b.dataset.i])))}
+function pick(it){res.hidden=true;
+  if(it.kind==='node'){selectNode(it.id)}
+  else if(it.kind==='step'){selectNode(null);if(mode!==it.st.flow.id)setMode(it.st.flow.id);goStep(it.st.gi)}
+  else{gq.value='';renderTerms();const d=document.getElementById('term-'+it.id.replace(/\W/g,'_'));if(d){d.scrollIntoView({behavior:'smooth',block:'center'});d.classList.add('flash');setTimeout(()=>d.classList.remove('flash'),1600)}}}
+q.addEventListener('input',doSearch);q.addEventListener('focus',()=>q.value&&doSearch());
+q.addEventListener('keydown',ev=>{const bs=[...res.querySelectorAll('button')];
+  if(ev.key==='Escape'){q.value='';doSearch();return}
+  if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ev.preventDefault();if(!bs.length)return;act=(act+(ev.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs.forEach((b,i)=>b.classList.toggle('act',i===act));bs[act].scrollIntoView({block:'nearest'})}
+  if(ev.key==='Enter'&&hitsList.length){ev.preventDefault();pick(hitsList[Math.max(0,act)])}});
+document.addEventListener('click',ev=>{if(!ev.target.closest('.search'))res.hidden=true});
+
+/* ---------- glossary ---------- */
+const termsEl=document.getElementById('terms'),gq=document.getElementById('gq'),gcount=document.getElementById('gcount');
+function renderTerms(){const s=gq.value.trim().toLowerCase();const list=GLOSS.filter(([k,al,d])=>!s||[k,...al,d].join(' ').toLowerCase().includes(s));
+  gcount.textContent=`${list.length} / ${GLOSS.length} 語`;
+  termsEl.innerHTML=list.map(([k,al,d])=>`<div id="term-${k.replace(/\W/g,'_')}"><dt>${esc(k)}${al.length?`<span>${esc(al.join(' / '))}</span>`:''}</dt><dd>${esc(d)}</dd></div>`).join('')||'<p class="note">該当する用語はありません。</p>'}
+gq.addEventListener('input',renderTerms);renderTerms();
+
+/* ---------- animation ---------- */
+function spawn(st,withLabel,loop){
+  if(!enabled.has(st.type)&&!loop)return;
+  const e=edges[key(st.a,st.b)];const p={st,e,fwd:st.a===e.a,age:0,dur:withLabel?(loop?2.4:1.8):1.5+Math.random()*.6,rot:Math.random()*360,spin:(Math.random()<.5?-1:1)*(60+Math.random()*80),loop};
+  p.g=molecule(p);
+  if(withLabel){p.lab=el('text',{class:'mlabel','text-anchor':'middle'},gL);p.lab.textContent=st.label}
+  particles.push(p);return p}
+function pos(e,u){const A=N[e.a],B=N[e.b];return[(1-u)*(1-u)*A.x+2*(1-u)*u*e.cx+u*u*B.x,(1-u)*(1-u)*A.y+2*(1-u)*u*e.cy+u*u*B.y]}
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const pool=()=>focus?ALL.filter(s=>s.a===focus||s.b===focus):ALL;
+function frame(now){
+  let dt=Math.min(.05,(now-last)/1000);last=now;if(paused||hoverFreeze)dt=0;dt*=speed;
+  if(mode==='all'){spawnAcc+=dt;const P=pool(),rate=focus?.28:.16;while(spawnAcc>rate){spawnAcc-=rate;spawn(P[Math.floor(Math.random()*P.length)],!!focus,false)}}
+  else if(!stepMode&&dt>0){const prev=tlClock;tlClock+=dt;
+    timeline.forEach(it=>{if(prev<=it.t0&&tlClock>it.t0){const g=flowOf(mode).groups[it.gi];g.forEach(st=>spawn(st,true,false));renderNow(g);cur=it.gi;renderRoute();updateNav();stepLis.forEach((li,i)=>li.classList.toggle('on',i===it.gi))}});
+    if(tlClock>tlLen)tlClock=-0.6}
+  particles=particles.filter(p=>{p.age+=dt;let r=p.age/p.dur;
+    if(r>=1){if(p.loop){p.age=0;r=0}else{p.g.remove();p.lab&&p.lab.remove();return false}}
+    const u=ease(r),[x,y]=pos(p.e,p.fwd?u:1-u);p.rot+=p.spin*dt;
+    p.g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);p.inner.setAttribute('transform',`rotate(${p.rot.toFixed(0)})`);
+    const o=p.loop?Math.min(1,r*8,(1-r)*8):Math.min(1,r*6,(1-r)*6);p.g.setAttribute('opacity',o.toFixed(2));
+    if(p.lab){p.lab.setAttribute('x',x.toFixed(1));p.lab.setAttribute('y',(y-14).toFixed(1));p.lab.setAttribute('opacity',o.toFixed(2))}
+    if(dt>0)p.e.act=1;return true});
+  for(const k in edges){const e=edges[k];e.act*=.94;e.el.style.stroke=(e.act>.05&&!e.el.classList.contains('hot'))?`color-mix(in srgb, var(--accent) ${Math.round(e.act*70)}%, var(--line))`:''}
+  requestAnimationFrame(frame)}
+const playBtn=document.getElementById('play');
+playBtn.addEventListener('click',()=>{paused=!paused;playBtn.textContent=paused?'再生':'一時停止';playBtn.setAttribute('aria-pressed',paused)});
+const sp=document.getElementById('speed'),spv=document.getElementById('speedv');
+sp.addEventListener('input',()=>{speed=+sp.value;spv.textContent=speed.toFixed(2).replace(/0$/,'')+'×'});
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){speed=.5;sp.value=.5;spv.textContent='0.5×'}
+markIssueNodes();setMode('all');renderDetail();renderIssues();
+{const cnt=t=>Object.values(N).filter(n=>n.tag===t).length;document.getElementById('facts').innerHTML=`<span>箱 <b>${Object.keys(N).length}</b></span><span>ソース確認 <b>${cnt('ソース確認')}</b></span><span>公式文書 <b>${cnt('公式文書')}</b></span><span>Seeed Wiki <b>${cnt('Seeed Wiki')}</b></span><span>フロー <b>${FLOWS.length}</b></span><span>手順 <b>${ALL.length}</b></span><span>注意点・未確認 <b>${ISSUES.length}</b></span>`}
+for(let i=0;i<14;i++){const p=spawn(ALL[Math.floor(Math.random()*ALL.length)],false,false);if(p)p.age=Math.random()*1.2}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
