@@ -1,0 +1,83 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "LeRobot: info",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lerobot.scripts.lerobot_info",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "LeRobot: dataset viz (pusht ep0)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lerobot.scripts.lerobot_dataset_viz",
+      "args": ["--repo-id", "lerobot/pusht", "--episode-index", "0"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "LeRobot: train ACT on pusht (CPU smoke)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lerobot.scripts.lerobot_train",
+      "args": [
+        "--policy.type=act",
+        "--policy.device=cpu",
+        "--policy.push_to_hub=false",
+        "--dataset.repo_id=lerobot/pusht",
+        "--env.type=pusht",
+        "--steps=200",
+        "--batch_size=8",
+        "--env_eval_freq=0",
+        "--num_workers=0",
+        "--save_freq=200",
+        "--output_dir=outputs/train/act_pusht_smoke",
+        "--wandb.enable=false"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "LeRobot: eval smoke checkpoint on pusht",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lerobot.scripts.lerobot_eval",
+      "args": [
+        "--policy.path=outputs/train/act_pusht_smoke/checkpoints/last/pretrained_model",
+        "--policy.device=cpu",
+        "--env.type=pusht",
+        "--eval.n_episodes=2",
+        "--eval.batch_size=1"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "LeRobot: find port (robot USB)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lerobot.scripts.lerobot_find_port",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Pytest: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-x", "-q"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}
