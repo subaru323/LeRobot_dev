@@ -46,7 +46,7 @@
       "request": "launch",
       "module": "lerobot.scripts.lerobot_eval",
       "args": [
-        "--policy.path=outputs/train/act_pusht_smoke/checkpoints/last/pretrained_model",
+        "--policy.path=outputs/train/act_pusht_smoke/checkpoints/000200/pretrained_model",
         "--policy.device=cpu",
         "--env.type=pusht",
         "--eval.n_episodes=2",
