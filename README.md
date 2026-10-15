@@ -8,11 +8,13 @@
 > それより下は本家 LeRobot の README をそのまま残しています。
 > 手順は **2026-10-15 時点、Windows 11 + uv 0.12.5 + Python 3.12.14** の実機で確認しました。
 > 確認できていない手順には **（未検証）** と明記しています。
+> 実際に行って成功した手順は [0 章](#0-実際に行った手順2026-10-15-の作業記録) にまとめています。
 
 ---
 
 ## 目次
 
+0. [実際に行った手順（2026-10-15 の作業記録）](#0-実際に行った手順2026-10-15-の作業記録) ← **まずここから**
 1. [このフォークで追加したもの](#1-このフォークで追加したもの)
 2. [必要なもの](#2-必要なもの)
 3. [リポジトリの取得（clone）](#3-リポジトリの取得clone)
@@ -26,6 +28,130 @@
 11. [トラブルシューティング](#11-トラブルシューティング)
 12. [本家（upstream）の更新を取り込む](#12-本家upstreamの更新を取り込む)
 13. [AI エージェント向けの要点](#13-ai-エージェント向けの要点)
+
+---
+
+## 0. 実際に行った手順（2026-10-15 の作業記録）
+
+この章は、開発者の PC（Windows 11）で**実際に行い、成功した手順**を、時刻の順に並べたものです。
+git の記録（reflog）とファイルの日時から復元しました。
+最初にこの章のとおりに進め、詳しい説明が必要になったら 1 章以降を読んでください。
+
+### 0-1. 作業の記録
+
+| 時刻 | 行ったこと | 結果 |
+| --- | --- | --- |
+| 13:37 以前 | 本家 LeRobot を ZIP でダウンロードして展開（フォルダ名 `lerobot-main`） | ファイルの日時がすべて同じことからの推定 |
+| 13:37 | そのフォルダで `git init` | |
+| 13:39 | 本家を `upstream` に登録し、本家の main を取得して合わせる | 本家のコミット `53feaef3` に一致 |
+| 13:41 | uv で仮想環境 `.venv` を作り、依存を入れる | Python 3.12.14、CPU 版 PyTorch 2.11.0 |
+| 14:13 | VS Code の設定（`.vscode/`）を追加 | |
+| 14:16 | CPU だけで ACT を PushT で 200 ステップ学習 | **成功**。チェックポイントを保存 |
+| 14:17 | その方策を PushT で 2 エピソード評価 | **成功**（成功率 0%。200 ステップでは想定どおり） |
+| 14:17 | Windows で `checkpoints/last` が作れないため、評価の設定をステップ番号の指定に変更 | |
+| 14:20 | サーボ単体テスト用の `dev_scripts/random_servo.py` を作成 | |
+| 14:22〜15:41 | GitHub（subaru323/LeRobot_dev）へ push（LFS 3.5GB を含む）。README を追加 | |
+
+**ロボット側の到達点（2026-10-15 時点）**
+
+- アダプタ基板は `COM19`（CH343）として認識済み。
+- サーボへの ping は**応答 0 バイトで、まだ通信できていません**。
+- 校正ファイルが無いため、**校正は未実施**です。
+
+### 0-2. 同じ状態を再現する手順
+
+上の作業を、新しい PC で再現するための手順です。ZIP と `git init` の代わりに、このリポジトリを clone します（結果は同じです）。
+コマンドはすべて PowerShell で実行します。
+
+**手順 1：Git LFS と uv を入れる（初回のみ）**
+
+```powershell
+git lfs install
+```
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+入れた後、PowerShell を開き直します。
+
+**手順 2：clone して upstream を登録する**
+
+```powershell
+git clone https://github.com/subaru323/LeRobot_dev.git
+```
+
+```powershell
+cd LeRobot_dev
+```
+
+```powershell
+git remote add upstream https://github.com/huggingface/lerobot.git
+```
+
+LFS の 3.5GB を飛ばしたい場合は、clone の前に `$env:GIT_LFS_SKIP_SMUDGE = "1"` を実行します（[3-2](#3-2-clone-する)）。
+
+**手順 3：Python 環境を作る**
+
+```powershell
+uv sync --locked --extra core_scripts --extra feetech --extra training --extra pusht --extra test
+```
+
+開発者の PC の `.venv` は、このコマンドの結果と完全に一致することを確認済みです。
+
+**手順 4：UTF-8 モードを有効にする**
+
+```powershell
+[Environment]::SetEnvironmentVariable("PYTHONUTF8", "1", "User")
+```
+
+PowerShell（と VS Code）を開き直します。これが無いと `--help` などが文字コードのエラーで止まります（[5-1](#5-1-utf-8-モードにする必須)）。
+
+**手順 5：仮想環境を有効にする**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+**手順 6：CPU だけで学習を試す（実績：成功）**
+
+```powershell
+lerobot-train --policy.type=act --policy.device=cpu --policy.push_to_hub=false --dataset.repo_id=lerobot/pusht --env.type=pusht --steps=200 --batch_size=8 --env_eval_freq=0 --num_workers=0 --save_freq=200 --output_dir=outputs/train/act_pusht_smoke --wandb.enable=false
+```
+
+- 初回は PushT のデータセットを Hub からダウンロードします（保存先 `%USERPROFILE%\.cache\huggingface\lerobot\hub\`）。
+- `torchcodec ... cannot be loaded ... Falling back to 'pyav'` という警告が出ますが、そのまま進みます（[5-2](#5-2-ffmpeg共有-dll-版を入れる推奨未検証)）。
+- 成功すると `outputs/train/act_pusht_smoke/checkpoints/000200/pretrained_model/` ができます。
+
+**手順 7：学習した方策を評価する（実績：成功）**
+
+```powershell
+lerobot-eval --policy.path=outputs/train/act_pusht_smoke/checkpoints/000200/pretrained_model --policy.device=cpu --env.type=pusht --eval.n_episodes=2 --eval.batch_size=1
+```
+
+- `checkpoints/last` ではなく、`000200` と番号を書きます（Windows ではリンクが作られないことがあるため）。
+- 結果は `outputs/eval/<日付>/<時刻>_pusht_act/eval_info.json` と、評価の動画 `videos/pusht_0/eval_episode_*.mp4` です。
+- 200 ステップでは成功率 0% が普通です。ここでは「最後まで動くか」だけを確かめます。
+
+VS Code を使う場合、手順 6 と 7 は「実行とデバッグ」の「LeRobot: train ACT on pusht (CPU smoke)」と「LeRobot: eval smoke checkpoint on pusht」で同じことができます。
+
+**手順 8：ロボットの基板が見えるか確かめる（実績：COM19 を確認）**
+
+アダプタ基板に電源と USB をつないで、次を実行します。
+
+```powershell
+python -c "import serial.tools.list_ports as l; print([(p.device, p.description) for p in l.comports()])"
+```
+
+`USB-Enhanced-SERIAL CH343 (COM19)` のように表示されれば、PC は基板を認識しています。番号は PC ごとに違います。
+
+### 0-3. ここから先（未完了）
+
+次は、サーボとの通信を確立する段階です。
+
+1. サーボの応答が 0 バイトの原因を切り分けます。電源、Waveshare 基板のジャンパ（`B` 側）、ケーブルの差し込みを確認します（[11 章](#11-トラブルシューティング)）。
+2. 通信できたら、[9-3](#9-3-モーターに-id-を書き込む新品のときだけ)（ID 設定）→ [9-4](#9-4-校正キャリブレーション)（校正）→ [9-5](#9-5-遠隔操作で動きを確かめる)（遠隔操作）の順に進みます。
+3. 進めたら、この章の「0-1. 作業の記録」に行を足してください。
 
 ---
 
@@ -246,7 +372,7 @@ lerobot-train --policy.type=act --policy.device=cpu --policy.push_to_hub=false -
 lerobot-eval --policy.path=outputs/train/act_pusht_smoke/checkpoints/000200/pretrained_model --policy.device=cpu --env.type=pusht --eval.n_episodes=2 --eval.batch_size=1
 ```
 
-> この 2 つのコマンドは、README 作成時には実行していません（**未検証**）。
+> この 2 つのコマンドは、2026-10-15 に開発者の PC で実行して成功しています（学習 200 ステップ → 評価 2 エピソード。記録は [0 章](#0-実際に行った手順2026-10-15-の作業記録)）。
 
 ---
 
