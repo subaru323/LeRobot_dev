@@ -1,0 +1,250 @@
+<title>SO-101 五班体制</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;600;800&family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one column; loop strip at top, five role sheets laid out like a parts list, shared rules at bottom */
+:root {
+  --bg: #f3f5f4;
+  --paper: #ffffff;
+  --ink: #17201d;
+  --muted: #5b6863;
+  --line: #d3dbd7;
+  --accent: #0d7a5f;
+  --hw: #c2571a; --data: #1f6fb2; --train: #7a4bb5; --eval: #0d7a5f; --infra: #6b6f2a;
+  --display: "M PLUS 1", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935; --accent: #4cc9a4;
+  --hw: #f08a4b; --data: #63a8e8; --train: #b48ce8; --eval: #4cc9a4; --infra: #c3c76a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935; --accent: #4cc9a4;
+  --hw: #f08a4b; --data: #63a8e8; --train: #b48ce8; --eval: #4cc9a4; --infra: #c3c76a; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.3; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); font-weight: 800; }
+h2 { font-size: 1.25rem; font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 800; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: .86em; background: color-mix(in srgb, var(--line) 45%, transparent); padding: 1px 5px; border-radius: 3px; word-break: break-all; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 10px; }
+header .lead { color: var(--muted); max-width: 65ch; }
+
+/* loop strip */
+.loop { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 0; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; overflow: hidden; }
+.step { padding: 14px 16px; border-right: 1px solid var(--line); display: grid; gap: 4px; position: relative; }
+.step:last-child { border-right: 0; }
+.step b { font-family: var(--display); font-size: 1rem; }
+.step .out { font-family: var(--mono); font-size: .78rem; color: var(--muted); word-break: break-all; }
+.step::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.loop-note { font-size: .88rem; color: var(--muted); margin-top: 8px; }
+.base { margin-top: 8px; border: 1px dashed var(--infra); border-radius: 6px; padding: 10px 16px; font-size: .9rem; }
+.base b { color: var(--infra); font-family: var(--display); }
+
+/* roles */
+.roles { display: grid; gap: 18px; }
+.role { background: var(--paper); border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 6px; padding: 20px 22px; display: grid; gap: 14px; }
+.role-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.tag { font-family: var(--mono); font-weight: 600; font-size: .8rem; color: var(--c); border: 1px solid var(--c); border-radius: 3px; padding: 0 6px; }
+.role-head .sum { color: var(--muted); font-size: .92rem; flex-basis: 100%; }
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+.cols > div { min-width: 0; display: grid; gap: 6px; align-content: start; }
+.cols h4 { margin: 0; font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--c); }
+ul { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; }
+li { font-size: .92rem; }
+.standin { background: color-mix(in srgb, var(--c) 9%, transparent); border-radius: 4px; padding: 10px 14px; font-size: .9rem; }
+.standin b { color: var(--c); }
+
+/* rules table */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: .9rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+section { display: grid; gap: 14px; }
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+.rule { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: grid; gap: 4px; min-width: 0; }
+.rule b { font-family: var(--display); }
+.rule p { font-size: .9rem; color: var(--muted); }
+footer { font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+
+@media (max-width: 760px) {
+  .loop { grid-template-columns: 1fr 1fr; }
+  .step:nth-child(2) { border-right: 0; }
+  .step:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .cols, .rules { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">LeRobot × SO-ARM101 · Team plan v0</span>
+    <h1>SO-101 五班体制</h1>
+    <p class="lead">5人が常に同時に手を動かせるよう、工程ごとに班を分けます。前の工程の成果物を待たずに済むよう、各班は「代用品」を使って先に進め、本物が届いたら差し替えます。</p>
+  </header>
+
+  <section>
+    <h2>全体の流れ</h2>
+    <div class="loop">
+      <div class="step" style="--c: var(--hw)"><span class="eyebrow">A</span><b>実機を動かす</b><span class="out">→ robot.id / calibration</span></div>
+      <div class="step" style="--c: var(--data)"><span class="eyebrow">B</span><b>データを集める</b><span class="out">→ HF_USER/&lt;task&gt;</span></div>
+      <div class="step" style="--c: var(--train)"><span class="eyebrow">C</span><b>方策を学習する</b><span class="out">→ HF_USER/act_&lt;task&gt;</span></div>
+      <div class="step" style="--c: var(--eval)"><span class="eyebrow">D</span><b>評価して戻す</b><span class="out">→ 成功率・失敗パターン</span></div>
+    </div>
+    <p class="loop-note">D の結果は B（撮り直し・追加収録）と C（設定変更）に戻り、ループを何周も回します。</p>
+    <div class="base"><b>E 基盤・統合</b>：上の 4 班すべてを支えます。環境、git 運用、名前の取り決め、進捗の管理を担当します。</div>
+  </section>
+
+  <section>
+    <h2>各班の担当</h2>
+    <div class="roles">
+
+      <article class="role" style="--c: var(--hw)">
+        <div class="role-head"><span class="tag">A</span><h3>ハードウェア班</h3><span class="sum">SO-101 のフォロワーとリーダーを組み立て、正しく動く状態に保ちます。</span></div>
+        <div class="cols">
+          <div><h4>やること</h4><ul>
+            <li>組み立てと配線、電源の確認</li>
+            <li>サーボ ID の設定</li>
+            <li>キャリブレーションと関節可動域の測定</li>
+            <li>カメラの固定位置を決める</li>
+            <li>故障対応と予備部品の管理</li>
+          </ul></div>
+          <div><h4>使うもの</h4><ul>
+            <li><code>lerobot-find-port</code></li>
+            <li><code>lerobot-setup-motors</code></li>
+            <li><code>lerobot-calibrate</code></li>
+            <li><code>lerobot-find-joint-limits</code></li>
+            <li><code>dev_scripts/random_servo.py</code></li>
+          </ul></div>
+          <div><h4>引き渡すもの</h4><ul>
+            <li>固定の <code>robot.id</code> と <code>teleop.id</code></li>
+            <li>キャリブレーションファイル</li>
+            <li>COM ポート対応表と配線メモ</li>
+          </ul></div>
+        </div>
+        <p class="standin"><b>代用品で進める工夫</b>：組み立て途中でも、サーボ単体の通信試験は <code>random_servo.py</code> でできます。</p>
+      </article>
+
+      <article class="role" style="--c: var(--data)">
+        <div class="role-head"><span class="tag">B</span><h3>データ収集班</h3><span class="sum">タスクを決め、テレオペで質の良いデモを集めて Hub に上げます。</span></div>
+        <div class="cols">
+          <div><h4>やること</h4><ul>
+            <li>タスク定義（物体、配置、成功条件）</li>
+            <li>カメラ設定と照明の固定</li>
+            <li>テレオペの練習と収録</li>
+            <li>エピソードの品質確認と不良の除外</li>
+          </ul></div>
+          <div><h4>使うもの</h4><ul>
+            <li><code>lerobot-find-cameras</code></li>
+            <li><code>lerobot-teleoperate</code></li>
+            <li><code>lerobot-record</code> / <code>lerobot-replay</code></li>
+            <li><code>lerobot-dataset-viz</code></li>
+            <li><code>lerobot-edit-dataset</code></li>
+          </ul></div>
+          <div><h4>引き渡すもの</h4><ul>
+            <li>Hub 上のデータセット <code>${HF_USER}/&lt;task&gt;</code></li>
+            <li>収録手順書（誰が撮っても同じ条件になるもの）</li>
+          </ul></div>
+        </div>
+        <p class="standin"><b>代用品で進める工夫</b>：実機ができる前に、Hub の公開 SO-101 データセットで形式と可視化を把握し、タスク定義と収録手順を先に固めます。</p>
+      </article>
+
+      <article class="role" style="--c: var(--train)">
+        <div class="role-head"><span class="tag">C</span><h3>学習班</h3><span class="sum">方策を選んで学習させ、使えるチェックポイントを出します。</span></div>
+        <div class="cols">
+          <div><h4>やること</h4><ul>
+            <li>まず ACT で基準線を作る</li>
+            <li>ステップ数・バッチサイズの設計</li>
+            <li>GPU の確保（手元 PC は CPU のみ）</li>
+            <li>余力があれば SmolVLA を試す</li>
+          </ul></div>
+          <div><h4>使うもの</h4><ul>
+            <li><code>lerobot-train</code></li>
+            <li><code>--job.target</code>（HF Jobs）または外部 GPU</li>
+            <li><code>AGENT_GUIDE.md</code> §6・§7</li>
+          </ul></div>
+          <div><h4>引き渡すもの</h4><ul>
+            <li>Hub 上の方策 <code>${HF_USER}/act_&lt;task&gt;</code></li>
+            <li>学習条件の記録（データ版・ステップ・損失）</li>
+          </ul></div>
+        </div>
+        <p class="standin"><b>代用品で進める工夫</b>：自前データが届くまでは公開データセットや pusht で学習手順と GPU 環境を確立します。pusht での CPU スモーク学習は既に通っています。</p>
+      </article>
+
+      <article class="role" style="--c: var(--eval)">
+        <div class="role-head"><span class="tag">D</span><h3>評価・推論班</h3><span class="sum">学習済み方策を実機とシミュで動かし、何が効いて何が駄目かを数字で返します。</span></div>
+        <div class="cols">
+          <div><h4>やること</h4><ul>
+            <li>評価手順を決める（試行回数、初期配置、成功判定）</li>
+            <li>実機で方策を動かして成功率を測る</li>
+            <li>失敗の動画を分類して B・C に返す</li>
+            <li>推論の速度と安全停止の確認</li>
+          </ul></div>
+          <div><h4>使うもの</h4><ul>
+            <li><code>lerobot-eval</code>（シミュ）</li>
+            <li><code>lerobot-record --policy.path=…</code>（実機）</li>
+            <li><code>lerobot-rollout</code> / <code>lerobot-policy-server</code></li>
+          </ul></div>
+          <div><h4>引き渡すもの</h4><ul>
+            <li>評価記録表（方策・データ版ごとの成功率）</li>
+            <li>失敗パターンと改善提案</li>
+          </ul></div>
+        </div>
+        <p class="standin"><b>代用品で進める工夫</b>：既存のスモーク用チェックポイント（pusht）で評価の流れと記録表の形式を先に作っておきます。</p>
+      </article>
+
+      <article class="role" style="--c: var(--infra)">
+        <div class="role-head"><span class="tag">E</span><h3>基盤・統合班</h3><span class="sum">全員が同じ環境で動けるようにし、班の間のつなぎ目を管理します。進行管理も兼ねます。</span></div>
+        <div class="cols">
+          <div><h4>やること</h4><ul>
+            <li>5 台分の環境構築手順を整える</li>
+            <li>git のブランチ運用とレビュー</li>
+            <li>名前の取り決め（ID・repo_id）を管理する</li>
+            <li>週 1 回の通し試験（A→D を一周）</li>
+            <li>システムマップ等の資料を更新する</li>
+          </ul></div>
+          <div><h4>使うもの</h4><ul>
+            <li><code>uv sync --locked</code></li>
+            <li><code>lerobot-info</code></li>
+            <li><code>.vscode/launch.json</code></li>
+            <li><code>dev_docs/</code></li>
+          </ul></div>
+          <div><h4>引き渡すもの</h4><ul>
+            <li>セットアップ手順書と既知の落とし穴一覧</li>
+            <li>進捗表と週次の統合結果</li>
+          </ul></div>
+        </div>
+        <p class="standin"><b>既知の落とし穴</b>：FFmpeg は 8.x に固定（9.x で torchcodec が動かない）。開発者モードが無効だと <code>checkpoints/last</code> の作成で WinError 1314。push 時の GitHub アカウントの食い違い。</p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>同時に進めるための決まりごと</h2>
+    <div class="rules">
+      <div class="rule"><b>名前を先に決める</b><p>robot.id、データセット名、方策名を初日に E が決めて共有します。中身が後から入れ替わっても、名前が同じなら他の班は作業を止めずに済みます。</p></div>
+      <div class="rule"><b>班ごとにブランチと置き場を分ける</b><p>ブランチは <code>hw/…</code> <code>data/…</code> <code>train/…</code> <code>eval/…</code> <code>infra/…</code>。各班のスクリプトは <code>dev_scripts/&lt;班&gt;/</code> に置き、<code>src/</code> はなるべく触りません。</p></div>
+      <div class="rule"><b>受け渡しは Hub で行う</b><p>データセットと方策は Hugging Face Hub を通じて渡します。USB メモリや個人 PC 上のファイルに依存しません。</p></div>
+      <div class="rule"><b>実機の時間を割り振る</b><p>SO-101 は 1 セットなので、A・B・D の実機使用時間を時間割にします。空いている班はシミュや代用品で進めます。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>実機の取り合いを避ける時間割（例）</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>時期</th><th>実機を使う班</th><th>他の班がやること</th></tr></thead>
+      <tbody>
+        <tr><td>序盤</td><td>A（組立・キャリブ）</td><td>B タスク定義 / C 公開データで学習手順 / D 評価手順 / E 環境統一</td></tr>
+        <tr><td>中盤</td><td>B（収録）</td><td>A 予備部品・保守 / C 収録分から順次学習 / D 前回の方策をシミュ評価 / E 通し試験</td></tr>
+        <tr><td>終盤</td><td>D（実機評価）と B（追加収録）を交互に</td><td>C 再学習 / A 故障対応 / E 資料まとめ</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <footer>叩き台です。人の割り当て、時期、タスク内容はチームで決めてください。</footer>
+</div>

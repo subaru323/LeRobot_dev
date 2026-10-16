@@ -1,0 +1,311 @@
+<title>かんたん LeRobot 設計図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;600;800&family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one column of figure sheets; each UML figure has a caption, the diagram, then a short reading note */
+:root {
+  --bg: #f3f5f4;
+  --paper: #ffffff;
+  --ink: #17201d;
+  --muted: #5b6863;
+  --line: #d3dbd7;
+  --accent: #0d7a5f;
+  --hw: #c2571a; --data: #1f6fb2; --train: #7a4bb5; --eval: #0d7a5f; --infra: #6b6f2a;
+  --display: "M PLUS 1", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935; --accent: #4cc9a4;
+  --hw: #f08a4b; --data: #63a8e8; --train: #b48ce8; --eval: #4cc9a4; --infra: #c3c76a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935; --accent: #4cc9a4;
+  --hw: #f08a4b; --data: #63a8e8; --train: #b48ce8; --eval: #4cc9a4; --infra: #c3c76a; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.3; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); font-weight: 800; }
+h2 { font-size: 1.25rem; font-weight: 800; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: .86em; background: color-mix(in srgb, var(--line) 45%, transparent); padding: 1px 5px; border-radius: 3px; word-break: break-all; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 10px; }
+.lead { color: var(--muted); max-width: 65ch; }
+section { display: grid; gap: 12px; }
+.fig { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.fig-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.fig-head .kind { font-family: var(--mono); font-size: .75rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 0 6px; }
+.diagram { overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; text-align: center; font-family: var(--body); }
+.note { font-size: .92rem; color: var(--muted); max-width: 72ch; }
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper); }
+.st { padding: 14px 14px 16px; border-right: 1px solid var(--line); display: grid; gap: 4px; align-content: start; border-top: 4px solid var(--c); min-width: 0; }
+.st:last-child { border-right: 0; }
+.st b { font-family: var(--display); font-size: 1rem; }
+.st span { font-size: .86rem; color: var(--muted); }
+.st .team { font-family: var(--mono); font-size: .72rem; color: var(--c); }
+.open { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+.q { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; display: grid; gap: 4px; min-width: 0; }
+.q b { font-family: var(--display); }
+.q p { font-size: .9rem; color: var(--muted); }
+footer { font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 760px) {
+  .steps { grid-template-columns: 1fr; }
+  .st { border-right: 0; border-bottom: 1px solid var(--line); }
+  .st:last-child { border-bottom: 0; }
+  .open { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">LeRobot × SO-ARM101 · Tool design v0</span>
+    <h1>かんたん LeRobot 設計図</h1>
+    <p class="lead">ロボットに詳しくない人でも、画面の指示に従うだけで「つなぐ → 教える → 学習させる → 動かす」までを終えられるツールの大まかな設計です。中身は既存の LeRobot コマンドをそのまま使い、ツールは手順の案内と設定の肩代わりに徹します。</p>
+  </header>
+
+  <section>
+    <h2>利用者から見た 5 ステップ</h2>
+    <div class="steps">
+      <div class="st" style="--c: var(--hw)"><b>1. つなぐ</b><span>USB を挿すとポートとカメラを自動で見つける</span><span class="team">A 班</span></div>
+      <div class="st" style="--c: var(--hw)"><b>2. 合わせる</b><span>画面の絵のとおりに腕を動かしてキャリブレーション</span><span class="team">A 班</span></div>
+      <div class="st" style="--c: var(--data)"><b>3. 教える</b><span>リーダーアームで動作を見せて録画する</span><span class="team">B 班</span></div>
+      <div class="st" style="--c: var(--train)"><b>4. 学習させる</b><span>ボタン 1 つで学習。進み具合を表示</span><span class="team">C 班</span></div>
+      <div class="st" style="--c: var(--eval)"><b>5. 動かす</b><span>学習したモデルでデモを実行し、成功率を記録</span><span class="team">D 班</span></div>
+    </div>
+    <p class="note">画面の外枠、設定の保存、コマンド実行の共通部品は E 班が担当します。</p>
+  </section>
+
+  <section>
+    <div class="fig">
+      <div class="fig-head"><span class="kind">ユースケース図</span><h2>誰が何をするか</h2></div>
+      <div class="diagram"><pre class="mermaid">
+flowchart LR
+  U(["利用者（初心者）"])
+  T(["指導者"])
+  subgraph Tool["かんたん LeRobot"]
+    UC1(["ロボットをつなぐ"])
+    UC2(["キャリブレーションする"])
+    UC3(["お手本を録画する"])
+    UC4(["モデルを学習させる"])
+    UC5(["デモを実行する"])
+    UC6(["タスクを選ぶ"])
+    UC7(["作業を途中から再開する"])
+    UC8(["タスクの雛形を作る"])
+  end
+  HUB[("Hugging Face Hub")]
+  GPU[("学習用 GPU")]
+  U --- UC1
+  U --- UC2
+  U --- UC3
+  U --- UC4
+  U --- UC5
+  U --- UC6
+  U --- UC7
+  T --- UC8
+  UC6 -. 使う .-> UC8
+  UC3 --- HUB
+  UC4 --- GPU
+  UC4 --- HUB
+  UC5 --- HUB
+      </pre></div>
+      <p class="note">利用者はタスクを選んで順番に進めるだけにします。カメラ位置や成功条件などの決めごとは、指導者が「タスクの雛形」として事前に用意します。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="fig">
+      <div class="fig-head"><span class="kind">コンポーネント図</span><h2>どの部品がどこにつながるか</h2></div>
+      <div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph UI["画面（ブラウザ）"]
+    W["ウィザード画面"]
+    LOG["進行状況・ログ表示"]
+  end
+  subgraph APP["かんたん LeRobot 本体（Python）"]
+    FLOW["StepFlow<br/>手順の進行管理"]
+    PROJ["Project<br/>名前・設定の保存"]
+    RUN["CommandRunner<br/>コマンド実行とログ回収"]
+    CHK["Preflight<br/>事前チェック"]
+  end
+  subgraph LRB["LeRobot（既存・改変しない）"]
+    C1["lerobot-find-port / find-cameras"]
+    C2["lerobot-setup-motors / calibrate"]
+    C3["lerobot-record"]
+    C4["lerobot-train"]
+    C5["lerobot-record --policy.path / lerobot-rollout"]
+  end
+  subgraph EXT["外部"]
+    ARM["SO-101 リーダー・フォロワー"]
+    CAM["カメラ"]
+    HUB[("HF Hub")]
+    GPU[("HF Jobs / 外部 GPU")]
+  end
+  W <--> FLOW
+  LOG <-- RUN
+  FLOW --> PROJ
+  FLOW --> CHK
+  FLOW --> RUN
+  RUN --> C1 & C2 & C3 & C4 & C5
+  C1 & C2 --> ARM
+  C1 & C3 --> CAM
+  C3 --> ARM
+  C3 --> HUB
+  C4 --> GPU
+  C4 --> HUB
+  C5 --> ARM
+  C5 --> HUB
+      </pre></div>
+      <p class="note">本体は LeRobot のコマンドを外から呼ぶだけにします。<code>src/lerobot</code> を改変しないので、upstream の更新を取り込みやすくなります。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="fig">
+      <div class="fig-head"><span class="kind">クラス図</span><h2>本体の骨組み</h2></div>
+      <div class="diagram"><pre class="mermaid">
+classDiagram
+  class Project {
+    +task_name
+    +task_description
+    +robot_id
+    +teleop_id
+    +dataset_repo_id
+    +policy_repo_id
+    +save()
+    +load()
+  }
+  class HardwareProfile {
+    +follower_port
+    +leader_port
+    +cameras
+  }
+  class TaskTemplate {
+    +description
+    +num_episodes
+    +episode_time_s
+    +camera_layout
+    +policy_type
+    +train_steps
+  }
+  class StepFlow {
+    +steps
+    +current
+    +next()
+    +resume()
+  }
+  class Step {
+    <<abstract>>
+    +status
+    +check() bool
+    +run()
+    +cancel()
+  }
+  class ConnectStep
+  class CalibrateStep
+  class RecordStep {
+    +episodes_done
+  }
+  class TrainStep {
+    +target
+    +progress
+  }
+  class DemoStep {
+    +success_count
+  }
+  class CommandRunner {
+    +run(args) LogStream
+    +stop()
+  }
+  Project "1" *-- "1" HardwareProfile
+  Project "1" o-- "1" TaskTemplate
+  StepFlow "1" *-- "5" Step
+  StepFlow --> Project
+  Step <|-- ConnectStep
+  Step <|-- CalibrateStep
+  Step <|-- RecordStep
+  Step <|-- TrainStep
+  Step <|-- DemoStep
+  Step ..> CommandRunner : uses
+      </pre></div>
+      <p class="note">各ステップは同じ型（<code>check</code> で前提を確かめ、<code>run</code> で実行）を持ちます。班ごとに 1 つずつ実装すれば、他の班のステップを待たずに並行開発できます。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="fig">
+      <div class="fig-head"><span class="kind">状態遷移図</span><h2>プロジェクトの進み方</h2></div>
+      <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  state "未接続" as S0
+  state "接続済み" as S1
+  state "キャリブ済み" as S2
+  state "録画中" as S3
+  state "データあり" as S4
+  state "学習中" as S5
+  state "学習済み" as S6
+  state "デモ中" as S7
+  [*] --> S0
+  S0 --> S1 : ポートとカメラを検出
+  S1 --> S2 : キャリブレーション完了
+  S2 --> S3 : 録画開始
+  S3 --> S4 : 規定数のお手本がそろう
+  S4 --> S3 : 追加で録画
+  S4 --> S5 : 学習開始
+  S5 --> S6 : 学習完了
+  S5 --> S4 : 失敗・中止
+  S6 --> S7 : デモ開始
+  S7 --> S6 : 終了
+  S6 --> S3 : うまく動かない → お手本を追加
+  S1 --> S0 : 抜けた
+      </pre></div>
+      <p class="note">状態は <code>Project</code> に保存し、ツールを閉じても続きから再開できるようにします。前の状態に戻る矢印が、利用者にとっての「やり直し」ボタンになります。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="fig">
+      <div class="fig-head"><span class="kind">シーケンス図</span><h2>「学習させる」を押したとき</h2></div>
+      <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  actor U as 利用者
+  participant W as ウィザード画面
+  participant T as TrainStep
+  participant R as CommandRunner
+  participant L as lerobot-train
+  participant G as GPU（HF Jobs）
+  participant H as HF Hub
+  U->>W: 「学習させる」を押す
+  W->>T: check()
+  T-->>W: OK（データあり・GPU 設定あり）
+  W->>T: run()
+  T->>R: run(train の引数一式)
+  R->>L: プロセス起動
+  L->>G: ジョブ投入
+  loop 学習中
+    G-->>R: ログ（ステップ・損失）
+    R-->>W: 進捗バーを更新
+  end
+  G->>H: 学習済みモデルを保存
+  R-->>T: 終了コード 0
+  T-->>W: 状態を「学習済み」に
+  W-->>U: 「デモに進めます」
+      </pre></div>
+      <p class="note">利用者は引数を一切見ません。データセット名、ステップ数、ポリシー種別はタスクの雛形と <code>Project</code> から組み立てます。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>まだ決めていないこと</h2>
+    <div class="open">
+      <div class="q"><b>画面をどう作るか</b><p>候補は Gradio、Streamlit、FastAPI と自作フロントエンドなど。手軽さと見た目の自由度のどちらを取るかで選びます。</p></div>
+      <div class="q"><b>学習をどこで回すか</b><p>手元の PC は CPU のみです。HF Jobs（有料）、学校の GPU、Colab など、費用と手間で選びます。</p></div>
+      <div class="q"><b>ポリシーを固定するか</b><p>初心者向けには ACT 固定が安全です。SmolVLA などを選べるようにするのは後回しでよいと考えます。</p></div>
+      <div class="q"><b>Hub のアカウント</b><p>利用者ごとにログインさせるか、チーム共有のアカウントにまとめるか。ログイン手順の有無で初心者の負担が大きく変わります。</p></div>
+    </div>
+  </section>
+
+  <footer>大まかな叩き台です。図中のクラス名・状態名は仮のものです。</footer>
+</div>

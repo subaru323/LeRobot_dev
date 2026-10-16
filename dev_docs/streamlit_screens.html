@@ -1,0 +1,347 @@
+<title>かんたん LeRobot 画面案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;600;800&family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: tabbed wireframes of the five Streamlit pages (sidebar + main), then architecture, files and pitfalls */
+:root {
+  --bg: #f3f5f4;
+  --paper: #ffffff;
+  --ink: #17201d;
+  --muted: #5b6863;
+  --line: #d3dbd7;
+  --accent: #0d7a5f;
+  --st-side: #eef1f0;
+  --st-btn: #e2504b;
+  --st-btn-ink: #ffffff;
+  --ok: #1f8a4c; --warn: #b7791f;
+  --hw: #c2571a; --data: #1f6fb2; --train: #7a4bb5; --eval: #0d7a5f;
+  --display: "M PLUS 1", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935; --accent: #4cc9a4;
+  --st-side: #222c29; --st-btn: #ef6a64; --st-btn-ink: #1a0f0e; --ok: #4fc283; --warn: #e0a64a;
+  --hw: #f08a4b; --data: #63a8e8; --train: #b48ce8; --eval: #4cc9a4; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935; --accent: #4cc9a4;
+  --st-side: #222c29; --st-btn: #ef6a64; --st-btn-ink: #1a0f0e; --ok: #4fc283; --warn: #e0a64a;
+  --hw: #f08a4b; --data: #63a8e8; --train: #b48ce8; --eval: #4cc9a4; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.3; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); font-weight: 800; }
+h2 { font-size: 1.25rem; font-weight: 800; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: .86em; background: color-mix(in srgb, var(--line) 45%, transparent); padding: 1px 5px; border-radius: 3px; word-break: break-all; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 10px; }
+.lead { color: var(--muted); max-width: 68ch; }
+section { display: grid; gap: 14px; }
+.note { font-size: .92rem; color: var(--muted); max-width: 72ch; }
+
+/* tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { font: inherit; font-size: .9rem; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 4px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* browser frame */
+.frame { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--paper); }
+.bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+.dots { display: flex; gap: 5px; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.app { display: grid; grid-template-columns: 230px minmax(0,1fr); min-height: 440px; }
+.side { background: var(--st-side); padding: 18px 16px; display: grid; gap: 14px; align-content: start; font-size: .88rem; }
+.side .brand { font-family: var(--display); font-weight: 800; font-size: 1rem; }
+.nav { display: grid; gap: 2px; }
+.nav div { display: flex; justify-content: space-between; gap: 8px; padding: 5px 8px; border-radius: 5px; }
+.nav div.on { background: color-mix(in srgb, var(--ink) 9%, transparent); font-weight: 700; }
+.nav .s { font-family: var(--mono); font-size: .75rem; }
+.s.done { color: var(--ok); } .s.now { color: var(--warn); } .s.todo { color: var(--muted); }
+.side .meta { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 2px; color: var(--muted); font-size: .8rem; }
+.main { padding: 22px 26px; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.main h3 { font-size: 1.35rem; }
+.cap { color: var(--muted); font-size: .9rem; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { font-size: .88rem; border: 1px solid var(--line); border-radius: 6px; padding: 5px 14px; background: var(--paper); }
+.btn.p { background: var(--st-btn); color: var(--st-btn-ink); border-color: var(--st-btn); font-weight: 700; }
+.box { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; font-size: .9rem; min-width: 0; }
+.alert { border-radius: 6px; padding: 10px 14px; font-size: .9rem; }
+.alert.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.alert.info { background: color-mix(in srgb, var(--data) 14%, transparent); }
+.alert.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.cam { aspect-ratio: 4/3; max-width: 100%; border-radius: 6px; background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--line) 60%, transparent) 0 8px, transparent 8px 16px); border: 1px solid var(--line); display: grid; place-items: center; font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+.field { display: grid; gap: 4px; font-size: .85rem; }
+.input { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: var(--bg); font-size: .88rem; }
+.prog { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--st-btn); }
+.metric { display: grid; gap: 0; }
+.metric span { font-size: .8rem; color: var(--muted); }
+.metric b { font-family: var(--display); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+pre.log { margin: 0; font-family: var(--mono); font-size: .75rem; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; overflow-x: auto; color: var(--muted); }
+.calib { display: grid; grid-template-columns: 140px minmax(0,1fr); gap: 14px; align-items: center; }
+.calib svg { width: 100%; height: auto; }
+.code-sticker { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+.page[hidden] { display: none !important; }
+
+/* lower sections */
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+pre.tree { margin: 0; font-family: var(--mono); font-size: .8rem; line-height: 1.6; overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; text-align: center; }
+.diagram { overflow-x: auto; }
+.pit { display: grid; gap: 12px; }
+.pit div { border-left: 3px solid var(--warn); padding: 2px 0 2px 14px; display: grid; gap: 2px; }
+.pit b { font-family: var(--display); }
+.pit p { font-size: .9rem; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: .72rem; color: var(--muted); font-weight: 600; }
+.tbl { overflow-x: auto; }
+footer { font-size: .82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .grid2, .grid3, .cols { grid-template-columns: 1fr; }
+  .calib { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">LeRobot × SO-ARM101 · Streamlit wireframe v0</span>
+    <h1>かんたん LeRobot 画面案</h1>
+    <p class="lead">Streamlit で作る場合の画面の叩き台です。左のサイドバーで 5 ステップの進み具合を示し、1 ステップを 1 ページにします。下の切り替えで各ページの見た目を確認できます。</p>
+  </header>
+
+  <section>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-p="p1" aria-selected="false">1. つなぐ</button>
+      <button role="tab" data-p="p2" aria-selected="false">2. 合わせる</button>
+      <button role="tab" data-p="p3" aria-selected="true">3. 教える</button>
+      <button role="tab" data-p="p4" aria-selected="false">4. 学習させる</button>
+      <button role="tab" data-p="p5" aria-selected="false">5. 動かす</button>
+    </div>
+
+    <div class="frame">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span id="url">localhost:8501/record</span></div>
+      <div class="app">
+        <aside class="side">
+          <span class="brand">かんたん LeRobot</span>
+          <div class="nav" id="nav">
+            <div data-p="p1"><span>1. つなぐ</span><span class="s done">済</span></div>
+            <div data-p="p2"><span>2. 合わせる</span><span class="s done">済</span></div>
+            <div data-p="p3"><span>3. 教える</span><span class="s now">12/30</span></div>
+            <div data-p="p4"><span>4. 学習させる</span><span class="s todo">未</span></div>
+            <div data-p="p5"><span>5. 動かす</span><span class="s todo">未</span></div>
+          </div>
+          <div class="meta">
+            <span>プロジェクト：cube_pick（例）</span>
+            <span>タスク：赤い立方体を箱に入れる</span>
+            <span>アーム：COM19 / COM21</span>
+          </div>
+        </aside>
+
+        <!-- 1 -->
+        <div class="main page" id="p1" hidden>
+          <h3>1. ロボットをつなぐ</h3>
+          <p class="cap">USB を一度抜いて挿し直すと、どのポートがどちらのアームかを自動で見分けます。</p>
+          <div class="grid2">
+            <div class="box"><b>フォロワー（動く側）</b><span>COM19 を検出しました</span><div class="row"><span class="btn">もう一度探す</span></div></div>
+            <div class="box"><b>リーダー（手で動かす側）</b><span>USB を抜いてから「次へ」を押してください</span><div class="row"><span class="btn p">次へ</span></div></div>
+          </div>
+          <b>カメラ</b>
+          <div class="grid3">
+            <div class="cam">camera 0 · 640×480</div>
+            <div class="cam">camera 1 · 640×480</div>
+            <div class="cam">未使用</div>
+          </div>
+          <span class="code-sticker">内部：lerobot-find-port / lerobot-find-cameras opencv</span>
+        </div>
+
+        <!-- 2 -->
+        <div class="main page" id="p2" hidden>
+          <h3>2. 腕の位置を合わせる</h3>
+          <p class="cap">絵と同じ姿勢にしてから「できた」を押します。終わったら各関節をいっぱいまで動かします。</p>
+          <div class="calib">
+            <svg viewBox="0 0 140 120" role="img" aria-label="アームの中央姿勢の図">
+              <rect x="30" y="100" width="80" height="12" rx="3" fill="var(--line)"/>
+              <line x1="70" y1="100" x2="70" y2="62" stroke="var(--ink)" stroke-width="7" stroke-linecap="round"/>
+              <line x1="70" y1="62" x2="104" y2="40" stroke="var(--ink)" stroke-width="7" stroke-linecap="round"/>
+              <line x1="104" y1="40" x2="118" y2="58" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="70" cy="62" r="5" fill="var(--st-btn)"/><circle cx="104" cy="40" r="5" fill="var(--st-btn)"/>
+            </svg>
+            <div class="box">
+              <b>フォロワー：手順 1 / 2</b>
+              <span>腕を可動範囲の真ん中にしてください（図の姿勢）。</span>
+              <div class="row"><span class="btn p">できた</span><span class="btn">最初から</span></div>
+            </div>
+          </div>
+          <div class="alert info">次はリーダーアームで同じ操作をします。</div>
+          <span class="code-sticker">内部：lerobot-calibrate（Enter 入力を画面のボタンから送る）</span>
+        </div>
+
+        <!-- 3 -->
+        <div class="main page" id="p3">
+          <h3>3. お手本を見せる</h3>
+          <p class="cap">リーダーアームを手で動かして、お手本を 30 回録画します。1 回 20 秒です。</p>
+          <div class="grid2">
+            <div class="cam">● REC 00:12 / 00:20</div>
+            <div class="box">
+              <div class="metric"><span>録画済み</span><b>12 / 30</b></div>
+              <div class="prog"><i style="width:40%"></i></div>
+              <div class="row"><span class="btn p">この回を終える</span><span class="btn">撮り直す</span><span class="btn">録画をやめる</span></div>
+            </div>
+          </div>
+          <div class="alert warn">毎回、立方体を少しずつ違う場所に置いてください。同じ場所ばかりだと覚え方が偏ります。</div>
+          <span class="code-sticker">内部：lerobot-record --dataset.num_episodes=30 --dataset.episode_time_s=20</span>
+        </div>
+
+        <!-- 4 -->
+        <div class="main page" id="p4" hidden>
+          <h3>4. 学習させる</h3>
+          <p class="cap">お手本 30 回分で学習します。目安は数時間です。画面を閉じても学習は続きます。</p>
+          <div class="grid3">
+            <div class="metric"><span>ステップ</span><b>12,400</b></div>
+            <div class="metric"><span>全体</span><b>30,000</b></div>
+            <div class="metric"><span>残り時間（目安）</span><b>1:40</b></div>
+          </div>
+          <div class="prog"><i style="width:41%"></i></div>
+          <div class="box">
+            <b>損失の推移</b>
+            <svg viewBox="0 0 400 90" role="img" aria-label="下がっていく損失の線グラフ（見本）" style="width:100%;height:auto">
+              <line x1="0" y1="85" x2="400" y2="85" stroke="var(--line)"/>
+              <polyline fill="none" stroke="var(--st-btn)" stroke-width="2" points="0,10 30,30 60,44 90,52 120,60 150,64 165,66"/>
+              <circle cx="165" cy="66" r="3.5" fill="var(--st-btn)"/>
+            </svg>
+          </div>
+          <pre class="log">step:12400 loss:0.071 lr:1.0e-05 ...（見本）</pre>
+          <div class="row"><span class="btn">学習を止める</span></div>
+          <span class="code-sticker">内部：lerobot-train --policy.type=act（HF Jobs など GPU 上で実行）</span>
+        </div>
+
+        <!-- 5 -->
+        <div class="main page" id="p5" hidden>
+          <h3>5. 動かしてみる</h3>
+          <p class="cap">学習したモデルでロボットを動かします。終わるたびに、うまくいったかを押してください。</p>
+          <div class="grid2">
+            <div class="cam">デモ 4 回目 · 実行中</div>
+            <div class="box">
+              <div class="metric"><span>成功</span><b>2 / 3</b></div>
+              <div class="row"><span class="btn p">成功</span><span class="btn">失敗</span></div>
+              <div class="row"><span class="btn">非常停止</span></div>
+            </div>
+          </div>
+          <div class="alert ok">成功率が低いときは「3. 教える」に戻ってお手本を足せます。</div>
+          <span class="code-sticker">内部：lerobot-record --policy.path=…</span>
+        </div>
+      </div>
+    </div>
+    <p class="note">数値と名前はすべて見本です。</p>
+  </section>
+
+  <section>
+    <h2>裏側のしくみ</h2>
+    <div class="card">
+      <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph ST["Streamlit（画面）"]
+    PG["各ページ<br/>pages/*.py"]
+    FR["st.fragment(run_every=1s)<br/>ログと進捗の定期読み込み"]
+  end
+  subgraph CORE["core（画面と無関係な部品）"]
+    PJ["Project<br/>project.json の読み書き"]
+    RN["Runner<br/>subprocess の起動・停止・stdin 送信"]
+  end
+  subgraph FS["projects/〈名前〉/"]
+    J[("project.json<br/>状態・設定")]
+    LG[("logs/〈step〉.log")]
+    PID[("run.json<br/>実行中プロセス")]
+  end
+  CLI["lerobot-* コマンド<br/>（別プロセス）"]
+  PG --> PJ
+  PG --> RN
+  RN -->|起動| CLI
+  RN -->|Enter 等| CLI
+  CLI -->|標準出力| LG
+  RN --> PID
+  PJ --> J
+  FR --> LG
+  FR --> PID
+      </pre></div>
+      <p class="note">Streamlit はボタンを押すたびにスクリプト全体を上から実行し直します。そのため長い処理（録画・学習）は必ず別プロセスで動かし、状態はファイルに書いて画面側から読みにいく形にします。こうしておけば、ブラウザを閉じたり再読み込みしたりしても処理は止まりません。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="cols">
+      <div class="card">
+        <h2>ファイル構成（案）</h2>
+        <pre class="tree">easy_lerobot/
+├─ app.py              # st.navigation で 5 ページを登録
+├─ pages/
+│  ├─ 1_connect.py     # A 班
+│  ├─ 2_calibrate.py   # A 班
+│  ├─ 3_record.py      # B 班
+│  ├─ 4_train.py       # C 班
+│  └─ 5_demo.py        # D 班
+├─ core/               # E 班
+│  ├─ project.py       # Project / TaskTemplate
+│  ├─ runner.py        # subprocess 管理
+│  └─ ui.py            # サイドバー等の共通部品
+├─ templates/
+│  └─ cube_pick.yaml   # 指導者が作るタスク雛形
+└─ projects/           # 実行時に作られる（git 管理外）</pre>
+        <p class="note">ページのファイルが班ごとに分かれているので、同じファイルを同時に触ることがほぼありません。</p>
+      </div>
+      <div class="card">
+        <h2>session_state に置くもの</h2>
+        <div class="tbl"><table>
+          <thead><tr><th>キー</th><th>中身</th></tr></thead>
+          <tbody>
+            <tr><td><code>project</code></td><td>開いている Project（中身は project.json）</td></tr>
+            <tr><td><code>runner</code></td><td>実行中の Runner（なければ None）</td></tr>
+            <tr><td><code>calib_step</code></td><td>キャリブレーションの何手目か</td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">session_state はブラウザのタブごとに消えます。消えて困るもの（どこまで進んだか）は必ず project.json にも書きます。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>先に確かめておきたい落とし穴</h2>
+    <div class="pit">
+      <div><b>キャリブレーションとポート検出は Enter 待ちで止まる</b><p><code>lerobot-calibrate</code> と <code>lerobot-find-port</code> は内部で <code>input()</code> を呼びます。Runner が stdin をパイプでつなぎ、画面のボタンから改行を送る必要があります。</p></div>
+      <div><b>録画中の「次へ」「撮り直し」はキーボード操作</b><p><code>lerobot-record</code> は Windows では pynput でキー（→ ← Esc）を拾います。画面のボタンから同じ操作をする方法は未検証です。1 回ずつ record を起動する、キー入力を送るなどの案を試す必要があります。</p></div>
+      <div><b>学習は手元 PC では回らない</b><p>CPU のみなので、学習ページは GPU 側にジョブを投げて進捗を受け取る作りになります。どこで回すかは未決です。</p></div>
+      <div><b>カメラの取り合い</b><p>画面のプレビューで開いたカメラは、録画を始める前に必ず閉じます。開いたままだと record 側で開けません。</p></div>
+    </div>
+  </section>
+
+  <footer>叩き台です。画面の文言・数値はすべて仮のものです。</footer>
+</div>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('#tabs button');
+  var navs = document.querySelectorAll('#nav div');
+  var urls = { p1: 'connect', p2: 'calibrate', p3: 'record', p4: 'train', p5: 'demo' };
+  function show(id) {
+    document.querySelectorAll('.page').forEach(function (p) { p.hidden = p.id !== id; });
+    tabs.forEach(function (b) { b.setAttribute('aria-selected', b.dataset.p === id ? 'true' : 'false'); });
+    navs.forEach(function (n) { n.classList.toggle('on', n.dataset.p === id); });
+    document.getElementById('url').textContent = 'localhost:8501/' + urls[id];
+    try { localStorage.setItem('easy-lerobot-tab', id); } catch (e) {}
+  }
+  tabs.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.p); }); });
+  navs.forEach(function (n) { n.style.cursor = 'pointer'; n.addEventListener('click', function () { show(n.dataset.p); }); });
+  var start = 'p3';
+  try { var s = localStorage.getItem('easy-lerobot-tab'); if (s && urls[s]) start = s; } catch (e) {}
+  show(start);
+})();
+</script>
