@@ -1,0 +1,30 @@
+[project]
+name = "easy-lerobot"
+version = "0.1.0"
+description = "Beginner-friendly Streamlit wizard that drives the lerobot-* CLI for SO-ARM101"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Same extras as the lerobot-main/.venv used for SO-ARM101 work.
+    "lerobot[core_scripts,feetech,training]",
+    "streamlit>=1.40,<2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.1.0,<10.0.0",
+    "pytest-timeout>=2.4.0,<3.0.0",
+]
+
+[tool.uv]
+# Not an installable package (yet); uv only manages the environment.
+package = false
+# Keep the binary stack identical to lerobot-main/.venv: torchcodec 0.11 is
+# built against torch 2.11 and loads the pinned FFmpeg 8.x DLLs.
+constraint-dependencies = [
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "torchcodec==0.11.1",
+]
+
+[tool.uv.sources]
+lerobot = { path = "..", editable = true }
