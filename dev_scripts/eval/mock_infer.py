@@ -54,7 +54,9 @@ def main():
         start = time.perf_counter()
 
         obs = fake_observation(dataset_metadata.features)
-        obs_frame = build_inference_frame(observation=obs, ds_features=dataset_metadata.features, device=device)
+        obs_frame = build_inference_frame(
+            observation=obs, ds_features=dataset_metadata.features, device=device
+        )
         obs = preprocess(obs_frame)
         action = model.select_action(obs)
         action = postprocess(action)
@@ -67,7 +69,8 @@ def main():
     budget_ms = 1000 / FPS
     slow = [i for i, ms in enumerate(step_ms) if ms > budget_ms]
     print(f"steps: {NUM_STEPS}")
-    print(f"mean: {np.mean(step_ms):.1f} ms   max: {np.max(step_ms):.1f} ms   budget at {FPS} fps: {budget_ms:.1f} ms")
+    mean_ms, max_ms = np.mean(step_ms), np.max(step_ms)
+    print(f"mean: {mean_ms:.1f} ms   max: {max_ms:.1f} ms   budget at {FPS} fps: {budget_ms:.1f} ms")
     print(f"steps over budget: {slow}")
 
 
