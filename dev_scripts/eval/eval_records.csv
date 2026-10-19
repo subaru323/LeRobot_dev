@@ -1,0 +1,3 @@
+date,run_id,policy,policy_steps,dataset,device,mode,episodes,successes,success_rate,mean_step_ms,max_step_ms,notes
+2026-10-19,m0_pusht_smoke,outputs/train/act_pusht_smoke,200,lerobot/pusht,cpu,sim,2,0,0.0,,,avg_max_reward 0.008; 3.5 s per episode; 0% expected at 200 steps
+2026-10-19,m2_mock,outputs/train/act_so101_mock,100,lerobot/svla_so101_pickplace,cuda RTX 4060 Laptop,mock,,,,9.2,548.4,200 steps; only step 0 over the 33.3 ms budget (cold start); step 100 model call under budget
