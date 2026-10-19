@@ -37,6 +37,7 @@ def fake_observation(features):
 
 
 def main():
+    """Load the policy, run NUM_STEPS fake steps, and print the timing summary."""
     model = ACTPolicy.from_pretrained(MODEL_PATH)
     device = torch.device(model.config.device)  # falls back to cpu if cuda is not available
 
