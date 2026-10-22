@@ -10,6 +10,9 @@ Example:
     # move randomly for 5 s, rest 2 s, repeat until Ctrl+C
     python dev_scripts/random_servo.py --port COM20 --ids 1 2 3 4 5 6 \
         --move-time 5 --rest-time 2 --interval 0.5 --cycles 0
+    # same, but one servo at a time in the given order
+    python dev_scripts/random_servo.py --port COM19 --ids 1 2 3 4 5 6 \
+        --move-time 5 --rest-time 2 --interval 0.5 --cycles 0 --sequential
 """
 
 import argparse
@@ -57,6 +60,11 @@ def main():
         help="If > 0, each cycle sends new targets every --interval for this many seconds, then rests",
     )
     parser.add_argument("--rest-time", type=float, default=0.0, help="Seconds to hold still after each cycle")
+    parser.add_argument(
+        "--sequential",
+        action="store_true",
+        help="Move one servo per cycle, in --ids order; the others hold their position",
+    )
     parser.add_argument("--seed", type=int)
     args = parser.parse_args()
 
@@ -98,9 +106,9 @@ def main():
             check(*pk.write2ByteTxRx(ph, i, ADDR_GOAL_POSITION, start[i]), pk, f"id {i} hold")
             check(*pk.write1ByteTxRx(ph, i, ADDR_TORQUE_ENABLE, 1), pk, f"id {i} torque on")
 
-        def random_targets():
+        def random_targets(active):
             targets = {}
-            for i in ids:
+            for i in active:
                 lo, hi = limits[i]
                 goal = start[i] + rng.randint(-args.amplitude, args.amplitude)
                 targets[i] = max(lo, min(hi, goal))
@@ -110,14 +118,15 @@ def main():
         while args.cycles == 0 or c < args.cycles:
             c += 1
             total = args.cycles or "inf"
+            active = [ids[(c - 1) % len(ids)]] if args.sequential else ids
             if args.move_time > 0:
-                print(f"cycle {c}/{total}: moving for {args.move_time}s")
+                print(f"cycle {c}/{total}: moving ids {active} for {args.move_time}s")
                 end = time.monotonic() + args.move_time
                 while time.monotonic() < end:
-                    move_all(random_targets())
+                    move_all(random_targets(active))
                     time.sleep(min(args.interval, max(0.0, end - time.monotonic())))
             else:
-                targets = random_targets()
+                targets = random_targets(active)
                 print(f"cycle {c}/{total}: {targets}")
                 move_all(targets)
                 time.sleep(args.interval)
