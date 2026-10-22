@@ -8,6 +8,8 @@ servo's angle limits. Runs until Ctrl+C, then returns to the start pose and disa
 Example:
     python dev_scripts/wave_servo.py --port COM19 --ids 1 2 3 4 5 6
     python dev_scripts/wave_servo.py --port COM19 --ids 1 2 3 4 5 6 --amplitude 300 --period 3
+    # start one by one, then stop one by one, repeat
+    python dev_scripts/wave_servo.py --port COM19 --ids 1 2 3 4 5 6 --cascade
 """
 
 import argparse
@@ -44,6 +46,13 @@ def main():
     parser.add_argument("--rate", type=float, default=20.0, help="Goal updates per second")
     parser.add_argument("--speed", type=int, default=2000, help="Goal speed cap in ticks/s")
     parser.add_argument("--acceleration", type=int, default=50)
+    parser.add_argument(
+        "--cascade",
+        action="store_true",
+        help="Start servos one by one in --ids order, then stop them one by one in the same order; repeat",
+    )
+    parser.add_argument("--step-time", type=float, default=1.0, help="Cascade: seconds between starts/stops")
+    parser.add_argument("--ramp-time", type=float, default=0.5, help="Cascade: seconds to fade a servo in/out")
     args = parser.parse_args()
 
     ph = scs.PortHandler(args.port)
@@ -83,16 +92,32 @@ def main():
             check(*pk.write2ByteTxRx(ph, i, ADDR_GOAL_POSITION, start[i]), pk, f"id {i} hold")
             check(*pk.write1ByteTxRx(ph, i, ADDR_TORQUE_ENABLE, 1), pk, f"id {i} torque on")
 
-        print("waving, Ctrl+C to stop")
+        n = len(ids)
+        # Cascade round: starts at k*T, all run until n*T, stops at (n+k)*T, idle until (2n+1)*T.
+        round_time = (2 * n + 1) * args.step_time
+
+        def envelope(k, t):
+            if not args.cascade:
+                return 1.0
+            tr = t % round_time
+            on, off = k * args.step_time, (n + k) * args.step_time
+            ramp = max(args.ramp_time, 1e-6)
+            return max(0.0, min(1.0, (tr - on) / ramp, 1 - (tr - off) / ramp))
+
+        print("cascade" if args.cascade else "waving", "- Ctrl+C to stop")
         t0 = time.monotonic()
         dt = 1.0 / args.rate
+        last_round = -1
         while True:
             t = time.monotonic() - t0
+            if args.cascade and int(t // round_time) != last_round:
+                last_round = int(t // round_time)
+                print(f"round {last_round + 1}")
             goals = {}
             for k, i in enumerate(ids):
                 phase = 2 * math.pi * (t / args.period - k * args.phase_step)
                 offset = args.amplitude * (1 - math.cos(phase)) / 2  # 0..amplitude, smooth
-                goals[i] = start[i] + direction[i] * round(offset)
+                goals[i] = start[i] + direction[i] * round(offset * envelope(k, t))
             write_goals(goals)
             time.sleep(max(0.0, dt - (time.monotonic() - t0 - t)))
     except KeyboardInterrupt:
