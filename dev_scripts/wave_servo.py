@@ -124,6 +124,7 @@ def main():
         print("interrupted")
     finally:
         print("returning to start pose")
+        ph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
         try:
             write_goals(start)
             time.sleep(1.0)

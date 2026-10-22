@@ -63,6 +63,35 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Leader L: read raw ticks (COM19)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/dev_scripts/read_leader.py",
+      "args": ["--port", "COM19", "--raw"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Leader L: calibrate (COM19)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lerobot.scripts.lerobot_calibrate",
+      "args": [
+        "--teleop.type=so101_leader",
+        "--teleop.port=COM19",
+        "--teleop.id=leader_L",
+        "--teleop.calibration_dir=dev_calibration"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Leader L: read calibrated (COM19)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/dev_scripts/read_leader.py",
+      "args": ["--port", "COM19"],
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Python: current file",
       "type": "debugpy",
       "request": "launch",

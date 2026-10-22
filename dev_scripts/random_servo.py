@@ -137,6 +137,7 @@ def main():
         print("interrupted")
     finally:
         print("returning to start pose")
+        ph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
         try:
             move_all(start)
             time.sleep(max(1.0, args.amplitude / max(args.speed, 1) + 0.5))
