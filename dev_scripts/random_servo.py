@@ -7,6 +7,9 @@ Each servo moves within +/- --amplitude ticks of the position it had at startup
 Example:
     python dev_scripts/random_servo.py --port COM19
     python dev_scripts/random_servo.py --port COM19 --ids 1 2 3 --amplitude 300 --cycles 20
+    # move randomly for 5 s, rest 2 s, repeat until Ctrl+C
+    python dev_scripts/random_servo.py --port COM20 --ids 1 2 3 4 5 6 \
+        --move-time 5 --rest-time 2 --interval 0.5 --cycles 0
 """
 
 import argparse
@@ -45,8 +48,15 @@ def main():
     parser.add_argument("--amplitude", type=int, default=200, help="Max offset from start pose in ticks")
     parser.add_argument("--speed", type=int, default=600, help="Goal speed in ticks/s")
     parser.add_argument("--acceleration", type=int, default=20)
-    parser.add_argument("--cycles", type=int, default=10)
+    parser.add_argument("--cycles", type=int, default=10, help="Number of cycles (0 = until Ctrl+C)")
     parser.add_argument("--interval", type=float, default=1.0, help="Seconds between targets")
+    parser.add_argument(
+        "--move-time",
+        type=float,
+        default=0.0,
+        help="If > 0, each cycle sends new targets every --interval for this many seconds, then rests",
+    )
+    parser.add_argument("--rest-time", type=float, default=0.0, help="Seconds to hold still after each cycle")
     parser.add_argument("--seed", type=int)
     args = parser.parse_args()
 
@@ -57,6 +67,10 @@ def main():
         sys.exit(f"Cannot open {args.port} at {args.baudrate} baud")
 
     ids = args.ids or scan(ph, pk, args.max_id)
+    missing = [i for i in ids if pk.ping(ph, i)[1] != scs.COMM_SUCCESS]
+    if missing:
+        print(f"warning: no response from ids {missing}, skipping them")
+        ids = [i for i in ids if i not in missing]
     if not ids:
         ph.closePort()
         sys.exit("No servo responded. Check servo power supply, cabling and baudrate.")
@@ -84,15 +98,32 @@ def main():
             check(*pk.write2ByteTxRx(ph, i, ADDR_GOAL_POSITION, start[i]), pk, f"id {i} hold")
             check(*pk.write1ByteTxRx(ph, i, ADDR_TORQUE_ENABLE, 1), pk, f"id {i} torque on")
 
-        for c in range(args.cycles):
+        def random_targets():
             targets = {}
             for i in ids:
                 lo, hi = limits[i]
                 goal = start[i] + rng.randint(-args.amplitude, args.amplitude)
                 targets[i] = max(lo, min(hi, goal))
-            print(f"cycle {c + 1}/{args.cycles}: {targets}")
-            move_all(targets)
-            time.sleep(args.interval)
+            return targets
+
+        c = 0
+        while args.cycles == 0 or c < args.cycles:
+            c += 1
+            total = args.cycles or "inf"
+            if args.move_time > 0:
+                print(f"cycle {c}/{total}: moving for {args.move_time}s")
+                end = time.monotonic() + args.move_time
+                while time.monotonic() < end:
+                    move_all(random_targets())
+                    time.sleep(min(args.interval, max(0.0, end - time.monotonic())))
+            else:
+                targets = random_targets()
+                print(f"cycle {c}/{total}: {targets}")
+                move_all(targets)
+                time.sleep(args.interval)
+            if args.rest_time > 0:
+                print(f"cycle {c}/{total}: resting for {args.rest_time}s")
+                time.sleep(args.rest_time)
     except KeyboardInterrupt:
         print("interrupted")
     finally:
