@@ -8,11 +8,17 @@ The follower moves with a capped speed, so the first move towards the leader pos
 On exit the follower keeps torque (holds its pose) unless --release is given.
 
 If the two arms' homing offsets do not match, pose the leader like the follower and run once with
---align-now: the per-joint offsets (follower - leader) are saved and reused on later runs.
+--align-now: the per-joint offsets (follower - leader) are saved and reused when --offsets-file is given.
+
+--shared-ids lists follower ids answered by more than one motor (e.g. two servos both set to id 5).
+Their replies collide, so those ids are never read: they are excluded from the start check, driven
+write-only (no status reply awaited) at --shared-speed, and every motor with that id gets the same goal.
 
 Example:
-    python dev_scripts/mirror_leader.py --leader-port COM19 --follower-port COM20 --align-now
     python dev_scripts/mirror_leader.py --leader-port COM19 --follower-port COM20
+    python dev_scripts/mirror_leader.py --leader-port COM19 --follower-port COM20 --shared-ids 5
+    python dev_scripts/mirror_leader.py --leader-port COM19 --follower-port COM20 \
+        --align-now --offsets-file dev_calibration/mirror_offsets.json
 """
 
 import argparse
@@ -79,23 +85,32 @@ def main():
     parser.add_argument(
         "--offsets-file",
         type=Path,
-        default=Path("dev_calibration/mirror_offsets.json"),
-        help="Per-joint mapping follower = sign * leader + offset (used when the file exists)",
+        help="Per-joint mapping follower = sign * leader + offset; written by --align-now, read otherwise. "
+        "Omit for a 1:1 mapping (leader calibrated to the follower).",
     )
     parser.add_argument("--invert", type=int, nargs="*", default=[], help="With --align-now: ids moving mirrored")
+    parser.add_argument("--shared-ids", type=int, nargs="*", default=[], help="Follower ids used by several motors")
+    parser.add_argument("--shared-speed", type=int, default=400, help="Goal speed cap for --shared-ids (ticks/s)")
     args = parser.parse_args()
+    if args.align_now and args.offsets_file is None:
+        args.offsets_file = Path("dev_calibration/mirror_offsets.json")
+    shared = set(args.shared_ids)
 
     pk = scs.PacketHandler(0)
     lph = open_bus(args.leader_port, args.baudrate)
     fph = open_bus(args.follower_port, args.baudrate)
 
-    missing = [(n, i) for n, ph in (("L", lph), ("F", fph)) for i in args.ids if pk.ping(ph, i)[1] != scs.COMM_SUCCESS]
+    missing = [f"L{i}" for i in args.ids if pk.ping(lph, i)[1] != scs.COMM_SUCCESS]
+    missing += [f"F{i}" for i in args.ids if i not in shared and pk.ping(fph, i)[1] != scs.COMM_SUCCESS]
     if missing:
-        sys.exit(f"no response from {', '.join(f'{n}{i}' for n, i in missing)}")
+        sys.exit(f"no response from {', '.join(missing)}")
 
     limits = {}
     for i in args.ids:
         pk.write1ByteTxRx(lph, i, ADDR_TORQUE_ENABLE, 0)  # leader is moved by hand
+        if i in shared:
+            limits[i] = (0, 4095)  # colliding replies make limit reads unreliable
+            continue
         lo, _, _ = pk.read2ByteTxRx(fph, i, ADDR_MIN_POSITION_LIMIT)
         hi, _, _ = pk.read2ByteTxRx(fph, i, ADDR_MAX_POSITION_LIMIT)
         limits[i] = (lo, hi) if lo < hi else (0, 4095)
@@ -104,6 +119,8 @@ def main():
     mapping = {i: (1, 0) for i in args.ids}
     if args.align_now:
         for i in args.ids:
+            if i in shared:
+                continue
             lpos, fpos = read_pos(lph, pk, i), read_pos(fph, pk, i)
             if lpos is None or fpos is None:
                 sys.exit(f"could not read L{i}/F{i} for alignment")
@@ -114,7 +131,7 @@ def main():
             json.dumps({str(i): {"sign": s, "offset": o} for i, (s, o) in mapping.items()}, indent=2)
         )
         print(f"offsets saved to {args.offsets_file}")
-    elif args.offsets_file.is_file():
+    elif args.offsets_file is not None:
         saved = json.loads(args.offsets_file.read_text())
         mapping.update({int(i): (v["sign"], v["offset"]) for i, v in saved.items() if int(i) in mapping})
         print(f"offsets loaded from {args.offsets_file}")
@@ -126,6 +143,8 @@ def main():
     def start_diffs():
         diffs = {}
         for i in args.ids:
+            if i in shared:
+                continue
             lpos, fpos = read_pos(lph, pk, i), read_pos(fph, pk, i)
             if lpos is None or fpos is None:
                 diffs[i] = None
@@ -140,7 +159,10 @@ def main():
     diffs = start_diffs()
     for i in args.ids:
         name = NAMES[i - 1] if 1 <= i <= len(NAMES) else f"id{i}"
-        print(f"L{i}->F{i} {name:<14} follower would move {diffs[i]} ticks  F limits={limits[i]}")
+        if i in shared:
+            print(f"L{i}->F{i} {name:<14} shared id: write-only at {args.shared_speed} ticks/s (not checked)")
+        else:
+            print(f"L{i}->F{i} {name:<14} follower would move {diffs[i]} ticks  F limits={limits[i]}")
     if far(diffs) and not args.wait_align:
         lph.closePort()
         fph.closePort()
@@ -150,8 +172,8 @@ def main():
         )
     try:
         while far(diffs):
-            print("align leader: " + "  ".join(f"L{i}:{diffs[i]:+d}" if diffs[i] is not None else f"L{i}:?"
-                                                for i in args.ids), flush=True)
+            print("align leader: " + "  ".join(f"L{i}:{d:+d}" if d is not None else f"L{i}:?"
+                                                for i, d in diffs.items()), flush=True)
             time.sleep(0.5)
             diffs = start_diffs()
     except KeyboardInterrupt:
@@ -160,8 +182,24 @@ def main():
         sys.exit("aborted before mirroring; follower was not moved")
     print("aligned")
 
+    def write_goal(i, goal):
+        if i in shared:
+            pk.write2ByteTxOnly(fph, i, ADDR_GOAL_POSITION, goal)
+        else:
+            pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, goal)
+
     try:
         for i in args.ids:
+            if i in shared:
+                # cannot read where these motors are: send the leader target and let them travel slowly
+                lpos = read_pos(lph, pk, i)
+                pk.write1ByteTxOnly(fph, i, ADDR_ACCELERATION, args.acceleration)
+                pk.write2ByteTxOnly(fph, i, ADDR_GOAL_SPEED, args.shared_speed)
+                if lpos is not None:
+                    pk.write2ByteTxOnly(fph, i, ADDR_GOAL_POSITION, target(i, lpos))
+                pk.write1ByteTxOnly(fph, i, ADDR_TORQUE_ENABLE, 1)
+                time.sleep(0.005)
+                continue
             hold = read_pos(fph, pk, i)
             pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.speed)
@@ -180,7 +218,7 @@ def main():
                 if pos is None:
                     continue  # skip a corrupted read, keep last goal
                 goals[i] = target(i, pos)
-                pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, goals[i])
+                write_goal(i, goals[i])
             if t - last_print > 1.0:
                 last_print = t
                 print("  ".join(f"F{i}={g}" for i, g in goals.items()), flush=True)
@@ -191,7 +229,10 @@ def main():
         lph.is_using = fph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
         if args.release:
             for i in args.ids:
-                pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
+                if i in shared:
+                    pk.write1ByteTxOnly(fph, i, ADDR_TORQUE_ENABLE, 0)
+                else:
+                    pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
             print("follower torque disabled")
         else:
             print("follower keeps torque (holding pose); run with --release to let it go limp")
