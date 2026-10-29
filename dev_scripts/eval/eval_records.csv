@@ -1,0 +1,5 @@
+date,run_id,policy,policy_steps,dataset,device,mode,episodes,successes,success_rate,mean_step_ms,max_step_ms,notes
+2026-10-19,m0_pusht_smoke,outputs/train/act_pusht_smoke,200,lerobot/pusht,cpu,sim,2,0,0.0,,,avg_max_reward 0.008; 3.5 s per episode; 0% expected at 200 steps
+2026-10-19,m2_mock,outputs/train/act_so101_mock,100,lerobot/svla_so101_pickplace,cuda RTX 4060 Laptop,mock,,,,9.2,548.4,200 steps; only step 0 over the 33.3 ms budget (cold start); step 100 model call under budget; power mode not recorded
+2026-10-19,m2_mock_saver_on,outputs/train/act_so101_mock,100,lerobot/svla_so101_pickplace,cuda RTX 4060 Laptop,mock,,,,17.1,1030.8,battery with battery saver ON; steps 0 and 100 over the 33.3 ms budget
+2026-10-19,m2_mock_saver_off_x3,outputs/train/act_so101_mock,100,lerobot/svla_so101_pickplace,cuda RTX 4060 Laptop,mock,,,,8.8,605.8,3 runs on battery with saver OFF and best performance; means 9.4/8.4/8.7 ms; max 606/515/544 ms; only step 0 over budget in all 3
