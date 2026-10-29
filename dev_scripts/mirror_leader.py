@@ -7,13 +7,19 @@ homing offsets so that the same pose gives the same raw position (middle pose ~2
 The follower moves with a capped speed, so the first move towards the leader pose is gradual.
 On exit the follower keeps torque (holds its pose) unless --release is given.
 
+If the two arms' homing offsets do not match, pose the leader like the follower and run once with
+--align-now: the per-joint offsets (follower - leader) are saved and reused on later runs.
+
 Example:
+    python dev_scripts/mirror_leader.py --leader-port COM19 --follower-port COM20 --align-now
     python dev_scripts/mirror_leader.py --leader-port COM19 --follower-port COM20
 """
 
 import argparse
+import json
 import sys
 import time
+from pathlib import Path
 
 import scservo_sdk as scs
 
@@ -65,6 +71,18 @@ def main():
         action="store_true",
         help="Instead of refusing, show live differences and start once every joint is within --max-start-diff",
     )
+    parser.add_argument(
+        "--align-now",
+        action="store_true",
+        help="Treat the current leader and follower poses as matching: store per-joint offsets in --offsets-file",
+    )
+    parser.add_argument(
+        "--offsets-file",
+        type=Path,
+        default=Path("dev_calibration/mirror_offsets.json"),
+        help="Per-joint mapping follower = sign * leader + offset (used when the file exists)",
+    )
+    parser.add_argument("--invert", type=int, nargs="*", default=[], help="With --align-now: ids moving mirrored")
     args = parser.parse_args()
 
     pk = scs.PacketHandler(0)
@@ -82,6 +100,29 @@ def main():
         hi, _, _ = pk.read2ByteTxRx(fph, i, ADDR_MAX_POSITION_LIMIT)
         limits[i] = (lo, hi) if lo < hi else (0, 4095)
 
+    # mapping[i] = (sign, offset): follower goal = sign * leader + offset
+    mapping = {i: (1, 0) for i in args.ids}
+    if args.align_now:
+        for i in args.ids:
+            lpos, fpos = read_pos(lph, pk, i), read_pos(fph, pk, i)
+            if lpos is None or fpos is None:
+                sys.exit(f"could not read L{i}/F{i} for alignment")
+            sign = -1 if i in args.invert else 1
+            mapping[i] = (sign, fpos - sign * lpos)
+        args.offsets_file.parent.mkdir(parents=True, exist_ok=True)
+        args.offsets_file.write_text(
+            json.dumps({str(i): {"sign": s, "offset": o} for i, (s, o) in mapping.items()}, indent=2)
+        )
+        print(f"offsets saved to {args.offsets_file}")
+    elif args.offsets_file.is_file():
+        saved = json.loads(args.offsets_file.read_text())
+        mapping.update({int(i): (v["sign"], v["offset"]) for i, v in saved.items() if int(i) in mapping})
+        print(f"offsets loaded from {args.offsets_file}")
+
+    def target(i, lpos):
+        sign, offset = mapping[i]
+        return max(limits[i][0], min(limits[i][1], sign * lpos + offset))
+
     def start_diffs():
         diffs = {}
         for i in args.ids:
@@ -90,7 +131,7 @@ def main():
                 diffs[i] = None
                 continue
             # signed: how far the follower would move (+ = towards larger ticks)
-            diffs[i] = max(limits[i][0], min(limits[i][1], lpos)) - fpos
+            diffs[i] = target(i, lpos) - fpos
         return diffs
 
     def far(diffs):
@@ -138,8 +179,7 @@ def main():
                 pos = read_pos(lph, pk, i)
                 if pos is None:
                     continue  # skip a corrupted read, keep last goal
-                lo, hi = limits[i]
-                goals[i] = max(lo, min(hi, pos))
+                goals[i] = target(i, pos)
                 pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, goals[i])
             if t - last_print > 1.0:
                 last_print = t
