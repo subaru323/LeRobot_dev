@@ -92,6 +92,22 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Mirror L -> F (COM19 -> COM20)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/dev_scripts/mirror_leader.py",
+      "args": ["--leader-port", "COM19", "--follower-port", "COM20"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Mirror L -> F: re-align at current pose",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/dev_scripts/mirror_leader.py",
+      "args": ["--leader-port", "COM19", "--follower-port", "COM20", "--align-now"],
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Python: current file",
       "type": "debugpy",
       "request": "launch",
