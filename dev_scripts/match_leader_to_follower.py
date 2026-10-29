@@ -39,6 +39,11 @@ def main():
     parser.add_argument("--follower-id", default="follower_F")
     parser.add_argument("--calibration-dir", type=Path, default=Path("dev_calibration"))
     parser.add_argument("--apply", action="store_true", help="Write the new leader calibration")
+    parser.add_argument(
+        "--joints",
+        nargs="+",
+        help="Only re-align these joints (e.g. wrist_roll); the others keep their current leader calibration",
+    )
     args = parser.parse_args()
 
     leader = SO101Leader(
@@ -57,8 +62,11 @@ def main():
 
         new_cal = {}
         print(f"{'joint':<14} {'L pos':>6} {'F pos':>6} {'diff':>6} {'L offset':>9} -> {'new':>6}  range(from F)")
+        unknown = set(args.joints or []) - set(leader.bus.motors)
+        if unknown:
+            raise SystemExit(f"unknown joints {sorted(unknown)}; choose from {list(leader.bus.motors)}")
         for motor, m in leader.bus.motors.items():
-            diff = l_pos[motor] - f_pos[motor]
+            diff = l_pos[motor] - f_pos[motor] if not args.joints or motor in args.joints else 0
             new_offset = wrap_offset(l_cal[motor].homing_offset + diff)
             new_cal[motor] = MotorCalibration(
                 id=m.id,
