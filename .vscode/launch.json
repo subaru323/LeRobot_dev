@@ -96,7 +96,7 @@
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/dev_scripts/mirror_leader.py",
-      "args": ["--leader-port", "COM19", "--follower-port", "COM20", "--shared-ids", "5"],
+      "args": ["--leader-port", "COM19", "--follower-port", "COM20"],
       "console": "integratedTerminal"
     },
     {
@@ -105,7 +105,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/dev_scripts/mirror_leader.py",
       "args": [
-        "--leader-port", "COM19", "--follower-port", "COM20", "--shared-ids", "5",
+        "--leader-port", "COM19", "--follower-port", "COM20",
         "--align-now", "--offsets-file", "dev_calibration/mirror_offsets.json"
       ],
       "console": "integratedTerminal"
