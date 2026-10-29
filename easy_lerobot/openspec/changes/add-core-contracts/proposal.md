@@ -27,4 +27,5 @@
 - 対象コード: `easy_lerobot/core/project.py`・`core/runner.py`（E 班）、`easy_lerobot/pages/*.py`（A〜D 班）。
 - 実行時ファイル: `easy_lerobot/projects/<名前>/`（project.json、logs/、run.json）。git 管理外。
 - 依存: Streamlit（画面）。LeRobot 本体の改変はない。
+- 実行環境: 本番はラズパイ（Linux）、開発は Windows。OS ごとの差は `core/platform.py` に閉じ込める（配置全体は add-raspberry-pi-deployment）。
 - 未決事項（学習を回す GPU の場所、Hub アカウントの持ち方、録画中のキー操作の送り方）は design.md の Open Questions に残す。
