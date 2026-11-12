@@ -35,5 +35,10 @@
   "homing_offset": {
     "L5": 1280,
     "F5": -1114
+  },
+  "follower_usable": {
+    "min": 298,
+    "max": 2900,
+    "reason": "F5 encoder seam sits at ~2982 (about 85 deg below MAX); above it the servo drives the wrong way"
   }
 }
