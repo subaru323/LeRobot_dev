@@ -2,22 +2,22 @@
   "id": 5,
   "direction": "MIN < MAX, no seam inside the range",
   "max": {
-    "L5": 3936,
-    "F5": 3948
+    "L5": 3939,
+    "F5": 3952
   },
   "min": {
-    "L5": 161,
-    "F5": 148
+    "L5": 138,
+    "F5": 123
   },
   "span_ticks": {
-    "L5": 3775,
-    "F5": 3800
+    "L5": 3801,
+    "F5": 3829
   },
   "span_deg": {
-    "L5": 331.8,
-    "F5": 334.0
+    "L5": 334.1,
+    "F5": 336.5
   },
-  "follower_ticks_per_leader_tick": 1.0066,
+  "follower_ticks_per_leader_tick": 1.0074,
   "leader_ticks_per_deg": 11.378,
   "log": "dev_logs/joint5_20261112_140631.csv",
   "raw_before_centering": {
@@ -37,8 +37,7 @@
     "F5": -1114
   },
   "follower_usable": {
-    "min": 298,
-    "max": 2900,
-    "reason": "F5 encoder seam sits at ~2982 (about 85 deg below MAX); above it the servo drives the wrong way"
+    "min": 123,
+    "max": 3952
   }
 }
