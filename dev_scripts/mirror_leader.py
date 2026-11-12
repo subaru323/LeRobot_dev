@@ -72,6 +72,13 @@ def main():
         help="Live leader/follower position display rate; reads follower positions for it (0 = goals once per s)",
     )
     parser.add_argument("--monitor-ids", type=int, nargs="+", help="Ids shown by the live display (default: all)")
+    parser.add_argument(
+        "--jump-threshold",
+        type=int,
+        default=300,
+        help="Log a line when a monitored position changes by more than this between consecutive loop reads "
+        "(follower is read every loop only when --monitor-ids is given; 0 = off)",
+    )
     parser.add_argument("--release", action="store_true", help="Disable follower torque on exit (arm may drop)")
     parser.add_argument(
         "--max-start-diff",
@@ -221,22 +228,45 @@ def main():
         period = 1.0 / args.hz
         print_interval = 1.0 / args.monitor_hz if args.monitor_hz > 0 else 1.0
         last_print = 0.0
+        t_start = time.perf_counter()
+        track_follower = bool(args.monitor_ids) and args.jump_threshold > 0
+        prev = {}  # (side, id) -> last position, for jump detection
+
+        def check_jump(side, i, pos, t_now):
+            key = (side, i)
+            last = prev.get(key)
+            if pos is not None and last is not None and abs(pos - last) > args.jump_threshold:
+                print(
+                    f"\n[JUMP {t_now - t_start:7.2f}s] {side}{i}: {last} -> {pos} ({pos - last:+d} ticks, "
+                    f"{last * 360 / 4096:.1f} -> {pos * 360 / 4096:.1f} deg)",
+                    flush=True,
+                )
+            if pos is not None:
+                prev[key] = pos
+
         while True:
             t = time.perf_counter()
-            goals, leader = {}, {}
+            goals, leader, follower = {}, {}, {}
             for i in args.ids:
                 pos = read_pos(lph, pk, i)
                 leader[i] = pos
+                if args.jump_threshold > 0 and i in shown:
+                    check_jump("L", i, pos, t)
                 if pos is None:
                     continue  # skip a corrupted read, keep last goal
                 goals[i] = target(i, pos)
                 write_goal(i, goals[i])
+            if track_follower:
+                for i in shown:
+                    if i not in shared:
+                        follower[i] = read_pos(fph, pk, i)
+                        check_jump("F", i, follower[i], t)
             if t - last_print > print_interval:
                 last_print = t
                 if args.monitor_hz > 0:
                     cells = []
                     for i in shown:
-                        fpos = None if i in shared else read_pos(fph, pk, i)
+                        fpos = follower[i] if i in follower else (None if i in shared else read_pos(fph, pk, i))
                         lpos = leader[i]
                         diff = f"{fpos - goals[i]:+d}" if fpos is not None and i in goals else "?"
                         cells.append(f"{lpos if lpos is not None else '?':>5} /{fpos if fpos is not None else '?':>5} ({diff:>5})")
