@@ -103,6 +103,18 @@ def main():
         "Omit for a 1:1 mapping (leader calibrated to the follower).",
     )
     parser.add_argument("--invert", type=int, nargs="*", default=[], help="With --align-now: ids moving mirrored")
+    parser.add_argument(
+        "--range-files",
+        type=Path,
+        nargs="*",
+        default=[],
+        help="Joint range files (from record_joint_range.py + center_joint_range.py). For those joints the "
+        "follower goal is F_min + (L - L_min) * F_span / L_span, clamped to [F_min, F_max] shrunk by --range-margin. "
+        "The follower is read every loop and its torque is cut if it leaves [F_min, F_max] by more than "
+        "--guard-ticks (protects against the motor running round the 4095/0 seam).",
+    )
+    parser.add_argument("--range-margin", type=int, default=150, help="Keep range-mapped goals this far inside")
+    parser.add_argument("--guard-ticks", type=int, default=60, help="Out-of-range tolerance before torque cut")
     parser.add_argument("--shared-ids", type=int, nargs="*", default=[], help="Follower ids used by several motors")
     parser.add_argument("--shared-speed", type=int, default=400, help="Goal speed cap for --shared-ids (ticks/s)")
     args = parser.parse_args()
@@ -150,7 +162,21 @@ def main():
         mapping.update({int(i): (v["sign"], v["offset"]) for i, v in saved.items() if int(i) in mapping})
         print(f"offsets loaded from {args.offsets_file}")
 
+    # linear range mapping per joint: id -> (l_min, l_max, f_min, f_max)
+    ranges = {}
+    for path in args.range_files:
+        rng = json.loads(path.read_text(encoding="utf-8-sig"))
+        i = int(rng["id"])
+        if not rng.get("centered"):
+            sys.exit(f"{path} is not centered (MIN..MAX crosses the 4095/0 seam); run center_joint_range.py")
+        ranges[i] = (rng["min"][f"L{i}"], rng["max"][f"L{i}"], rng["min"][f"F{i}"], rng["max"][f"F{i}"])
+        print(f"L{i}->F{i} range mapping: L {ranges[i][0]}..{ranges[i][1]} -> F {ranges[i][2]}..{ranges[i][3]}")
+
     def target(i, lpos):
+        if i in ranges:
+            l_min, l_max, f_min, f_max = ranges[i]
+            goal = round(f_min + (lpos - l_min) * (f_max - f_min) / (l_max - l_min))
+            return max(f_min + args.range_margin, min(f_max - args.range_margin, goal))
         sign, offset = mapping[i]
         return max(limits[i][0], min(limits[i][1], sign * lpos + offset))
 
@@ -215,10 +241,15 @@ def main():
                 time.sleep(0.005)
                 continue
             hold = read_pos(fph, pk, i)
+            lo, hi = limits[i]
+            if i in ranges:
+                lo, hi = ranges[i][2] + args.range_margin, ranges[i][3] - args.range_margin
+                if hold is None or not ranges[i][2] - args.guard_ticks <= hold <= ranges[i][3] + args.guard_ticks:
+                    sys.exit(f"F{i} reads {hold}, outside its range {ranges[i][2]}..{ranges[i][3]}; not enabling")
             pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.speed)
             if hold is not None:
-                pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, max(limits[i][0], min(limits[i][1], hold)))
+                pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, max(lo, min(hi, hold)))
             pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
 
         print("mirroring, Ctrl+C to stop")
@@ -244,22 +275,43 @@ def main():
             if pos is not None:
                 prev[key] = pos
 
+        tripped = set()  # range-mapped joints whose torque was cut by the guard
+
+        def guard(i, fpos, t_now):
+            """Cut torque if a range-mapped follower joint left its range (e.g. ran round the seam)."""
+            _, _, f_min, f_max = ranges[i]
+            if fpos is None or f_min - args.guard_ticks <= fpos <= f_max + args.guard_ticks:
+                return
+            pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
+            tripped.add(i)
+            print(
+                f"\n[GUARD {t_now - t_start:7.2f}s] F{i} at {fpos}, outside {f_min}..{f_max}: torque OFF, "
+                f"F{i} no longer mirrored",
+                flush=True,
+            )
+
         while True:
             t = time.perf_counter()
             goals, leader, follower = {}, {}, {}
+            for i in ranges:
+                if i not in tripped:
+                    follower[i] = read_pos(fph, pk, i)
+                    guard(i, follower[i], t)
             for i in args.ids:
                 pos = read_pos(lph, pk, i)
                 leader[i] = pos
                 if args.jump_threshold > 0 and i in shown:
                     check_jump("L", i, pos, t)
-                if pos is None:
-                    continue  # skip a corrupted read, keep last goal
+                if pos is None or i in tripped:
+                    continue  # skip a corrupted read (keep last goal) or a joint cut by the guard
                 goals[i] = target(i, pos)
                 write_goal(i, goals[i])
             if track_follower:
                 for i in shown:
-                    if i not in shared:
+                    if i not in shared and i not in follower:
                         follower[i] = read_pos(fph, pk, i)
+                for i in shown:
+                    if i in follower:
                         check_jump("F", i, follower[i], t)
             if t - last_print > print_interval:
                 last_print = t

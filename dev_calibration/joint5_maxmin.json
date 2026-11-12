@@ -1,0 +1,39 @@
+{
+  "id": 5,
+  "direction": "MIN < MAX, no seam inside the range",
+  "max": {
+    "L5": 3936,
+    "F5": 3948
+  },
+  "min": {
+    "L5": 161,
+    "F5": 148
+  },
+  "span_ticks": {
+    "L5": 3775,
+    "F5": 3800
+  },
+  "span_deg": {
+    "L5": 331.8,
+    "F5": 334.0
+  },
+  "follower_ticks_per_leader_tick": 1.0066,
+  "leader_ticks_per_deg": 11.378,
+  "log": "dev_logs/joint5_20261112_140631.csv",
+  "raw_before_centering": {
+    "min": {
+      "L5": 1269,
+      "F5": 2208,
+      "t": 1142.795
+    },
+    "max": {
+      "L5": 948,
+      "F5": 1912
+    }
+  },
+  "centered": true,
+  "homing_offset": {
+    "L5": 1280,
+    "F5": -1114
+  }
+}
