@@ -65,6 +65,12 @@ def main():
     parser.add_argument("--speed", type=int, default=1500, help="Follower goal speed cap in ticks/s")
     parser.add_argument("--acceleration", type=int, default=50)
     parser.add_argument("--hz", type=float, default=30.0)
+    parser.add_argument(
+        "--monitor-hz",
+        type=float,
+        default=5.0,
+        help="Live leader/follower position display rate; reads follower positions for it (0 = goals once per s)",
+    )
     parser.add_argument("--release", action="store_true", help="Disable follower torque on exit (arm may drop)")
     parser.add_argument(
         "--max-start-diff",
@@ -208,23 +214,36 @@ def main():
             pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
 
         print("mirroring, Ctrl+C to stop")
+        if args.monitor_hz > 0:
+            print("  ".join(f"{f'L{i} / F{i} (diff)':>20}" for i in args.ids))
         period = 1.0 / args.hz
+        print_interval = 1.0 / args.monitor_hz if args.monitor_hz > 0 else 1.0
         last_print = 0.0
         while True:
             t = time.perf_counter()
-            goals = {}
+            goals, leader = {}, {}
             for i in args.ids:
                 pos = read_pos(lph, pk, i)
+                leader[i] = pos
                 if pos is None:
                     continue  # skip a corrupted read, keep last goal
                 goals[i] = target(i, pos)
                 write_goal(i, goals[i])
-            if t - last_print > 1.0:
+            if t - last_print > print_interval:
                 last_print = t
-                print("  ".join(f"F{i}={g}" for i, g in goals.items()), flush=True)
+                if args.monitor_hz > 0:
+                    cells = []
+                    for i in args.ids:
+                        fpos = None if i in shared else read_pos(fph, pk, i)
+                        lpos = leader[i]
+                        diff = f"{fpos - goals[i]:+d}" if fpos is not None and i in goals else "?"
+                        cells.append(f"{lpos if lpos is not None else '?':>5} /{fpos if fpos is not None else '?':>5} ({diff:>5})")
+                    print("\r" + "  ".join(f"{c:>20}" for c in cells), end="", flush=True)
+                else:
+                    print("  ".join(f"F{i}={g}" for i, g in goals.items()), flush=True)
             time.sleep(max(0.0, period - (time.perf_counter() - t)))
     except KeyboardInterrupt:
-        print("interrupted")
+        print("\ninterrupted")
     finally:
         lph.is_using = fph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
         if args.release:
