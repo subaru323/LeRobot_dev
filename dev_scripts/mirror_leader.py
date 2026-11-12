@@ -71,6 +71,7 @@ def main():
         default=5.0,
         help="Live leader/follower position display rate; reads follower positions for it (0 = goals once per s)",
     )
+    parser.add_argument("--monitor-ids", type=int, nargs="+", help="Ids shown by the live display (default: all)")
     parser.add_argument("--release", action="store_true", help="Disable follower torque on exit (arm may drop)")
     parser.add_argument(
         "--max-start-diff",
@@ -214,8 +215,9 @@ def main():
             pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
 
         print("mirroring, Ctrl+C to stop")
+        shown = [i for i in args.ids if not args.monitor_ids or i in args.monitor_ids]
         if args.monitor_hz > 0:
-            print("  ".join(f"{f'L{i} / F{i} (diff)':>20}" for i in args.ids))
+            print("  ".join(f"{f'L{i} / F{i} (diff)':>20}" for i in shown))
         period = 1.0 / args.hz
         print_interval = 1.0 / args.monitor_hz if args.monitor_hz > 0 else 1.0
         last_print = 0.0
@@ -233,7 +235,7 @@ def main():
                 last_print = t
                 if args.monitor_hz > 0:
                     cells = []
-                    for i in args.ids:
+                    for i in shown:
                         fpos = None if i in shared else read_pos(fph, pk, i)
                         lpos = leader[i]
                         diff = f"{fpos - goals[i]:+d}" if fpos is not None and i in goals else "?"
