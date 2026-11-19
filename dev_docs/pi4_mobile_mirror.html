@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ラズパイ4でミラー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;600;800&family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one page for people — what this change does, wiring, how to use it, what is left */
+:root {
+  --bg: #f3f5f4; --paper: #ffffff; --ink: #17201d; --muted: #5b6863; --line: #d3dbd7;
+  --accent: #0d7a5f; --hw: #c2571a; --data: #1f6fb2; --ok: #1f8a4c; --warn: #b7791f;
+  --display: "M PLUS 1", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935;
+  --accent: #4cc9a4; --hw: #f08a4b; --data: #63a8e8; --ok: #4fc283; --warn: #e0a64a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121816; --paper: #1a2220; --ink: #e4ebe8; --muted: #9aa8a2; --line: #2d3935;
+  --accent: #4cc9a4; --hw: #f08a4b; --data: #63a8e8; --ok: #4fc283; --warn: #e0a64a; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 40px 16px 64px; display: grid; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; line-height: 1.3; text-wrap: balance; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; }
+h2 { font-size: 1.2rem; font-weight: 800; }
+h3 { font-size: 1rem; font-weight: 700; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: .86em; background: color-mix(in srgb, var(--line) 45%, transparent); padding: 1px 5px; border-radius: 3px; word-break: break-all; }
+.eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 10px; }
+.lead { color: var(--muted); max-width: 68ch; }
+section { display: grid; gap: 14px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.grid2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.big { font-family: var(--display); font-size: 1.05rem; font-weight: 800; }
+.ok { color: var(--ok); } .warn { color: var(--warn); }
+ol, ul { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; }
+svg { width: 100%; height: auto; display: block; }
+svg text { font-family: var(--body); fill: var(--ink); }
+svg .sub { fill: var(--muted); font-size: 12px; }
+svg .box { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; }
+svg .pi { fill: color-mix(in srgb, var(--accent) 12%, var(--paper)); stroke: var(--accent); stroke-width: 2; }
+svg .usb { stroke: var(--hw); stroke-width: 2.5; fill: none; }
+svg .wifi { stroke: var(--data); stroke-width: 2.5; fill: none; stroke-dasharray: 6 5; }
+svg .pwr { stroke: var(--muted); stroke-width: 2; fill: none; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--display); font-weight: 700; color: var(--muted); font-size: .85rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: .85rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 22px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+.l-usb::before { border-color: var(--hw) !important; }
+.l-wifi::before { border-color: var(--data) !important; border-top-style: dashed !important; }
+.l-pwr::before { border-color: var(--muted) !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">easy_lerobot · add-pi4-mobile-mirror</p>
+  <h1>ラズパイ4とスマホだけでミラーする</h1>
+  <p class="lead">ノートPCを使わずに、ラズパイ4の上で easy_lerobot の画面を動かし、スマホのブラウザから mirrorMODE を操作できるようにする変更です。細かい仕様（Claude 向け）は <code>easy_lerobot/openspec/changes/add-pi4-mobile-mirror/</code> にあります。</p>
+</header>
+
+<section>
+  <h2>できるようになること</h2>
+  <div class="grid2">
+    <div class="card"><p class="big">スマホで開く</p><p>ラズパイと同じ Wi-Fi のスマホで <code>http://&lt;ラズパイのIP&gt;:8501</code> を開き、パスワードを入れると、いつものモード選択の画面が出ます。</p></div>
+    <div class="card"><p class="big">ミラーとトルク</p><p>mirrorMODE で、ミラーの開始・停止と、フォロワーのトルクの入り切りができます。中で動くのは今と同じ <code>dev_scripts/mirror_leader.py</code> です。</p></div>
+    <div class="card"><p class="big">電源を入れるだけ</p><p>systemd で、ラズパイの起動と同時に画面のサーバーが立ち上がります。落ちても自動で戻ります。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>配線</h2>
+  <div class="card">
+    <svg viewBox="0 0 900 380" role="img" aria-label="スマホは Wi-Fi でラズパイ4につながる。ラズパイ4には USB でリーダー、フォロワー、USB ハブがつながり、ハブにはフォロワーのカメラと定点カメラがつながる">
+      <!-- phone -->
+      <rect class="box" x="20" y="130" width="140" height="110" rx="14"/>
+      <text x="90" y="178" text-anchor="middle" font-weight="700">スマホ</text>
+      <text class="sub" x="90" y="200" text-anchor="middle">ブラウザで操作</text>
+      <path class="wifi" d="M160 185 H300"/>
+      <text class="sub" x="230" y="172" text-anchor="middle">Wi-Fi</text>
+      <text class="sub" x="230" y="206" text-anchor="middle">:8501</text>
+      <!-- pi -->
+      <rect class="pi" x="300" y="110" width="200" height="150" rx="14"/>
+      <text x="400" y="168" text-anchor="middle" font-weight="700" font-size="18">ラズパイ4</text>
+      <text class="sub" x="400" y="192" text-anchor="middle">画面のサーバー</text>
+      <text class="sub" x="400" y="210" text-anchor="middle">（画面・キーボードなし）</text>
+      <!-- power -->
+      <path class="pwr" d="M400 260 V320"/>
+      <rect class="box" x="345" y="320" width="110" height="44" rx="10"/>
+      <text x="400" y="347" text-anchor="middle">電源</text>
+      <!-- leader / follower -->
+      <path class="usb" d="M500 140 C560 140 560 50 620 50"/>
+      <rect class="box" x="620" y="20" width="250" height="60" rx="10"/>
+      <text x="640" y="47" font-weight="700">リーダー</text>
+      <text class="sub" x="640" y="67">カメラは付けない</text>
+      <path class="usb" d="M500 185 H620"/>
+      <rect class="box" x="620" y="155" width="250" height="60" rx="10"/>
+      <text x="640" y="182" font-weight="700">フォロワー</text>
+      <text class="sub" x="640" y="202">サーボの電源はアーム側から</text>
+      <!-- hub + cameras -->
+      <path class="usb" d="M500 230 C540 230 540 300 580 300"/>
+      <rect class="box" x="580" y="275" width="90" height="50" rx="10"/>
+      <text x="625" y="305" text-anchor="middle" font-weight="700">USBハブ</text>
+      <path class="usb" d="M670 290 H700"/>
+      <path class="usb" d="M670 312 C690 312 690 345 700 345"/>
+      <rect class="box" x="700" y="262" width="170" height="44" rx="10"/>
+      <text x="714" y="289">カメラ <tspan class="sub">wrist（フォロワー）</tspan></text>
+      <rect class="box" x="700" y="322" width="170" height="44" rx="10"/>
+      <text x="714" y="349">カメラ <tspan class="sub">front（定点）</tspan></text>
+    </svg>
+    <div class="legend"><span class="l-usb">USB</span><span class="l-wifi">Wi-Fi</span><span class="l-pwr">電源</span></div>
+  </div>
+  <p class="lead">定点カメラは、アームとつかむ物体の距離を見るためのものです。今回の変更では、カメラはつなぎ方と名前（<code>wrist</code>・<code>front</code>）だけを決め、コードには入れていません。録画をラズパイで動かす段階で使います。</p>
+</section>
+
+<section>
+  <h2>コードで変えたところ</h2>
+  <div class="card">
+    <table>
+      <tr><th>ファイル</th><th>今まで</th><th>これから</th></tr>
+      <tr><td><code>core/hardware.py</code></td><td>ポートが <code>COM19</code>・<code>COM20</code> に固定</td><td>環境変数で指定できる。なければ Windows は今までどおり、Linux は <code>/dev/ttyACM0</code>・<code>1</code></td></tr>
+      <tr><td><code>core/procs.py</code></td><td>Windows の仕組み（<code>CTRL_BREAK</code>・<code>taskkill</code>）だけ。Linux では読み込んだ時点で落ちる</td><td>Linux 用の起動・停止を追加（Ctrl+C と同じ止め方 → 止まらなければ子まで止める）。Windows の処理は変えていない</td></tr>
+      <tr><td><code>core/key_input.py</code>・<code>views/record.py</code></td><td>画面のないラズパイでは pynput が読み込めず、画面全体が落ちる</td><td>使うときに読み込む。使えない機械では「この回を終える」「撮り直す」だけを押せなくする</td></tr>
+      <tr><td><code>app.py</code>・<code>.streamlit/</code></td><td>パソコンの中からしか開けない</td><td>同じ Wi-Fi から開ける。パスワードを入れるまで先に進めない</td></tr>
+      <tr><td><code>deploy/</code>（新規）</td><td>—</td><td>systemd の設定と、ラズパイ4での手順書</td></tr>
+    </table>
+  </div>
+  <p class="lead">新しいライブラリは足していません。ラズパイ4には lerobot 本体や torch を入れず、streamlit・pyserial・feetech-servo-sdk だけで動かします。</p>
+</section>
+
+<section>
+  <h2>確かめたこと・まだのこと</h2>
+  <div class="grid2">
+    <div class="card"><h3 class="ok">確かめた</h3><ul id="verified">
+        <li>ラズパイ4で画面のサーバーが起動し、同じ Wi-Fi の PC のブラウザから <code>:8501</code> で開けた（ここではパスワードの画面まで。以下の操作は SSH で中継して確かめた）</li>
+        <li>パスワード：違うと入れない／設定ファイルが無いと案内だけ／ページの URL を直接打っても入口で止まる／正しいと入れる</li>
+        <li>mirrorMODE にラズパイのポート名（<code>/dev/ttyACM0</code>・<code>1</code>）が「未接続」で出る</li>
+        <li>テストモードでミラーの開始・停止：止めると後片付けが走り、取り残し0件</li>
+        <li>録画画面がラズパイで落ちず、「この回を終える」「撮り直す」だけが押せない</li>
+        <li>プロセス管理の自動テスト10項目：Windows・ラズパイとも全部通過（Windows の動きは変わっていない）</li>
+      </ul></div>
+    <div class="card"><h3 class="warn">まだ（アームをつないでから）</h3>
+      <ul>
+        <li>実物のアームでのミラー・トルク切り替え</li>
+        <li>リーダーとフォロワーの <code>/dev/serial/by-id/</code> の名前</li>
+        <li>カメラ2台とサーボ基板2枚を同じハブにつないで安定するか</li>
+        <li>systemd の自動起動（<code>sudo</code> が要る）</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>決めてほしいこと</h2>
+  <div class="card">
+    <ol>
+      <li>フォロワーのカメラはどこに付けるか（手首か、グリッパーか）</li>
+      <li>スマホとラズパイのつなぎ方（<strong>いったん保留</strong>）。学校の open Wi-Fi は端末同士の通信ができないので使えない。それまでの確認は検証用の Wi-Fi で行う</li>
+      <li>ラズパイ4ではミラーまででよいか。録画もラズパイで行うなら、キー送信の代わりの仕組みが要る</li>
+    </ol>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

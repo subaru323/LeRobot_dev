@@ -135,16 +135,20 @@ def recording_panel():
         completed = max(current - 1, 0) if phase in ("recording", "redo") else current
         st.progress(min(completed / target, 1.0))
 
-        can_control = phase in ("recording", "reset", "redo")
+        # Next / redo are sent as Right / Left key presses, which need a display (not on a headless Pi).
+        keys_ok = key_input.available()
+        can_control = keys_ok and phase in ("recording", "reset", "redo")
         next_col, redo_col = st.columns(2)
         with next_col:
             if st.button("この回を終える  ▶", key="rec_next", width="stretch", disabled=not can_control,
                          help="録画中なら今の回を保存して片付けへ、片付け中なら次の録画へ進みます"):
                 key_input.press("right")
         with redo_col:
-            if st.button("↺  撮り直す", key="rec_redo", width="stretch", disabled=phase != "recording",
+            if st.button("↺  撮り直す", key="rec_redo", width="stretch", disabled=not keys_ok or phase != "recording",
                          help="今の回を捨てて、もう一度録画します"):
                 key_input.press("left")
+        if not keys_ok:
+            st.caption("この機械ではキー送信が使えないため、回の区切りと撮り直しは押せません。時間が来ると自動で進みます。")
 
     if st.button("■  録画を終える", key="rec_stop", width="stretch", disabled=phase == "saving"):
         procs.stop("record", wait_s=None)  # lerobot-record saves the dataset on its own

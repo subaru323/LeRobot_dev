@@ -1,0 +1,9 @@
+# Serve the app to the same Wi-Fi so a phone can open http://<Pi's IP address>:8501.
+# app.py asks for the password in secrets.toml before showing any page.
+[server]
+address = "0.0.0.0"
+port = 8501
+headless = true
+
+[browser]
+gatherUsageStats = false

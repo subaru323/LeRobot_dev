@@ -1,4 +1,4 @@
-"""Run a Python script or module so that Ctrl+Break stops it like Ctrl+C.
+"""Run a Python script or module so that Ctrl+Break (Windows) or SIGINT (Linux) stops it like Ctrl+C.
 
 A process started with CREATE_NEW_PROCESS_GROUP can only be signalled with
 CTRL_BREAK_EVENT, which Python treats as SIGBREAK and terminates on at once.
@@ -39,6 +39,10 @@ def _run():
 if __name__ == "__main__":
     if hasattr(signal, "SIGBREAK"):
         signal.signal(signal.SIGBREAK, _raise_interrupt)
+    else:
+        # Linux: procs.stop() sends SIGINT. Python ignores it if the parent started us with
+        # SIGINT ignored (e.g. some service managers), so install Ctrl+C behaviour explicitly.
+        signal.signal(signal.SIGINT, signal.default_int_handler)
     exit_code = 0
     try:
         _run()

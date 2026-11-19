@@ -1,0 +1,23 @@
+# Tasks
+
+## 1. Linux で画面が動くようにする
+
+- [x] 1.1 `core/hardware.py` でポートを環境変数（`EASY_LEROBOT_LEADER_PORT`・`EASY_LEROBOT_FOLLOWER_PORT`）と OS ごとの既定値から決め、シンボリックリンクを実体に解決して有無を判定する。設定なしの Windows で `COM19`・`COM20` になることで確認する
+- [x] 1.2 `core/procs.py` に Linux の実装（新しいセッションで起動・`/proc/<pid>/stat` の起動時刻で生存確認・`SIGINT` で停止・待ち時間後にグループごと `SIGKILL`）を足す。ラズパイ上で、起動・生存確認・利用者の停止は成功扱い・割り込みを無視するプロセスの強制終了・取り残し 0 件を確かめる
+- [x] 1.3 `core/key_input.py` の pynput を遅延 import にし、`available()` を足す。録画画面はキー送信が使えないときに該当のボタンを無効にして理由を出す。画面のないラズパイで録画画面を開いてエラーにならないことで確認する
+
+## 2. スマホから開けるようにする
+
+- [x] 2.1 `.streamlit/config.toml` に `server.address = "0.0.0.0"`・`server.port = 8501`・`server.headless = true`・`browser.gatherUsageStats = false` を書く。同じ Wi-Fi の端末のブラウザで `http://<ラズパイの IP アドレス>:8501` が開けることで確認する
+- [x] 2.2 `app.py` にパスワードの入口を実装し、`.streamlit/secrets.toml` を `.gitignore` に入れる。パスワードなし・誤り・設定ファイルなしではモード選択に進めず、正しいパスワードで進めることを確認する
+
+## 3. 電源を入れると立ち上がるようにする
+
+- [x] 3.1 `deploy/easy-lerobot.service`・`deploy/easy-lerobot.env.example`・`deploy/README.md`（ラズパイ 4 での手順）を作る
+- [ ] 3.2 ラズパイでユニットを有効にし、再起動後に画面が開けること、画面のプロセスを `kill -9` すると自動で戻ることを確かめる（`sudo` が要るため、ラズパイの管理者が行う）
+
+## 4. 実機での確認（アームをつないでから）
+
+- [ ] 4.1 リーダーとフォロワーをつなぎ、`/dev/serial/by-id/` の名前を `deploy/easy-lerobot.env` に書く。スマホの mirrorMODE で両方が「接続」になることを確かめる
+- [ ] 4.2 スマホからトルクの切り替え・ミラーの開始・停止を行い、停止後にポートが閉じられている（もう一度開始できる）ことを確かめる
+- [ ] 4.3 USB ハブにカメラ 2 台をつなぎ、`/dev/v4l/by-id/` に 2 台見えること、サーボ基板と同時につないでも不安定にならないことを確かめる

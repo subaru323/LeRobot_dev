@@ -1,0 +1,4 @@
+# The app password; see .streamlit/secrets.toml.example
+.streamlit/secrets.toml
+# Per-machine ports; see deploy/easy-lerobot.env.example
+deploy/easy-lerobot.env

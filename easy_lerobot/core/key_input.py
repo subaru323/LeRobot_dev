@@ -2,15 +2,27 @@
 
 On Windows, lerobot-record listens for Right / Left / Esc with a global pynput
 listener, so a key press injected here reaches it whichever window has focus.
+
+pynput is imported lazily: on a Linux machine without a display (a Raspberry Pi
+served to a phone) importing it fails, and that must not take the whole UI down.
 """
 
-from pynput.keyboard import Controller, Key
 
-_KEYS = {"right": Key.right, "left": Key.left}
+def available() -> bool:
+    """True when key presses can be sent on this machine."""
+    try:
+        from pynput.keyboard import Controller
+
+        Controller()
+    except Exception:
+        return False
+    return True
 
 
 def press(name: str):
+    from pynput.keyboard import Controller, Key
+
+    key = {"right": Key.right, "left": Key.left}[name]
     keyboard = Controller()
-    key = _KEYS[name]
     keyboard.press(key)
     keyboard.release(key)
