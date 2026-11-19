@@ -1,12 +1,12 @@
 {
   "id": 5,
-  "direction": "MIN -> MAX towards larger ticks; F5 passes through 4095/0 (2206 -> 4095 -> 0 -> 1919)",
+  "direction": "MIN -> MAX towards larger ticks; both pass through 4095/0 (L5 1246->0->951, F5 2206->0->1919)",
   "max": {
-    "L5": 3939,
+    "L5": 951,
     "F5": 1919
   },
   "min": {
-    "L5": 138,
+    "L5": 1246,
     "F5": 2206
   },
   "span_ticks": {
@@ -33,7 +33,7 @@
   },
   "centered": true,
   "homing_offset": {
-    "L5": 1280,
+    "L5": 172,
     "F5": 922
   }
 }
