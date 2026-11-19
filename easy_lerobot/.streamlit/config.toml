@@ -8,7 +8,7 @@ headless = true
 [browser]
 gatherUsageStats = false
 
-# Dark, neon-accented theme for every page (the operation pages add their own neon styling).
+# Dark theme with a purple accent for every page (shared styles in core/ui.py apply_theme).
 [theme]
 base = "dark"
-primaryColor = "#00f0ff"
+primaryColor = "#8b5cf6"

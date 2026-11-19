@@ -1,7 +1,7 @@
 import streamlit as st
 
 from core import recording
-from core.ui import test_mode, test_mode_badge
+from core.ui import festival_badge, page_title, test_mode, test_mode_badge
 
 STEPS = [
     {"key": "record", "icon": ":material/videocam:", "title": "録画", "desc": "リーダーで動きを見せて、お手本を録画します"},
@@ -74,7 +74,7 @@ st.html(
     [class*="st-key-learn_"] button p { font-size: 1.05rem; font-weight: 700; }
     /* Same green "go" colour as the mirror start button. */
     [class*="st-key-learn_"] button[kind="primary"],
-    [class*="st-key-learn_"] button[kind="primary"]:hover { background: #16a34a !important; border: none; color: #fff; }
+    [class*="st-key-learn_"] button[kind="primary"]:hover { background: linear-gradient(135deg, #7c3aed, #a855f7) !important; border: none; color: #fff; }
     [class*="st-key-learn_"] button[kind="primary"]:hover { filter: brightness(1.08); color: #fff; }
     .learn-arrow { text-align: center; font-size: 1.8rem; opacity: .45; }
     </style>
@@ -84,7 +84,8 @@ st.html(
 if st.button("戻る", icon=":material/arrow_back:", type="tertiary"):
     st.switch_page("views/home.py")
 
-st.title("LearnMODE")
+festival_badge()
+page_title("LearnMODE")
 test_mode_badge()
 st.caption("① 録画 → ② 学習 → ③ 実行 の順に進めます。前の段階が終わると、次の段階が開きます。")
 
@@ -93,7 +94,7 @@ for n, step in enumerate(STEPS):
     if n > 0:
         cols[2 * n - 1].html('<div class="learn-arrow">→</div>')
     state = states[step["key"]]
-    with cols[2 * n].container(border=True, height="stretch"):
+    with cols[2 * n].container(border=True, height="stretch", key=f"el_card_{step['key']}"):
         status_badge(state)
         st.markdown(f"### {step['icon']} {n + 1}. {step['title']}")
         st.caption(step["desc"])

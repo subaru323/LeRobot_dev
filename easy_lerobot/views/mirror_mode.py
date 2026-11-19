@@ -7,7 +7,7 @@ import streamlit as st
 
 from core import align, logs, procs
 from core.hardware import arm_ports, present_ports
-from core.ui import festival_badge, test_mode, test_mode_badge
+from core.ui import festival_badge, page_title, test_mode, test_mode_badge
 
 APP_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = APP_DIR.parent
@@ -121,9 +121,9 @@ def mirror_error_message() -> str:
 
 def arm_row(role: str, what: str, present: bool) -> str:
     """One connection row: arm name, what it is, and a coloured status (no device path)."""
-    state = '<span class="dot on"></span>接続中' if present else '<span class="dot"></span>未接続'
-    return (f'<div class="arm-row"><div><div class="arm-name">{role}</div><div class="arm-what">{what}</div></div>'
-            f'<div class="arm-state {"on" if present else ""}">{state}</div></div>')
+    on = "on" if present else ""
+    return (f'<div class="el-row"><div><div class="name">{role}</div><div class="what">{what}</div></div>'
+            f'<div class="state {on}"><span class="el-dot {on}"></span>{"接続中" if present else "未接続"}</div></div>')
 
 
 # --- state -----------------------------------------------------------------
@@ -146,73 +146,31 @@ torque_known = bool(result["torque"])
 st.html(
     """
     <style>
-    /* Cyberpunk look: near-black page with a faint grid and scanlines, neon cyan / magenta. */
-    .stApp {
-        background:
-            repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
-            linear-gradient(rgba(0,240,255,.05) 1px, transparent 1px) 0 0 / 32px 32px,
-            linear-gradient(90deg, rgba(0,240,255,.05) 1px, transparent 1px) 0 0 / 32px 32px,
-            radial-gradient(120% 80% at 50% 0%, #1a0b2e 0%, #05060d 60%) !important;
-    }
-    .block-container { padding-top: 2.2rem; padding-bottom: 1rem; max-width: 560px; }
-    .mm-title { text-align: center; margin: .3rem 0 .1rem; }
-    .mm-title h1 {
-        font-size: 2.5rem; font-weight: 900; letter-spacing: .06em; margin: 0; padding: 0; color: #e8fdff;
-        text-shadow: -2px 0 #ff2bd6, 2px 0 #00f0ff, 0 0 18px rgba(0,240,255,.6);
-    }
-    .mm-title .bar { width: 52%; height: 3px; margin: 4px auto 0;
-        background: linear-gradient(90deg, transparent, #00f0ff, #ff2bd6, transparent);
-        box-shadow: 0 0 12px #00f0ff; }
-    .mm-sub { text-align: center; color: #9fe9f5; margin: .5rem 0 1.1rem; font-size: .95rem; letter-spacing: .04em; }
-    .arm-row {
-        display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        padding: 14px 18px; margin-bottom: 10px; color: #e8fdff;
-        background: linear-gradient(90deg, rgba(0,240,255,.10), rgba(10,12,30,.85) 45%);
-        border: 1px solid rgba(0,240,255,.45); border-left: 4px solid #00f0ff;
-        box-shadow: 0 0 14px rgba(0,240,255,.18), inset 0 0 18px rgba(0,240,255,.06);
-        clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-    }
-    .arm-name { font-size: 1.3rem; font-weight: 800; line-height: 1.3; letter-spacing: .04em; }
-    .arm-what { font-size: .82rem; color: #7fb9c4; }
-    .arm-state { font-weight: 800; font-size: 1.05rem; white-space: nowrap; color: #6b7280; letter-spacing: .06em; }
-    .arm-state.on { color: #39ff88; text-shadow: 0 0 10px rgba(57,255,136,.8); }
-    .dot { display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: 0;
-        background: #4b5563; transform: rotate(45deg); }
-    .dot.on { background: #39ff88; box-shadow: 0 0 12px #39ff88; }
-    .mm-status { text-align: center; margin: 1.2rem 0 .2rem; font-size: 2.3rem; font-weight: 900; color: #e8fdff;
-        letter-spacing: .08em; text-shadow: -2px 0 #ff2bd6, 2px 0 #00f0ff; }
-    .mm-status-sub { text-align: center; color: #9fe9f5; margin-bottom: .9rem; }
+    .block-container { padding-bottom: 1rem; max-width: 560px; }
     .st-key-mirror_start button, .st-key-mirror_stop button {
         height: 150px;
         border: none;
-        border-radius: 0;
-        clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 26px 100%, 0 calc(100% - 26px));
+        border-radius: 26px;
         transition: filter .15s, transform .05s;
     }
     /* !important: Streamlit's own hover / disabled backgrounds would win otherwise. */
     .st-key-mirror_start button, .st-key-mirror_start button:hover {
-        background: linear-gradient(135deg, #00f0ff, #39ff88) !important; color: #031216 !important;
-        box-shadow: 0 0 28px rgba(0,240,255,.55); }
+        background: linear-gradient(135deg, #7c3aed, #a855f7) !important; color: #fff !important;
+        box-shadow: 0 10px 30px rgba(124,58,237,.45); }
     .st-key-mirror_stop button, .st-key-mirror_stop button:hover {
-        background: linear-gradient(135deg, #ff2bd6, #ff3b3b) !important; color: #fff !important;
-        animation: mm-pulse 1.6s ease-in-out infinite; }
-    @keyframes mm-pulse { 50% { filter: brightness(1.18); } }
-    .st-key-mirror_start button:hover, .st-key-mirror_stop button:hover { filter: brightness(1.1); }
+        background: linear-gradient(180deg, #f87171, #ef4444) !important; color: #fff !important;
+        box-shadow: 0 10px 34px rgba(239,68,68,.45); }
+    .st-key-mirror_start button:hover, .st-key-mirror_stop button:hover { filter: brightness(1.08); }
     .st-key-mirror_start button:active, .st-key-mirror_stop button:active { transform: scale(.99); }
-    .st-key-mirror_start button:disabled {
-        background: repeating-linear-gradient(135deg, #10131f 0 14px, #151a2a 14px 28px) !important;
-        color: #4f6b75 !important; box-shadow: none; }
+    .st-key-mirror_start button:disabled { background: #22222c !important; color: #6b6b7b !important; box-shadow: none; }
     .st-key-mirror_start button p, .st-key-mirror_stop button p {
         font-size: 2rem;
         font-weight: 900;
-        letter-spacing: .08em;
+        letter-spacing: .04em;
     }
     /* The stop button is the one that matters for safety: make it the biggest thing on screen. */
-    .st-key-mirror_stop button { height: 230px; }
-    .st-key-mirror_stop button p { font-size: 2.6rem; line-height: 1.5; text-shadow: 0 0 12px rgba(255,255,255,.6); }
-    /* Bordered containers (the torque row) in the same neon frame. */
-    [data-testid="stVerticalBlockBorderWrapper"] { border-color: rgba(255,43,214,.45) !important;
-        box-shadow: 0 0 14px rgba(255,43,214,.15); border-radius: 0 !important; }
+    .st-key-mirror_stop button { height: 240px; border-radius: 30px; }
+    .st-key-mirror_stop button p { font-size: 2.7rem; line-height: 1.45; }
     </style>
     """
 )
@@ -225,8 +183,7 @@ if st.button("戻る", icon=":material/arrow_back:", type="tertiary"):
     st.switch_page("views/home.py")
 
 festival_badge()
-st.html('<div class="mm-title"><h1>mirrorMODE</h1><div class="bar"></div></div>'
-        '<div class="mm-sub">リーダーを動かすと、フォロワーがまねをします</div>')
+page_title("mirrorMODE", "リーダーを動かすと、フォロワーがまねをします")
 test_mode_badge()
 st.html(arm_row("リーダー", "手で動かす側のアーム", leader_ok) + arm_row("フォロワー", "まねをして動く側のアーム", follower_ok))
 
@@ -244,8 +201,8 @@ def mirror_control():
         st.rerun()
 
     if now_running:
-        st.html('<div class="mm-status"><span class="dot on"></span>ミラー中</div>'
-                '<div class="mm-status-sub">リーダーを手で動かしてアームを操作します</div>')
+        st.html('<div class="el-status"><span class="el-dot on"></span>ミラー中</div>'
+                '<div class="el-status-sub">リーダーを手で動かしてアームを操作します</div>')
         if st.button("■  \nミラー停止", key="mirror_stop", width="stretch"):
             stop_mirror()
             st.session_state["mirror_was_running"] = False
@@ -272,7 +229,7 @@ def mirror_control():
 mirror_control()
 
 # --- follower torque (secondary control) -----------------------------------
-with st.container(border=True):
+with st.container(border=True, key="el_card_torque"):
     label_col, toggle_col = st.columns([5, 1], vertical_alignment="center")
     with label_col:
         st.markdown("**フォロワーのトルク**")

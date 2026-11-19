@@ -4,7 +4,7 @@ import streamlit as st
 
 from core import align, key_input, procs, recording
 from core.hardware import arm_ports, present_ports
-from core.ui import test_mode, test_mode_badge
+from core.ui import festival_badge, page_title, test_mode, test_mode_badge
 
 REPO_DIR = Path(__file__).resolve().parents[2]
 
@@ -86,10 +86,10 @@ st.html(
         height: 110px; border-radius: 22px; border: none; color: #fff;
     }
     /* !important: Streamlit's own hover / disabled backgrounds would win otherwise. */
-    .st-key-rec_start button, .st-key-rec_start button:hover { background: #16a34a !important; }
-    .st-key-rec_stop button, .st-key-rec_stop button:hover { background: #dc2626 !important; }
+    .st-key-rec_start button, .st-key-rec_start button:hover { background: linear-gradient(135deg, #7c3aed, #a855f7) !important; }
+    .st-key-rec_stop button, .st-key-rec_stop button:hover { background: linear-gradient(180deg, #f87171, #ef4444) !important; }
     .st-key-rec_start button:hover, .st-key-rec_stop button:hover { filter: brightness(1.08); color: #fff; }
-    .st-key-rec_start button:disabled { background: #3f3f46 !important; color: #a1a1aa !important; }
+    .st-key-rec_start button:disabled { background: #22222c !important; color: #6b6b7b !important; }
     .st-key-rec_start button p, .st-key-rec_stop button p { font-size: 1.8rem; font-weight: 800; }
     .st-key-rec_next button, .st-key-rec_redo button { height: 64px; border-radius: 16px; }
     .st-key-rec_next button p, .st-key-rec_redo button p { font-size: 1.15rem; font-weight: 700; }
@@ -102,7 +102,8 @@ st.html(
 if st.button("戻る", icon=":material/arrow_back:", type="tertiary", disabled=busy == "record"):
     st.switch_page("views/learn_mode.py")
 
-st.title("1. 録画")
+festival_badge()
+page_title("1. 録画")
 with st.container(horizontal=True, gap="small"):
     test_mode_badge()
     port_badge("リーダー", LEADER_PORT, leader_ok)
@@ -124,7 +125,7 @@ def recording_panel():
     target = int(st.session_state["rec_episodes"])
     current = (episode - base + 1) if episode is not None else 0
 
-    with st.container(border=True):
+    with st.container(border=True, key="el_card_progress"):
         if phase == "recording":
             st.html(f'<div class="rec-phase">🔴 録画中　{current} / {target} 回目</div>')
             st.caption("リーダーを動かしてお手本を見せてください。")
@@ -169,7 +170,7 @@ if recording_now:
 if not recording_now:
     name = st.session_state["rec_dataset"]
     saved = recording.recorded_episodes(name, test)
-    with st.container(border=True):
+    with st.container(border=True, key="el_card_settings"):
         setting_input(st.text_input, "タスクの説明（英語推奨）", "rec_task",
                       placeholder="例: Pick the red cube and put it in the box")
         c1, c2, c3, c4 = st.columns(4)

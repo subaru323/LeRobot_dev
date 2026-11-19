@@ -1,7 +1,7 @@
 import streamlit as st
 
 from core import startup
-from core.ui import set_test_mode, test_mode, test_mode_badge
+from core.ui import festival_badge, page_title, set_test_mode, test_mode, test_mode_badge
 
 MODES = [
     ("mirrorMODE", "views/mirror_mode.py", "リーダーの動きをフォロワーに映す"),
@@ -15,9 +15,12 @@ st.html(
     <style>
     [class*="st-key-mode_"] button {
         height: 180px;
-        border-radius: 16px;
-        border-width: 2px;
+        border-radius: 22px;
+        border: 1px solid #2a2a36;
+        background: #15151c;
+        color: #fff;
     }
+    [class*="st-key-mode_"] button:hover { border-color: #a78bfa; box-shadow: 0 0 20px rgba(167,139,250,.35); color: #fff; }
     [class*="st-key-mode_"] button p {
         font-size: 0.95rem;
         line-height: 1.8;
@@ -36,7 +39,8 @@ def on_test_mode_change():
 
 title_col, gear_col = st.columns([6, 1], vertical_alignment="center")
 with title_col:
-    st.title("easy_lerobot")
+    festival_badge()
+    page_title("easy_lerobot")
 with gear_col:
     with st.container(horizontal=True, horizontal_alignment="right"):
         with st.popover("", icon=":material/settings:", help="設定"):
@@ -71,7 +75,7 @@ def readiness():
     log = startup_log()
     checks = startup.run_checks()
     log.update(checks)
-    with st.container(border=True):
+    with st.container(border=True, key="el_card_ready"):
         if startup.ready(checks):
             st.markdown(":green[:material/check_circle: **準備完了**]")
         else:

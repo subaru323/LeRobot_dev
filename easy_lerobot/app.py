@@ -13,7 +13,7 @@ import time
 
 import streamlit as st
 
-from core.ui import connection_guard
+from core.ui import apply_theme, connection_guard, festival_badge, page_title
 
 # The value shipped in secrets.toml.example; refusing it keeps the app closed until a real password is set.
 EXAMPLE_PASSWORD = "change-me"
@@ -21,6 +21,7 @@ EXAMPLE_PASSWORD = "change-me"
 st.set_page_config(page_title="easy_lerobot", layout="centered")
 # Grey the page out with a spinner while the Pi is shutting down or rebooting.
 connection_guard()
+apply_theme()
 
 
 def password_entered() -> bool:
@@ -32,11 +33,13 @@ def password_entered() -> bool:
         if not str(expected).strip() or expected == EXAMPLE_PASSWORD:
             raise KeyError("app_password")
     except (KeyError, FileNotFoundError):
-        st.title("easy_lerobot")
+        festival_badge()
+        page_title("easy_lerobot")
         st.error("パスワードが設定されていません（見本の値のままでは使えません）。")
         st.caption("`easy_lerobot/.streamlit/secrets.toml` に `app_password = \"...\"` を書いて、画面のサーバーを起動し直してください（ラズパイでは `sudo systemctl restart easy-lerobot`）。")
         return False
-    st.title("easy_lerobot")
+    festival_badge()
+    page_title("easy_lerobot", "パスワードを入れてください")
     with st.form("login"):
         given = st.text_input("パスワード", type="password")
         submitted = st.form_submit_button("入る", width="stretch")
