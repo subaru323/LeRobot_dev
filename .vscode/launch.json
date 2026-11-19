@@ -97,7 +97,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/dev_scripts/mirror_leader.py",
       "args": [
-        "--leader-port", "COM19", "--follower-port", "COM20", "--wait-align", "--monitor-ids", "5",
+        "--leader-port", "COM19", "--follower-port", "COM20", "--auto-align", "--monitor-ids", "5",
         "--range-files", "dev_calibration/joint5_maxmin.json",
         "--velocity-ids", "5", "--vel-max", "3000", "--vel-kp", "6"
       ],
