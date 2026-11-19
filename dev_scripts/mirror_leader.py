@@ -36,6 +36,9 @@ ADDR_ACCELERATION = 41
 ADDR_GOAL_POSITION = 42
 ADDR_GOAL_SPEED = 46
 ADDR_PRESENT_POSITION = 56
+ADDR_HOMING_OFFSET = 31
+ADDR_OPERATING_MODE = 33
+ADDR_LOCK = 55
 NAMES = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 
 
@@ -132,6 +135,18 @@ def main():
         "The follower is read every loop and its torque is cut if it leaves [F_min, F_max] by more than "
         "--guard-ticks (protects against the motor running round the 4095/0 seam).",
     )
+    parser.add_argument(
+        "--velocity-ids",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Range-mapped follower ids driven in speed (wheel) mode with a software position loop, so the "
+        "rotation direction follows the range (e.g. through 4095/0) instead of the dial. Restored to "
+        "position mode with torque off on exit.",
+    )
+    parser.add_argument("--vel-kp", type=float, default=3.0, help="Speed per tick of error (speed units ~ ticks/s)")
+    parser.add_argument("--vel-max", type=int, default=1500, help="Speed limit for --velocity-ids")
+    parser.add_argument("--vel-deadband", type=int, default=8, help="Stop when within this many ticks of target")
     parser.add_argument("--range-margin", type=int, default=150, help="Keep range-mapped goals this far inside")
     parser.add_argument("--guard-ticks", type=int, default=60, help="Out-of-range tolerance before torque cut")
     parser.add_argument("--shared-ids", type=int, nargs="*", default=[], help="Follower ids used by several motors")
@@ -264,6 +279,65 @@ def main():
 
     waiting = set()  # range-mapped joints held limp until they are inside their usable range
 
+    velocity = set(args.velocity_ids)
+    if velocity - set(ranges):
+        sys.exit(f"--velocity-ids {sorted(velocity - set(ranges))} need a --range-files entry")
+    vel_active = set()  # ids currently in speed mode (their Present_Position is raw, without homing)
+    homing = {}
+
+    def read_f(i):
+        """Follower position in the homed frame, also for joints running in speed mode."""
+        pos = read_pos(fph, pk, i)
+        if pos is not None and i in vel_active:
+            pos = (pos - homing[i]) % TURN
+        return pos
+
+    def set_mode(i, mode):
+        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
+        pk.write1ByteTxRx(fph, i, ADDR_LOCK, 0)
+        pk.write1ByteTxRx(fph, i, ADDR_OPERATING_MODE, mode)
+        pk.write1ByteTxRx(fph, i, ADDR_LOCK, 1)
+        time.sleep(1.0)  # the motor restarts after an EEPROM mode change
+        for _ in range(20):
+            if pk.ping(fph, i)[1] == scs.COMM_SUCCESS:
+                break
+            time.sleep(0.1)
+
+    def set_speed(i, v):
+        v = int(max(-args.vel_max, min(args.vel_max, v)))
+        pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, abs(v) | (0x8000 if v < 0 else 0))
+
+    def start_velocity(i):
+        raw, _, _ = pk.read2ByteTxRx(fph, i, ADDR_HOMING_OFFSET)
+        homing[i] = -(raw & 0x7FF) if raw & 0x800 else raw & 0x7FF
+        set_mode(i, 1)
+        set_speed(i, 0)
+        pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
+        vel_active.add(i)
+        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
+        print(f"F{i}: speed mode (homing {homing[i]}), direction follows the range")
+
+    def stop_velocity(i):
+        set_speed(i, 0)
+        pos = read_f(i)
+        set_mode(i, 0)  # also disables torque
+        vel_active.discard(i)
+        if pos is not None:
+            pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, pos)
+        print(f"F{i}: back in position mode, torque off (at {pos})")
+
+    def drive_velocity(i, goal, fpos):
+        """Software position loop: speed towards goal along the range, never through the gap."""
+        if fpos is None:
+            return
+        f_span = span(ranges[i][2], ranges[i][3])
+        err = follower_offset(i, goal) - follower_offset(i, fpos)
+        cur = follower_offset(i, fpos)
+        v = 0 if abs(err) <= args.vel_deadband else args.vel_kp * err
+        if (cur <= 0 and v < 0) or (cur >= f_span and v > 0):
+            v = 0  # at an end of the range: only move back inside
+        set_speed(i, v)
+
     def write_goal(i, goal):
         if i in shared:
             pk.write2ByteTxOnly(fph, i, ADDR_GOAL_POSITION, goal)
@@ -281,6 +355,9 @@ def main():
                     pk.write2ByteTxOnly(fph, i, ADDR_GOAL_POSITION, target(i, lpos))
                 pk.write1ByteTxOnly(fph, i, ADDR_TORQUE_ENABLE, 1)
                 time.sleep(0.005)
+                continue
+            if i in velocity:
+                start_velocity(i)  # the speed loop itself only ever drives back inside the range
                 continue
             hold = read_pos(fph, pk, i)
             lo, hi = limits[i]
@@ -352,7 +429,9 @@ def main():
             t = time.perf_counter()
             goals, leader, follower = {}, {}, {}
             for i in ranges:
-                follower[i] = read_pos(fph, pk, i)
+                follower[i] = read_f(i)
+                if i in velocity:
+                    continue  # the speed loop keeps these inside the range itself
                 if i in tripped:
                     rearm(i, follower[i], t)
                 else:
@@ -363,13 +442,18 @@ def main():
                 if args.jump_threshold > 0 and i in shown:
                     check_jump("L", i, pos, t)
                 if pos is None or i in tripped:
+                    if i in vel_active:
+                        set_speed(i, 0)
                     continue  # skip a corrupted read (keep last goal) or a joint cut by the guard
                 goals[i] = target(i, pos)
-                write_goal(i, goals[i])
+                if i in vel_active:
+                    drive_velocity(i, goals[i], follower.get(i))
+                else:
+                    write_goal(i, goals[i])
             if track_follower:
                 for i in shown:
                     if i not in shared and i not in follower:
-                        follower[i] = read_pos(fph, pk, i)
+                        follower[i] = read_f(i)
                 for i in shown:
                     if i in follower:
                         check_jump("F", i, follower[i], t)
@@ -378,7 +462,7 @@ def main():
                 if args.monitor_hz > 0:
                     cells = []
                     for i in shown:
-                        fpos = follower[i] if i in follower else (None if i in shared else read_pos(fph, pk, i))
+                        fpos = follower[i] if i in follower else (None if i in shared else read_f(i))
                         lpos = leader[i]
                         diff = (
                             f"{(fpos - goals[i] + TURN // 2) % TURN - TURN // 2:+d}"
@@ -394,6 +478,8 @@ def main():
         print("\ninterrupted")
     finally:
         lph.is_using = fph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
+        for i in sorted(vel_active):
+            stop_velocity(i)
         if args.release:
             for i in args.ids:
                 if i in shared:
