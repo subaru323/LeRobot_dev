@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 
 from core import key_input, procs, recording
-from core.hardware import FOLLOWER_PORT, LEADER_PORT, present_ports
+from core.hardware import arm_ports, present_ports
 from core.ui import test_mode, test_mode_badge
 
 REPO_DIR = Path(__file__).resolve().parents[2]
@@ -31,6 +31,7 @@ def setting_input(widget, label: str, key: str, **kwargs):
 
 
 test = test_mode()
+LEADER_PORT, FOLLOWER_PORT = arm_ports()  # detected on the Pi; fixed COM ports on Windows
 
 
 def start_recording():

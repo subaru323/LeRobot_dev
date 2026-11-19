@@ -25,8 +25,14 @@
 ## Decisions
 
 ### D1. ポートの指定
-`core/hardware.py` は、環境変数 `EASY_LEROBOT_LEADER_PORT`・`EASY_LEROBOT_FOLLOWER_PORT` があればそれを使い、なければ OS ごとの既定値（Windows は `COM19`・`COM20`、Linux は `/dev/ttyACM0`・`/dev/ttyACM1`）を使う。ラズパイでは `deploy/easy-lerobot.env` に `/dev/serial/by-id/...` の名前を書き、systemd から読ませる。
-- 理由: `/dev/ttyACM*` の番号は差す順で入れ替わる。by-id の名前は基板ごとに固定される。基板の名前は実物をつながないと分からないので、コードに直書きせず設定に出す。
+`core/hardware.py` の `arm_ports()` が、次の順でリーダーとフォロワーのポートを決める。
+1. 環境変数 `EASY_LEROBOT_LEADER_PORT`・`EASY_LEROBOT_FOLLOWER_PORT` があればそれを使う。
+2. Linux（ラズパイ）では自動で判定する。`/dev/serial/by-id/` の基板ごとに、ID 1〜6 のモーターの Homing_Offset（アドレス 31）を読み、`dev_calibration/leader_L.json`・`follower_F.json` の `homing_offset` と ±30 以内で 6 台とも一致した方の役割を割り当てる。読むだけで、トルクも目標位置も書かない。
+3. 判定できないとき、Linux では「未判定」（どのポートにも一致しない名前）にして、ミラーとトルク操作を始められないようにする。Windows は `COM19`・`COM20` のまま。
+- 理由: `/dev/ttyACM*` の番号は差す順で入れ替わる。by-id の名前は差し込み口を変えても同じだが、基板を別のアームにつなぎ替えると追えない。モーターに書かれた原点の値はアームごとに違う（実測でリーダーとフォロワーの差は平均 1549）ので、どの基板・どの差し込み口でもアームそのもので見分けられる。
+- 判定できないときに `/dev/ttyACM0` に戻すと、差した順によってはフォロワーをリーダーとして扱い、リーダーにトルクを入れて動かしてしまう。そのため Linux では既定値に戻さない。
+- 判定はポートを開くので、ミラーや録画が動いている間は行わない。結果は差さっている基板の組み合わせが変わるまで使い回し、判定できなかったときは 5 秒ごとにやり直す。
+- 限界: 校正をやり直したら `dev_calibration/` のファイルも更新しないと判定できない。
 - ポートが見えているかの判定は、by-id のようなシンボリックリンクも実体（`/dev/ttyACM0`）に解決して比べる。
 
 ### D2. Linux でのプロセス管理

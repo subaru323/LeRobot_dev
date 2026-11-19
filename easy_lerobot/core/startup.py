@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.hardware import FOLLOWER_PORT, LEADER_PORT, present_ports
+from core.hardware import arm_ports, last_detection, present_ports
 
 REPO_DIR = Path(__file__).resolve().parents[2]
 RANGE_FILE = REPO_DIR / "dev_calibration" / "joint5_maxmin.json"
@@ -46,12 +46,29 @@ def camera_count() -> int | None:
 
 
 def run_checks() -> list[Check]:
+    leader_port, follower_port = arm_ports()
     ports = present_ports()
+    found = last_detection()
+
+    def where(role: str, port: str) -> str:
+        # The board's own number and how it was recognised, e.g. "XXXXXXXXXX（モーター6台が校正と一致）".
+        name = port.rsplit("_", 1)[-1].removesuffix("-if00") if "/by-id/" in port else port
+        note = found.notes.get(port, "") if found.roles.get(role) == port else ""
+        return f"{name}（{note}）" if note else name
+
+    def ok(role: str, port: str) -> bool:
+        # Detected boards count as soon as they are assigned; fixed ports (Windows, env vars) when present.
+        return found.roles.get(role) == port if not found.skipped else port in ports
+
     checks = [
-        Check("リーダーの基板", LEADER_PORT in ports, LEADER_PORT),
-        Check("フォロワーの基板", FOLLOWER_PORT in ports, FOLLOWER_PORT),
+        Check("リーダーの基板", ok("leader", leader_port), where("leader", leader_port)),
+        Check("フォロワーの基板", ok("follower", follower_port), where("follower", follower_port)),
         Check("5番関節の範囲ファイル", RANGE_FILE.is_file(), "dev_calibration/joint5_maxmin.json"),
     ]
+    for port, note in found.notes.items():
+        if port not in found.roles.values():  # a board that could not be told apart
+            name = port.rsplit("_", 1)[-1].removesuffix("-if00")
+            checks.append(Check("見分けられない基板", False, f"{name}：{note}", required=False))
     cameras = camera_count()
     if cameras is not None:
         checks.append(

@@ -127,7 +127,7 @@ th { font-family: var(--display); font-weight: 700; color: var(--muted); font-si
   <div class="card">
     <table>
       <tr><th>ファイル</th><th>今まで</th><th>これから</th></tr>
-      <tr><td><code>core/hardware.py</code></td><td>ポートが <code>COM19</code>・<code>COM20</code> に固定</td><td>環境変数で指定できる。なければ Windows は今までどおり、Linux は <code>/dev/ttyACM0</code>・<code>1</code></td></tr>
+      <tr><td><code>core/hardware.py</code></td><td>ポートが <code>COM19</code>・<code>COM20</code> に固定</td><td>ラズパイでは<b>リーダーとフォロワーを自動で見分ける</b>（モーターに書かれた原点の値を校正ファイルと照らし合わせる。読むだけで動かさない）。差し込み口はどこでもよい。見分けられないうちはミラーを始められない。Windows は今までどおり</td></tr>
       <tr><td><code>core/procs.py</code></td><td>Windows の仕組み（<code>CTRL_BREAK</code>・<code>taskkill</code>）だけ。Linux では読み込んだ時点で落ちる</td><td>Linux 用の起動・停止を追加（Ctrl+C と同じ止め方 → 止まらなければ子まで止める）。Windows の処理は変えていない</td></tr>
       <tr><td><code>core/key_input.py</code>・<code>views/record.py</code></td><td>画面のないラズパイでは pynput が読み込めず、画面全体が落ちる</td><td>使うときに読み込む。使えない機械では「この回を終える」「撮り直す」だけを押せなくする</td></tr>
       <tr><td><code>app.py</code>・<code>.streamlit/</code></td><td>パソコンの中からしか開けない</td><td>同じ Wi-Fi から開ける。パスワードを入れるまで先に進めない</td></tr>

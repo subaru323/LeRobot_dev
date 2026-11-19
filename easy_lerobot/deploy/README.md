@@ -22,11 +22,13 @@ python3 -m venv ~/venv
 ```bash
 cd ~/LeRobot_dev/easy_lerobot
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml    # app_password を書き換える（変えたらサーバーを起動し直す）
-cp deploy/easy-lerobot.env.example deploy/easy-lerobot.env    # ポートを書き換える
-ls -l /dev/serial/by-id/                                      # リーダーとフォロワーをつないでから確認する
 ```
 
-`deploy/easy-lerobot.env` がなければ `/dev/ttyACM0`（リーダー）・`/dev/ttyACM1`（フォロワー）を使う。この番号は差す順で入れ替わるので、by-id の名前を書いておく。
+リーダーとフォロワーのポートは、画面が自動で見分ける（モーターに書かれた原点の値を `dev_calibration/` の校正ファイルと照らし合わせる。読むだけで動かさない）。どの差し込み口にさしてもよい。モード選択の画面の準備状況に「モーター6台が校正と一致」と出れば判定できている。
+
+自動判定を使わずにポートを固定したいときだけ、`deploy/easy-lerobot.env.example` を `deploy/easy-lerobot.env` にコピーして by-id の名前を書く（`ls -l /dev/serial/by-id/` で確認できる）。
+
+判定できないうち（アームの電源が切れている、校正ファイルと合わない）は「未判定」になり、ミラーを始められない。`/dev/ttyACM0`・`1` の番号は差す順で入れ替わるので、既定値としては使わない。
 
 ## 3. 手で起動して確かめる
 
