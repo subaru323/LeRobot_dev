@@ -72,6 +72,7 @@ th { font-family: var(--display); font-weight: 700; color: var(--muted); font-si
   <div class="grid2">
     <div class="card"><p class="big">スマホで開く</p><p>ラズパイと同じ Wi-Fi のスマホで <code>http://&lt;ラズパイのIP&gt;:8501</code> を開き、パスワードを入れると、いつものモード選択の画面が出ます。</p></div>
     <div class="card"><p class="big">ミラーとトルク</p><p>mirrorMODE で、ミラーの開始・停止と、フォロワーのトルクの入り切りができます。中で動くのは今と同じ <code>dev_scripts/mirror_leader.py</code> です。</p></div>
+    <div class="card"><p class="big">準備状況のログ</p><p>モード選択の画面に、基板2枚・設定ファイル・カメラがそろったかを2秒ごとに表示し、そろったら「準備完了」を出します。スマホで見られるのは画面のサーバーが起動した後からです。</p></div>
     <div class="card"><p class="big">電源を入れるだけ</p><p>systemd で、ラズパイの起動と同時に画面のサーバーが立ち上がります。落ちても自動で戻ります。</p></div>
   </div>
 </section>
@@ -164,7 +165,7 @@ th { font-family: var(--display); font-weight: 700; color: var(--muted); font-si
     <ol>
       <li>フォロワーのカメラはどこに付けるか（手首か、グリッパーか）</li>
       <li>スマホとラズパイのつなぎ方（<strong>いったん保留</strong>）。学校の open Wi-Fi は端末同士の通信ができないので使えない。それまでの確認は検証用の Wi-Fi で行う</li>
-      <li>ラズパイ4ではミラーまででよいか。録画もラズパイで行うなら、キー送信の代わりの仕組みが要る</li>
+      <li>録画は後回し。ラズパイは中継役で、将来 GPU のあるパソコンが来たら録画のデータはそこへ送る（ラズパイには貯めない）。送り方はそのときに決める</li>
     </ol>
   </div>
 </section>
