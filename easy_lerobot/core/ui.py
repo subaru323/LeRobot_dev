@@ -96,6 +96,6 @@ def festival_badge():
         'border:1px solid #f5ff3b;box-shadow:0 0 12px rgba(245,255,59,.45),inset 0 0 10px rgba(245,255,59,.12);'
         'font-weight:900;letter-spacing:.12em;text-shadow:0 0 8px rgba(245,255,59,.8);'
         'clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)">'
-        '<span>ハイフェス</span><span style="color:#00f0ff;text-shadow:0 0 8px #00f0ff">2026</span>'
+        '<span>文化祭</span><span style="color:#00f0ff;text-shadow:0 0 8px #00f0ff">2026</span>'
         '<span style="color:#ff2bd6;text-shadow:0 0 8px #ff2bd6">11/23</span></div></div>'
     )
