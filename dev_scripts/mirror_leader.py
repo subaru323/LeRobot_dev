@@ -298,10 +298,14 @@ def main():
         pk.write1ByteTxRx(fph, i, ADDR_OPERATING_MODE, mode)
         pk.write1ByteTxRx(fph, i, ADDR_LOCK, 1)
         time.sleep(1.0)  # the motor restarts after an EEPROM mode change
-        for _ in range(20):
-            if pk.ping(fph, i)[1] == scs.COMM_SUCCESS:
-                break
+        for _ in range(30):
+            try:
+                if pk.ping(fph, i)[1] == scs.COMM_SUCCESS:
+                    break
+            except IndexError:  # truncated reply while the motor is still booting
+                fph.is_using = False
             time.sleep(0.1)
+        fph.clearPort()
 
     def set_speed(i, v):
         v = int(max(-args.vel_max, min(args.vel_max, v)))
@@ -322,10 +326,11 @@ def main():
         pos = read_f(i)
         set_mode(i, 0)
         vel_active.discard(i)
-        # the motor restarts after the mode change and may come back with torque enabled
-        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
+        # writing Goal_Position re-enables torque, and the motor may restart with torque on:
+        # set the goal first, then disable torque last
         if pos is not None:
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, pos)
+        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
         torque, _, _ = pk.read1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE)
         print(f"F{i}: back in position mode, torque={torque} (at {pos})")
 

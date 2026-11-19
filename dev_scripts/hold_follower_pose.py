@@ -37,6 +37,7 @@ def main():
                 continue
             old, _, _ = pk.read2ByteTxRx(ph, i, ADDR_GOAL_POSITION)
             res, _ = pk.write2ByteTxRx(ph, i, ADDR_GOAL_POSITION, pos)
+            pk.write1ByteTxRx(ph, i, ADDR_TORQUE_ENABLE, 0)  # writing Goal_Position re-enables torque
             status = "ok" if res == scs.COMM_SUCCESS else pk.getTxRxResult(res)
             print(f"id {i}: goal {old} -> {pos} ({status})")
     finally:
