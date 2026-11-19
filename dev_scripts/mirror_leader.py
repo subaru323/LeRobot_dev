@@ -115,6 +115,13 @@ def main():
         help="Instead of refusing, show live differences and start once every joint is within --max-start-diff",
     )
     parser.add_argument(
+        "--auto-align",
+        action="store_true",
+        help="Instead of refusing, slowly move the follower joints that differ too much to the leader pose "
+        "(at --align-speed), then start mirroring",
+    )
+    parser.add_argument("--align-speed", type=int, default=200, help="Follower speed cap in ticks/s for --auto-align")
+    parser.add_argument(
         "--align-now",
         action="store_true",
         help="Treat the current leader and follower poses as matching: store per-joint offsets in --offsets-file",
@@ -292,23 +299,43 @@ def main():
             print(f"L{i}->F{i} {name:<14} shared id: write-only at {args.shared_speed} ticks/s (not checked)")
         else:
             print(f"L{i}->F{i} {name:<14} follower would move {diffs[i]} ticks  F limits={limits[i]}")
-    if far(diffs) and not args.wait_align:
+    if far(diffs) and not (args.wait_align or args.auto_align):
         lph.closePort()
         fph.closePort()
         sys.exit(
             f"leader and follower poses differ too much on {['F%d' % i for i in far(diffs)]} "
-            f"(> {args.max_start_diff} ticks). Pose the leader like the follower and retry, or use --wait-align."
+            f"(> {args.max_start_diff} ticks). Pose the leader like the follower and retry, "
+            f"or use --wait-align / --auto-align."
         )
+    moved = set()  # follower joints driven by --auto-align (torque on)
     try:
+        last_print = 0.0
         while far(diffs):
-            print("align leader: " + "  ".join(f"L{i}:{d:+d}" if d is not None else f"L{i}:?"
-                                                for i, d in diffs.items()), flush=True)
-            time.sleep(0.5)
+            if args.auto_align:
+                # drive only the joints that are too far, slowly, towards where the leader is now
+                for i in far(diffs):
+                    lpos = read_pos(lph, pk, i)
+                    if lpos is None or diffs[i] is None:
+                        continue
+                    if i not in moved:
+                        pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
+                        pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.align_speed)
+                        moved.add(i)
+                    pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, target(i, lpos))
+                    pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
+            if time.perf_counter() - last_print >= 0.5:
+                last_print = time.perf_counter()
+                label = "auto-align follower" if args.auto_align else "align leader"
+                print(f"{label}: " + "  ".join(f"F{i}:{d:+d}" if d is not None else f"F{i}:?"
+                                               for i, d in diffs.items()), flush=True)
+            time.sleep(0.1 if args.auto_align else 0.5)
             diffs = start_diffs()
     except KeyboardInterrupt:
+        lph.is_using = fph.is_using = False
         lph.closePort()
         fph.closePort()
-        sys.exit("aborted before mirroring; follower was not moved")
+        sys.exit("aborted before mirroring; "
+                 + (f"F{sorted(moved)} keep torque where they stopped" if moved else "follower was not moved"))
     print("aligned")
 
     waiting = set()  # range-mapped joints held limp until they are inside their usable range
