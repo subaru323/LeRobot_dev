@@ -1,8 +1,8 @@
 """Stand-in for lerobot-record in test mode: no arms or cameras are opened.
 
 Prints the same progress lines as lerobot-record, reacts to the same keys
-(Right = end the episode early, Left = re-record) through a pynput listener,
-treats Ctrl+C / Ctrl+Break as "stop recording", and keeps meta/info.json's
+(Right = end the episode early, Left = re-record) through a pynput listener when a
+display is available, treats Ctrl+C / Ctrl+Break as "stop recording", and keeps meta/info.json's
 total_episodes up to date so the UI can count saved episodes.
 """
 
@@ -12,7 +12,10 @@ import logging
 import time
 from pathlib import Path
 
-from pynput import keyboard
+try:
+    from pynput import keyboard
+except Exception:  # no display (headless Linux) or pynput not installed: run without keys
+    keyboard = None
 
 events = {"exit_early": False, "rerecord_episode": False}
 
@@ -53,8 +56,9 @@ def main():
     total = json.loads(info.read_text(encoding="utf-8"))["total_episodes"] if info.is_file() else 0
     save_total(args.root, total)
 
-    listener = keyboard.Listener(on_press=on_press)
-    listener.start()
+    listener = keyboard.Listener(on_press=on_press) if keyboard is not None else None
+    if listener is not None:
+        listener.start()
     time.sleep(1.0)  # pretend to connect to the arms and cameras
     recorded = 0
     try:
@@ -73,7 +77,8 @@ def main():
             save_total(args.root, total)
     finally:
         logging.info("Stop recording")
-        listener.stop()
+        if listener is not None:
+            listener.stop()
         time.sleep(2.0)  # pretend to encode the videos
         logging.info("Exiting")
 

@@ -1,0 +1,31 @@
+# Starts the easy_lerobot screen when the Raspberry Pi boots. See deploy/README.md.
+# Paths assume user "lerobot", the repository in ~/LeRobot_dev and a venv in ~/venv;
+# edit User, WorkingDirectory and ExecStart if yours differ.
+[Unit]
+Description=easy_lerobot web app
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=lerobot
+# dialout: serial ports of the servo boards, video: cameras
+SupplementaryGroups=dialout video
+WorkingDirectory=/home/lerobot/LeRobot_dev/easy_lerobot
+# Optional: pin the leader / follower ports (normally the screen detects the arms itself)
+EnvironmentFile=-/home/lerobot/LeRobot_dev/easy_lerobot/deploy/easy-lerobot.env
+ExecStartPre=/bin/mkdir -p /home/lerobot/LeRobot_dev/easy_lerobot/logs
+ExecStart=/home/lerobot/venv/bin/python -m streamlit run app.py
+# The screen server's own output, kept across reboots next to the run logs (core/logs.py)
+StandardOutput=append:/home/lerobot/LeRobot_dev/easy_lerobot/logs/server.log
+StandardError=inherit
+Restart=on-failure
+RestartSec=3
+# Stop only the screen; a running mirror keeps its ports until it is stopped from the screen,
+# which finds it again through the state files in core/procs.py.
+KillMode=process
+# The screen never needs more rights than the user it runs as.
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

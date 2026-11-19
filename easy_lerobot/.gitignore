@@ -1,0 +1,6 @@
+# The app password; see .streamlit/secrets.toml.example
+.streamlit/secrets.toml
+# Per-machine ports; see deploy/easy-lerobot.env.example
+deploy/easy-lerobot.env
+# Logs of mirror / recording runs and of the screen server (core/logs.py, deploy/easy-lerobot.service)
+logs/

@@ -1,23 +1,32 @@
 import json
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import streamlit as st
 
-from core import procs
-from core.hardware import FOLLOWER_PORT, LEADER_PORT, present_ports
+from core import logs, procs
+from core.hardware import arm_ports, present_ports
 from core.ui import test_mode, test_mode_badge
 
 APP_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = APP_DIR.parent
 MIRROR_SCRIPT = REPO_DIR / "dev_scripts" / "mirror_leader.py"
 FAKE_MIRROR = APP_DIR / "core" / "fake_mirror.py"
-MIRROR_LOG = Path(tempfile.gettempdir()) / "easy_lerobot" / "mirror.log"
+MIRROR_LOG = logs.path("mirror")  # kept across runs and restarts (core/logs.py)
 MOTOR_IDS = ["1", "2", "3", "4", "5", "6"]
+# Same as the "Mirror L -> F" launch config: joint 5 (wrist_roll) moves through the 4095/0 seam, so it is
+# range-mapped and driven in speed mode (see docs/LOG.md P-004). --monitor-hz 0 prints one goal line per
+# second instead of a carriage-return live display, which would grow the log as a single endless line.
+# --wait-align is left out: a pose mismatch is reported on screen instead of waiting silently.
+MIRROR_OPTIONS = [
+    "--range-files", "dev_calibration/joint5_maxmin.json",
+    "--velocity-ids", "5", "--vel-max", "3000", "--vel-kp", "6",
+    "--monitor-hz", "0",
+]
 
 test = test_mode()
+LEADER_PORT, FOLLOWER_PORT = arm_ports()  # detected on the Pi; fixed COM ports on Windows
 
 
 def follower_torque(action: str) -> dict:
@@ -69,7 +78,7 @@ def start_mirror():
     procs.start(
         "mirror",
         [str(FAKE_MIRROR)] if test else
-        [str(MIRROR_SCRIPT), "--leader-port", LEADER_PORT, "--follower-port", FOLLOWER_PORT],
+        [str(MIRROR_SCRIPT), "--leader-port", LEADER_PORT, "--follower-port", FOLLOWER_PORT, *MIRROR_OPTIONS],
         cwd=REPO_DIR,
         log_path=MIRROR_LOG,
     )
@@ -86,9 +95,10 @@ def mirror_error_message() -> str:
     except FileNotFoundError:
         lines = []
     last = lines[-1] if lines else ""
-    if f"'{LEADER_PORT}'" in last or f"open {LEADER_PORT}" in last:
+    # Windows quotes the port ('COM19'); Linux pyserial writes "could not open port /dev/ttyACM0: ...".
+    if any(f in last for f in (f"'{LEADER_PORT}'", f"open {LEADER_PORT}", f"port {LEADER_PORT}:")):
         return f"リーダー（{LEADER_PORT}）に接続できませんでした。"
-    if f"'{FOLLOWER_PORT}'" in last or f"open {FOLLOWER_PORT}" in last:
+    if any(f in last for f in (f"'{FOLLOWER_PORT}'", f"open {FOLLOWER_PORT}", f"port {FOLLOWER_PORT}:")):
         return f"フォロワー（{FOLLOWER_PORT}）に接続できませんでした。"
     if last.startswith("no response from"):
         return f"応答しないモーターがあります: {last.removeprefix('no response from').strip()}"

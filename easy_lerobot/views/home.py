@@ -1,5 +1,6 @@
 import streamlit as st
 
+from core import startup
 from core.ui import set_test_mode, test_mode, test_mode_badge
 
 MODES = [
@@ -56,3 +57,27 @@ for col, (name, page, caption) in zip(st.columns(2), MODES):
         if st.button(f"**{name}**  \n{caption}", key=f"mode_{name}", width="stretch"):
             st.session_state["mode"] = name
             st.switch_page(page)
+
+
+@st.cache_resource
+def startup_log() -> startup.StartupLog:
+    """One log per server process: its start time is when the screen became reachable."""
+    return startup.StartupLog()
+
+
+@st.fragment(run_every=2)
+def readiness():
+    """Boot log after power-on; refreshes on its own so nobody has to reload the page."""
+    log = startup_log()
+    checks = startup.run_checks()
+    log.update(checks)
+    with st.container(border=True):
+        if startup.ready(checks):
+            st.markdown(":green[:material/check_circle: **準備完了**]")
+        else:
+            st.markdown(":orange[:material/hourglass_top: **準備中**]　基板をつなぐと自動で進みます")
+        rows = log.lines(checks)
+        st.code("\n".join(f"{t:>8}  {mark}  {text}" for t, mark, text in rows), language=None, wrap_lines=True)
+
+
+readiness()

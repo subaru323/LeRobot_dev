@@ -6,7 +6,8 @@ import re
 import tempfile
 from pathlib import Path
 
-from core.hardware import FOLLOWER_PORT, LEADER_PORT
+from core import logs
+from core.hardware import arm_ports
 
 FOLLOWER_ID = "follower_F"
 LEADER_ID = "leader_L"
@@ -18,7 +19,7 @@ DEFAULT_EPISODES = 10
 DEFAULT_EPISODE_S = 20
 DEFAULT_RESET_S = 10
 
-RECORD_LOG = Path(tempfile.gettempdir()) / "easy_lerobot" / "record.log"
+RECORD_LOG = logs.path("record")  # kept across runs and restarts (core/logs.py)
 # Test mode keeps its fake datasets away from the real ones.
 TEST_DATASETS = Path(tempfile.gettempdir()) / "easy_lerobot" / "test_datasets"
 FAKE_RECORD = Path(__file__).with_name("fake_record.py")
@@ -68,6 +69,7 @@ def record_args(
             f"--episode-s={episode_s}",
             f"--reset-s={reset_s}",
         ]
+    leader_port, follower_port = arm_ports()
     camera = (
         f"{{front: {{type: opencv, index_or_path: {FRONT_CAMERA_INDEX}, "
         f"width: 640, height: 480, fps: 30, fourcc: MJPG}}}}"
@@ -75,12 +77,12 @@ def record_args(
     return [
         "-m", "lerobot.scripts.lerobot_record",
         "--robot.type=so101_follower",
-        f"--robot.port={FOLLOWER_PORT}",
+        f"--robot.port={follower_port}",
         f"--robot.id={FOLLOWER_ID}",
         f"--robot.calibration_dir={CALIBRATION_DIR}",
         f"--robot.cameras={camera}",
         "--teleop.type=so101_leader",
-        f"--teleop.port={LEADER_PORT}",
+        f"--teleop.port={leader_port}",
         f"--teleop.id={LEADER_ID}",
         f"--teleop.calibration_dir={CALIBRATION_DIR}",
         f"--dataset.repo_id={repo_id(dataset_name)}",
@@ -132,10 +134,11 @@ def error_message() -> str:
     except FileNotFoundError:
         return ""
     text = "\n".join(lines[-30:])
-    if f"'{LEADER_PORT}'" in text:
-        return f"リーダー（{LEADER_PORT}）に接続できませんでした。"
-    if f"'{FOLLOWER_PORT}'" in text:
-        return f"フォロワー（{FOLLOWER_PORT}）に接続できませんでした。"
+    leader_port, follower_port = arm_ports(allow_detect=False)
+    if f"'{leader_port}'" in text or f"port {leader_port}:" in text:
+        return f"リーダー（{leader_port}）に接続できませんでした。"
+    if f"'{follower_port}'" in text or f"port {follower_port}:" in text:
+        return f"フォロワー（{follower_port}）に接続できませんでした。"
     if "camera" in text.lower() and ("error" in text.lower() or "failed" in text.lower()):
         return "カメラを開けませんでした。USB を確認してください。"
     return f"録画が止まりました: {lines[-1] if lines else ''}"
