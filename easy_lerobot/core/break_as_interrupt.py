@@ -1,4 +1,4 @@
-"""Run a Python script or module so that Ctrl+Break (Windows) or SIGINT (Linux) stops it like Ctrl+C.
+"""Run a Python script or module so that Ctrl+Break (Windows) or SIGINT / SIGTERM (Linux) stops it like Ctrl+C.
 
 A process started with CREATE_NEW_PROCESS_GROUP can only be signalled with
 CTRL_BREAK_EVENT, which Python treats as SIGBREAK and terminates on at once.
@@ -43,6 +43,10 @@ if __name__ == "__main__":
         # Linux: procs.stop() sends SIGINT. Python ignores it if the parent started us with
         # SIGINT ignored (e.g. some service managers), so install Ctrl+C behaviour explicitly.
         signal.signal(signal.SIGINT, signal.default_int_handler)
+        # Shutting the Pi down (power button, `shutdown`) ends every process with SIGTERM.
+        # Without this the program would die on the spot and skip its cleanup, e.g.
+        # mirror_leader would leave joint 5 in speed mode, still turning at its last speed.
+        signal.signal(signal.SIGTERM, _raise_interrupt)
     exit_code = 0
     try:
         _run()

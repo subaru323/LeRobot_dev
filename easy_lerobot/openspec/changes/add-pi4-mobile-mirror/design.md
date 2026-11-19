@@ -41,6 +41,7 @@
 - 生存確認: `/proc/<pid>/stat` の起動時刻（22 番目の値）を作成時刻として使う。PID の再利用を見分ける考え方は Windows 版と同じ。
 - 停止: プロセスグループに `SIGINT` を送る（Ctrl+C と同じ）。`break_as_interrupt.py` を通さなくても Python は `KeyboardInterrupt` を上げるので、mirror_leader の後片付けが走る。待ってもまだ動いていればグループごと `SIGKILL` する。
 - 理由: Windows 版と同じ「後片付けを走らせてから止める・止まらなければ子まで殺す」を、Linux の標準の仕組みで実現できる。
+- シャットダウン（電源ボタン・`shutdown`）では、すべてのプロセスに `SIGTERM` が送られる。`break_as_interrupt.py` は `SIGTERM` も `KeyboardInterrupt` に変え、ミラー中に電源を切っても mirror_leader の後片付け（5 番を速度モードから位置モードに戻してトルクを切る）が走るようにする。速度モードのまま残ると、最後の速度で回り続けるおそれがある。
 
 ### D3. キー送信が使えない環境
 `core/key_input.py` の pynput の import を、関数を呼んだときまで遅らせる。`available()` で使えるかを返し、録画画面は使えないときに「この回を終える」「撮り直す」を無効にして理由を表示する。テストモードの偽の録画も同じ扱いにする。

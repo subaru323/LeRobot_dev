@@ -8,6 +8,9 @@
 
 - [x] 1.4 ラズパイでリーダーとフォロワーを Homing_Offset で自動判定する。実機の 2 枚で、差した順と逆でも正しく割り当たること、ミラー中は判定しないこと、判定できないときは「未判定」でミラーを始められないことを確かめる
 
+- [x] 1.5 `SIGTERM` でも後片付けが走るようにする。ラズパイで偽のミラーに `SIGTERM` を送り、後片付けの出力と終了コード 0 を確かめる
+- [ ] 1.6 実機のミラー中に電源ボタンでシャットダウンし、`logs/mirror.log` に「F5: back in position mode」が出ていることを確かめる
+
 ## 2. スマホから開けるようにする
 
 - [x] 2.1 `.streamlit/config.toml` に `server.address = "0.0.0.0"`・`server.port = 8501`・`server.headless = true`・`browser.gatherUsageStats = false` を書く。同じ Wi-Fi の端末のブラウザで `http://<ラズパイの IP アドレス>:8501` が開けることで確認する
