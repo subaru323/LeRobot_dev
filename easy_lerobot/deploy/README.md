@@ -53,6 +53,14 @@ journalctl -u easy-lerobot -f            # 画面のログを見る
 
 止めるときは `sudo systemctl stop easy-lerobot`。自動起動をやめるときは `sudo systemctl disable easy-lerobot`。
 
+## 電源ボタン（任意）
+
+GPIO3（5 番ピン）と GND（6 番ピン）の間にタクトスイッチをつなぎ、`/boot/firmware/config.txt` の最後に `dtoverlay=gpio-shutdown` を足して再起動する。短く押すとシャットダウン、止まっているときに短く押すと起動する。
+
+- 5 秒以上の長押しは何もしない（systemd-logind の既定 `HandlePowerKeyLongPress=ignore`）
+- デスクトップが自動ログインで動いていると、デスクトップの部品（rpd-common の `pwrkey.desktop`）が電源ボタンの処理を止めるため、シャットダウンしない。画面をつながずに使うなら、`sudo raspi-config nonint do_boot_behaviour B1` で文字の画面で起動するようにする
+- シャットダウンでは全プロセスに SIGTERM が送られる。ミラー中でも後片付けが走る（`core/break_as_interrupt.py`）
+
 ## ログ
 
 `easy_lerobot/logs/` に残る（git 管理外。再起動しても消えない）。
