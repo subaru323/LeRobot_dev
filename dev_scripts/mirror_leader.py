@@ -320,11 +320,14 @@ def main():
     def stop_velocity(i):
         set_speed(i, 0)
         pos = read_f(i)
-        set_mode(i, 0)  # also disables torque
+        set_mode(i, 0)
         vel_active.discard(i)
+        # the motor restarts after the mode change and may come back with torque enabled
+        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
         if pos is not None:
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, pos)
-        print(f"F{i}: back in position mode, torque off (at {pos})")
+        torque, _, _ = pk.read1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE)
+        print(f"F{i}: back in position mode, torque={torque} (at {pos})")
 
     def drive_velocity(i, goal, fpos):
         """Software position loop: speed towards goal along the range, never through the gap."""
