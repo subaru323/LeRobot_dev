@@ -51,9 +51,9 @@ def start_recording():
         ),
         cwd=REPO_DIR,
         log_path=recording.RECORD_LOG,
-        # If a calibration file does not match the motors, lerobot asks whether to use it:
-        # an empty line answers "use the provided file" instead of hanging on input().
-        stdin_text="\n",
+        # No stdin (DEVNULL): if a calibration file does not match the motors, lerobot asks whether to
+        # write the file to the motors, and input() then fails with EOFError, so the run stops instead of
+        # silently overwriting the motors' homing offsets and limits (docs/LOG.md P-005).
     )
 
 

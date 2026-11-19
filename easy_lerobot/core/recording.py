@@ -139,6 +139,11 @@ def error_message() -> str:
         return f"リーダー（{leader_port}）に接続できませんでした。"
     if f"'{follower_port}'" in text or f"port {follower_port}:" in text:
         return f"フォロワー（{follower_port}）に接続できませんでした。"
+    if "Mismatch between calibration values" in text or "EOF when reading a line" in text:
+        return (
+            "校正ファイル（dev_calibration/）とモーターの校正値が一致しないため、録画を止めました。"
+            "モーターは書き換えていません。"
+        )
     if "camera" in text.lower() and ("error" in text.lower() or "failed" in text.lower()):
         return "カメラを開けませんでした。USB を確認してください。"
     return f"録画が止まりました: {lines[-1] if lines else ''}"
