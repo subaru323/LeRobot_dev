@@ -51,6 +51,25 @@ def decode(value):
     return -(value & 0x7FFF) if value & 0x8000 else value
 
 
+TURN = 4096
+
+
+def wrap(value):
+    return int(value) % TURN
+
+
+def span(lo, hi):
+    """Ticks from lo to hi going towards larger values (through 4095/0 if hi < lo)."""
+    return (hi - lo) % TURN
+
+
+def unwrap(pos, lo, rng_span):
+    """Distance of pos from lo along the range; positions in the gap after the range split into >span / <0."""
+    d = (pos - lo) % TURN
+    gap = TURN - rng_span
+    return d - TURN if d > rng_span + gap / 2 else d
+
+
 def read_pos(ph, pk, id_):
     value, res, _ = pk.read2ByteTxRx(ph, id_, ADDR_PRESENT_POSITION)
     return decode(value) if res == scs.COMM_SUCCESS else None
@@ -167,25 +186,34 @@ def main():
     for path in args.range_files:
         rng = json.loads(path.read_text(encoding="utf-8-sig"))
         i = int(rng["id"])
-        if not rng.get("centered"):
-            sys.exit(f"{path} is not centered (MIN..MAX crosses the 4095/0 seam); run center_joint_range.py")
+        # MIN -> MAX runs towards larger ticks; if MAX < MIN the range passes through the 4095/0 seam.
         ranges[i] = (rng["min"][f"L{i}"], rng["max"][f"L{i}"], rng["min"][f"F{i}"], rng["max"][f"F{i}"])
-        # optional narrower window the follower can actually be driven in (e.g. one side of its encoder seam)
+        # optional narrower window (dial values) the follower is driven in; default: the whole range
         u = rng.get("follower_usable", {})
+        f_span = span(ranges[i][2], ranges[i][3])
         usable[i] = (
-            u.get("min", ranges[i][2] + args.range_margin),
-            u.get("max", ranges[i][3] - args.range_margin),
+            unwrap(u["min"], ranges[i][2], f_span) if "min" in u else 0,
+            unwrap(u["max"], ranges[i][2], f_span) if "max" in u else f_span,
         )
         print(
-            f"L{i}->F{i} range mapping: L {ranges[i][0]}..{ranges[i][1]} -> F {ranges[i][2]}..{ranges[i][3]}, "
-            f"F goals limited to {usable[i][0]}..{usable[i][1]}"
+            f"L{i}->F{i} range mapping: L {ranges[i][0]}..{ranges[i][1]} ({span(ranges[i][0], ranges[i][1])} ticks) -> "
+            f"F {ranges[i][2]}..{ranges[i][3]} ({f_span} ticks"
+            f"{', through 4095/0' if ranges[i][3] < ranges[i][2] else ''}), "
+            f"F goals limited to {wrap(ranges[i][2] + usable[i][0])}..{wrap(ranges[i][2] + usable[i][1])}"
         )
+
+    def follower_offset(i, fpos):
+        """Follower position as distance from its MIN along the range (may be <0 or >span outside it)."""
+        f_min, f_max = ranges[i][2], ranges[i][3]
+        return unwrap(fpos, f_min, span(f_min, f_max))
 
     def target(i, lpos):
         if i in ranges:
             l_min, l_max, f_min, f_max = ranges[i]
-            goal = round(f_min + (lpos - l_min) * (f_max - f_min) / (l_max - l_min))
-            return max(usable[i][0], min(usable[i][1], goal))
+            l_span, f_span = span(l_min, l_max), span(f_min, f_max)
+            offset = unwrap(lpos, l_min, l_span) * f_span / l_span
+            offset = max(usable[i][0], min(usable[i][1], offset))
+            return wrap(round(f_min + offset))
         sign, offset = mapping[i]
         return max(limits[i][0], min(limits[i][1], sign * lpos + offset))
 
@@ -200,6 +228,8 @@ def main():
                 continue
             # signed: how far the follower would move (+ = towards larger ticks)
             diffs[i] = target(i, lpos) - fpos
+            if i in ranges:  # shortest way round the dial
+                diffs[i] = (diffs[i] + TURN // 2) % TURN - TURN // 2
         return diffs
 
     def far(diffs):
@@ -255,11 +285,11 @@ def main():
             hold = read_pos(fph, pk, i)
             lo, hi = limits[i]
             if i in ranges:
-                lo, hi = usable[i]
-                if hold is None or not lo <= hold <= hi:
+                lo, hi = 0, TURN - 1  # range-mapped joints hold exactly where they are
+                if hold is None or not usable[i][0] <= follower_offset(i, hold) <= usable[i][1]:
                     pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
                     waiting.add(i)
-                    print(f"F{i} reads {hold}, outside its usable range {lo}..{hi}: torque off until it is moved inside")
+                    print(f"F{i} reads {hold}, outside its usable range: torque off until it is moved inside")
                     continue
             pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.speed)
@@ -294,28 +324,29 @@ def main():
 
         def guard(i, fpos, t_now):
             """Cut torque if a range-mapped follower joint left its range (e.g. ran round the seam)."""
-            f_min, f_max = usable[i]
-            if fpos is None or f_min - args.guard_ticks <= fpos <= f_max + args.guard_ticks:
+            if fpos is None:
+                return
+            off = follower_offset(i, fpos)
+            if usable[i][0] - args.guard_ticks <= off <= usable[i][1] + args.guard_ticks:
                 return
             pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
             tripped.add(i)
             print(
-                f"\n[GUARD {t_now - t_start:7.2f}s] F{i} at {fpos}, outside {f_min}..{f_max}: torque OFF "
-                f"until it is moved back inside",
+                f"\n[GUARD {t_now - t_start:7.2f}s] F{i} at {fpos} ({off:+.0f} from MIN), outside its range: "
+                f"torque OFF until it is moved back inside",
                 flush=True,
             )
 
         def rearm(i, fpos, t_now):
             """Re-enable a limp range-mapped joint once it is back inside its usable range."""
-            f_min, f_max = usable[i]
-            if fpos is None or not f_min <= fpos <= f_max:
+            if fpos is None or not usable[i][0] <= follower_offset(i, fpos) <= usable[i][1]:
                 return
             pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.speed)
             pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, fpos)
             pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
             tripped.discard(i)
-            print(f"\n[ARM {t_now - t_start:7.2f}s] F{i} at {fpos} is inside {f_min}..{f_max}: mirroring", flush=True)
+            print(f"\n[ARM {t_now - t_start:7.2f}s] F{i} at {fpos} is inside its range: mirroring", flush=True)
 
         while True:
             t = time.perf_counter()
@@ -349,7 +380,11 @@ def main():
                     for i in shown:
                         fpos = follower[i] if i in follower else (None if i in shared else read_pos(fph, pk, i))
                         lpos = leader[i]
-                        diff = f"{fpos - goals[i]:+d}" if fpos is not None and i in goals else "?"
+                        diff = (
+                            f"{(fpos - goals[i] + TURN // 2) % TURN - TURN // 2:+d}"
+                            if fpos is not None and i in goals
+                            else "?"
+                        )
                         cells.append(f"{lpos if lpos is not None else '?':>5} /{fpos if fpos is not None else '?':>5} ({diff:>5})")
                     print("\r" + "  ".join(f"{c:>20}" for c in cells), end="", flush=True)
                 else:

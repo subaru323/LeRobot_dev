@@ -1,23 +1,23 @@
 {
   "id": 5,
-  "direction": "MIN < MAX, no seam inside the range",
+  "direction": "MIN -> MAX towards larger ticks; F5 passes through 4095/0 (2206 -> 4095 -> 0 -> 1919)",
   "max": {
     "L5": 3939,
-    "F5": 3952
+    "F5": 1919
   },
   "min": {
     "L5": 138,
-    "F5": 123
+    "F5": 2206
   },
   "span_ticks": {
     "L5": 3801,
-    "F5": 3829
+    "F5": 3809
   },
   "span_deg": {
     "L5": 334.1,
-    "F5": 336.5
+    "F5": 334.8
   },
-  "follower_ticks_per_leader_tick": 1.0074,
+  "follower_ticks_per_leader_tick": 1.0021,
   "leader_ticks_per_deg": 11.378,
   "log": "dev_logs/joint5_20261112_140631.csv",
   "raw_before_centering": {
@@ -34,10 +34,6 @@
   "centered": true,
   "homing_offset": {
     "L5": 1280,
-    "F5": -1114
-  },
-  "follower_usable": {
-    "min": 123,
-    "max": 3952
+    "F5": 922
   }
 }
