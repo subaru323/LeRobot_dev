@@ -86,3 +86,16 @@ def connection_guard():
     import streamlit.components.v1 as components
 
     components.html(_GUARD_JS, height=0)
+
+
+def festival_badge():
+    """Neon badge with the festival name and date shown at the top of the operation pages."""
+    st.html(
+        '<div style="display:flex;justify-content:center;margin:.2rem 0 .4rem">'
+        '<div style="display:inline-flex;gap:.6em;align-items:baseline;padding:6px 16px;color:#f5ff3b;'
+        'border:1px solid #f5ff3b;box-shadow:0 0 12px rgba(245,255,59,.45),inset 0 0 10px rgba(245,255,59,.12);'
+        'font-weight:900;letter-spacing:.12em;text-shadow:0 0 8px rgba(245,255,59,.8);'
+        'clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)">'
+        '<span>ハイフェス</span><span style="color:#00f0ff;text-shadow:0 0 8px #00f0ff">2026</span>'
+        '<span style="color:#ff2bd6;text-shadow:0 0 8px #ff2bd6">11/23</span></div></div>'
+    )

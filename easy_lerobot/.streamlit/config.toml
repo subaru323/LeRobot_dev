@@ -7,3 +7,8 @@ headless = true
 
 [browser]
 gatherUsageStats = false
+
+# Dark, neon-accented theme for every page (the operation pages add their own neon styling).
+[theme]
+base = "dark"
+primaryColor = "#00f0ff"
