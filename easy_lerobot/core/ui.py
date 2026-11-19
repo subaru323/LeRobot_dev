@@ -83,9 +83,14 @@ if (!window.parent.__easyLerobotGuard) {
 
 def connection_guard():
     """Cover the page with a spinner while the server cannot be reached."""
-    import streamlit.components.v1 as components
+    if hasattr(st, "iframe"):
+        # Streamlit >= 1.5x: st.iframe replaces st.components.v1.html (deprecated, removed after 2026-06-01).
+        # The script is our own constant, never user input.
+        st.iframe(_GUARD_JS, height=1)
+    else:
+        import streamlit.components.v1 as components
 
-    components.html(_GUARD_JS, height=0)
+        components.html(_GUARD_JS, height=0)
 
 
 # One look for every page, after the festival mock-up: near-black background with a soft
