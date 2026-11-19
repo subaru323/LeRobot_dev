@@ -127,3 +127,9 @@
   - コミット：d92043b8、4fb6a9e7、15c26d17、477a66fd、82d02892 ほか
   - テスト：実機で F5 が継ぎ目を両方向に越えて L5 に追従（約 1900 tick を約 1 秒、停止時の差 ±3 tick）
   - 未検証：L5 を素早く往復させたときの振動、両端の対応の向き（すばる様の記載順で設定）
+
+- 2026-11-19 04:37｜問題発見｜P-005｜FR｜―
+  - 現象：easy_lerobot の録画画面から lerobot-record を起動すると、モーターの校正値が `dev_calibration/*.json` と違う場合に、json の Homing_Offset と位置制限が確認なしでモーターへ書き込まれる
+  - 根拠：`easy_lerobot/views/record.py` は stdin に空行を渡して起動する。`src/lerobot/robots/so_follower/so_follower.py` の `calibrate()` は空行を「校正ファイルを使う」と解釈し、`bus.write_calibration()` を呼ぶ（コードで確認）
+  - 影響範囲：L/F 全関節の Homing_Offset と Min/Max_Position_Limit。以前 wrist_roll の Homing が戻っていた件の原因の候補（確度：推測。実際に録画画面が使われたかは未確認）
+  - 発見の経緯：PR #6（ラズパイ4対応）の差分点検中。この挙動は PR #6 以前から main にある
