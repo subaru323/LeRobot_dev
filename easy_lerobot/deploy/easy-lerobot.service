@@ -12,9 +12,13 @@ User=lerobot
 # dialout: serial ports of the servo boards, video: cameras
 SupplementaryGroups=dialout video
 WorkingDirectory=/home/lerobot/LeRobot_dev/easy_lerobot
-# Ports of the leader and follower (optional file; defaults are /dev/ttyACM0 and /dev/ttyACM1)
+# Optional: pin the leader / follower ports (normally the screen detects the arms itself)
 EnvironmentFile=-/home/lerobot/LeRobot_dev/easy_lerobot/deploy/easy-lerobot.env
+ExecStartPre=/bin/mkdir -p /home/lerobot/LeRobot_dev/easy_lerobot/logs
 ExecStart=/home/lerobot/venv/bin/python -m streamlit run app.py
+# The screen server's own output, kept across reboots next to the run logs (core/logs.py)
+StandardOutput=append:/home/lerobot/LeRobot_dev/easy_lerobot/logs/server.log
+StandardError=inherit
 Restart=on-failure
 RestartSec=3
 # Stop only the screen; a running mirror keeps its ports until it is stopped from the screen,

@@ -6,6 +6,7 @@ import re
 import tempfile
 from pathlib import Path
 
+from core import logs
 from core.hardware import arm_ports
 
 FOLLOWER_ID = "follower_F"
@@ -18,7 +19,7 @@ DEFAULT_EPISODES = 10
 DEFAULT_EPISODE_S = 20
 DEFAULT_RESET_S = 10
 
-RECORD_LOG = Path(tempfile.gettempdir()) / "easy_lerobot" / "record.log"
+RECORD_LOG = logs.path("record")  # kept across runs and restarts (core/logs.py)
 # Test mode keeps its fake datasets away from the real ones.
 TEST_DATASETS = Path(tempfile.gettempdir()) / "easy_lerobot" / "test_datasets"
 FAKE_RECORD = Path(__file__).with_name("fake_record.py")

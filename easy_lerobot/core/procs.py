@@ -21,6 +21,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from core import logs
+
 BREAK_WRAPPER = Path(__file__).with_name("break_as_interrupt.py")
 STATE_DIR = Path(tempfile.gettempdir()) / "easy_lerobot" / "procs"
 NAMES = ("mirror", "record")
@@ -90,6 +92,7 @@ def start(name: str, args: list[str], cwd: Path, log_path: Path, stdin_text: str
     """Start `python core/break_as_interrupt.py <args>` with stdout/stderr going to log_path."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    logs.rotate(log_path)  # keep the previous run of this process on disk
     _exit_file(name).unlink(missing_ok=True)
     env = {
         **os.environ,

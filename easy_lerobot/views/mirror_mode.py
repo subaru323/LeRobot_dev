@@ -1,12 +1,11 @@
 import json
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import streamlit as st
 
-from core import procs
+from core import logs, procs
 from core.hardware import arm_ports, present_ports
 from core.ui import test_mode, test_mode_badge
 
@@ -14,7 +13,7 @@ APP_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = APP_DIR.parent
 MIRROR_SCRIPT = REPO_DIR / "dev_scripts" / "mirror_leader.py"
 FAKE_MIRROR = APP_DIR / "core" / "fake_mirror.py"
-MIRROR_LOG = Path(tempfile.gettempdir()) / "easy_lerobot" / "mirror.log"
+MIRROR_LOG = logs.path("mirror")  # kept across runs and restarts (core/logs.py)
 MOTOR_IDS = ["1", "2", "3", "4", "5", "6"]
 # Same as the "Mirror L -> F" launch config: joint 5 (wrist_roll) moves through the 4095/0 seam, so it is
 # range-mapped and driven in speed mode (see docs/LOG.md P-004). --monitor-hz 0 prints one goal line per

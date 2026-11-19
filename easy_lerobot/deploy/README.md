@@ -53,6 +53,21 @@ journalctl -u easy-lerobot -f            # 画面のログを見る
 
 止めるときは `sudo systemctl stop easy-lerobot`。自動起動をやめるときは `sudo systemctl disable easy-lerobot`。
 
+## ログ
+
+`easy_lerobot/logs/` に残る（git 管理外。再起動しても消えない）。
+
+| ファイル | 中身 |
+|---|---|
+| `mirror.log` / `record.log` | いちばん新しいミラー・録画の出力 |
+| `mirror-YYYYmmdd-HHMMSS.log` など | それより前の回。次の回を始めたときに名前を変えて残す。種類ごとに新しい 200 回分まで |
+| `server.log` | 画面のサーバーの出力（systemd で起動したとき） |
+
+```bash
+ls -lt ~/LeRobot_dev/easy_lerobot/logs | head          # 新しい順
+tail -n 30 ~/LeRobot_dev/easy_lerobot/logs/mirror.log    # 直近のミラー
+```
+
 ## 分かっている限界
 
 - 録画の「この回を終える」「撮り直す」は、キー送信を使うため画面のないラズパイでは押せない。時間が来ると自動で進む
