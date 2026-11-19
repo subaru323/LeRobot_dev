@@ -163,3 +163,9 @@
   - 変更ファイル：`dev_scripts/mirror_leader.py`、`easy_lerobot/core/align.py`（新規）、`easy_lerobot/views/mirror_mode.py`、`easy_lerobot/views/record.py`
   - テスト：偽の SDK で align_follower がずれあり・なしの両方で成功を返すことを確認
   - 未検証：実機でのアプリからのミラー・録画。5番関節は範囲ファイルにより位置モードの合わせから外しており、録画（lerobot-record）での 5 番は P-004 の継ぎ目問題が残る
+
+- 2026-11-19 05:49｜実装｜―｜FR｜―
+  - 変更内容：アプリでサーボを使うときは必ず先に F 側を自動で合わせる方針（すばる様の指示）に沿い、漏れを 2 点ふさいだ。(1) 5番関節（F5）も自動合わせの対象にし、速度モードで範囲に沿って `--align-speed`（200）以下でゆっくり合わせる。継ぎ目の外の隙間は通らない。`--align-only` では合わせ後に位置モードへ戻す。(2) mirrorMODE のトルク ON も、先にリーダーの姿勢へ自動で合わせてから保持する（合わせられなければ ON にしない）
+  - 変更ファイル：`dev_scripts/mirror_leader.py`、`easy_lerobot/core/align.py`、`easy_lerobot/views/mirror_mode.py`
+  - テスト：偽の SDK で、F5 を 1000 から合わせて隙間 1906..2184 に入らないこと（合わせ中の最大速度 200）、ミラー・合わせ中の中断・アプリ経由の合わせで最終状態が mode=0・速度 0 になることを確認
+  - 未検証：実機（アプリからのミラー・録画・トルク ON）。トルク ON はリーダーが接続されていないとできなくなった

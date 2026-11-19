@@ -279,78 +279,6 @@ def main():
         sign, offset = mapping[i]
         return max(limits[i][0], min(limits[i][1], sign * lpos + offset))
 
-    def start_diffs():
-        diffs = {}
-        for i in args.ids:
-            if i in shared:
-                continue
-            lpos, fpos = read_pos(lph, pk, i), read_pos(fph, pk, i)
-            if lpos is None or fpos is None:
-                diffs[i] = None
-                continue
-            # signed: how far the follower would move (+ = towards larger ticks)
-            diffs[i] = target(i, lpos) - fpos
-            if i in ranges:  # shortest way round the dial
-                diffs[i] = (diffs[i] + TURN // 2) % TURN - TURN // 2
-        return diffs
-
-    def far(diffs):
-        # range-mapped joints are excluded: they are enabled at their current position and re-armed safely
-        return [i for i, d in diffs.items() if i not in ranges and (d is None or abs(d) > args.max_start_diff)]
-
-    diffs = start_diffs()
-    for i in args.ids:
-        name = NAMES[i - 1] if 1 <= i <= len(NAMES) else f"id{i}"
-        if i in shared:
-            print(f"L{i}->F{i} {name:<14} shared id: write-only at {args.shared_speed} ticks/s (not checked)")
-        else:
-            print(f"L{i}->F{i} {name:<14} follower would move {diffs[i]} ticks  F limits={limits[i]}")
-    if far(diffs) and not (args.wait_align or args.auto_align):
-        lph.closePort()
-        fph.closePort()
-        sys.exit(
-            f"leader and follower poses differ too much on {['F%d' % i for i in far(diffs)]} "
-            f"(> {args.max_start_diff} ticks). Pose the leader like the follower and retry, "
-            f"or use --wait-align / --auto-align."
-        )
-    moved = set()  # follower joints driven by --auto-align (torque on)
-    try:
-        last_print = 0.0
-        while far(diffs):
-            if args.auto_align:
-                # drive only the joints that are too far, slowly, towards where the leader is now
-                for i in far(diffs):
-                    lpos = read_pos(lph, pk, i)
-                    if lpos is None or diffs[i] is None:
-                        continue
-                    if i not in moved:
-                        pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
-                        pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.align_speed)
-                        moved.add(i)
-                    pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, target(i, lpos))
-                    pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
-            if time.perf_counter() - last_print >= 0.5:
-                last_print = time.perf_counter()
-                label = "auto-align follower" if args.auto_align else "align leader"
-                print(f"{label}: " + "  ".join(f"F{i}:{d:+d}" if d is not None else f"F{i}:?"
-                                               for i, d in diffs.items()), flush=True)
-            time.sleep(0.1 if args.auto_align else 0.5)
-            diffs = start_diffs()
-    except KeyboardInterrupt:
-        lph.is_using = fph.is_using = False
-        lph.closePort()
-        fph.closePort()
-        sys.exit("aborted before mirroring; "
-                 + (f"F{sorted(moved)} keep torque where they stopped" if moved else "follower was not moved"))
-    print("aligned", flush=True)
-    if args.align_only:
-        lph.closePort()
-        fph.closePort()
-        print("align-only: done" + (f", F{sorted(moved)} hold the leader pose" if moved else ""))
-        return
-
-    waiting = set()  # range-mapped joints held limp until they are inside their usable range
-
     velocity = set(args.velocity_ids)
     if velocity - set(ranges):
         sys.exit(f"--velocity-ids {sorted(velocity - set(ranges))} need a --range-files entry")
@@ -364,8 +292,9 @@ def main():
             pos = (pos - homing[i]) % TURN
         return pos
 
-    def set_speed(i, v):
-        v = int(max(-args.vel_max, min(args.vel_max, v)))
+    def set_speed(i, v, cap=None):
+        cap = args.vel_max if cap is None else min(cap, args.vel_max)
+        v = int(max(-cap, min(cap, v)))
         pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, abs(v) | (0x8000 if v < 0 else 0))
 
     def start_velocity(i):
@@ -391,7 +320,7 @@ def main():
         torque, _, _ = pk.read1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE)
         print(f"F{i}: back in position mode, torque={torque} (at {pos})")
 
-    def drive_velocity(i, goal, fpos):
+    def drive_velocity(i, goal, fpos, cap=None):
         """Software position loop: speed towards goal along the range, never through the gap."""
         if fpos is None:
             return
@@ -401,7 +330,118 @@ def main():
         v = 0 if abs(err) <= args.vel_deadband else args.vel_kp * err
         if (cur <= 0 and v < 0) or (cur >= f_span and v > 0):
             v = 0  # at an end of the range: only move back inside
-        set_speed(i, v)
+        set_speed(i, v, cap)
+
+    def restore_velocity_joints():
+        """Stop every speed-mode joint and put it back in position mode; never cut short."""
+        # A second Ctrl+C / stop signal must not cut the cleanup short: a joint left in speed mode keeps
+        # turning at its last speed until it hits its mechanical stop.
+        for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
+            if hasattr(signal, name):
+                signal.signal(getattr(signal, name), signal.SIG_IGN)
+        lph.is_using = fph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
+        for i in sorted(vel_active):
+            try:
+                set_speed(i, 0)  # stop every speed-mode joint first; the mode change below takes ~1 s each
+            except Exception:
+                fph.is_using = False
+        for i in sorted(vel_active):
+            try:
+                stop_velocity(i)
+            except Exception as e:  # keep restoring the other joints
+                fph.is_using = False
+                print(f"F{i}: could not restore position mode ({e!r}); its speed was set to 0")
+
+    def start_diffs():
+        diffs = {}
+        for i in args.ids:
+            if i in shared:
+                continue
+            lpos, fpos = read_pos(lph, pk, i), read_f(i)
+            if lpos is None or fpos is None:
+                diffs[i] = None
+                continue
+            if i in velocity:  # along the range, the way the speed loop will turn it
+                diffs[i] = round(follower_offset(i, target(i, lpos)) - follower_offset(i, fpos))
+                continue
+            # signed: how far the follower would move (+ = towards larger ticks)
+            diffs[i] = target(i, lpos) - fpos
+            if i in ranges:  # shortest way round the dial
+                diffs[i] = (diffs[i] + TURN // 2) % TURN - TURN // 2
+        return diffs
+
+    def far(diffs):
+        # Range-mapped joints are excluded: they are enabled at their current position and re-armed safely.
+        # With --auto-align, speed-mode joints are aligned too (slowly, along their range).
+        def checked(i):
+            return i not in ranges or (args.auto_align and i in velocity)
+
+        return [i for i, d in diffs.items() if checked(i) and (d is None or abs(d) > args.max_start_diff)]
+
+    diffs = start_diffs()
+    for i in args.ids:
+        name = NAMES[i - 1] if 1 <= i <= len(NAMES) else f"id{i}"
+        if i in shared:
+            print(f"L{i}->F{i} {name:<14} shared id: write-only at {args.shared_speed} ticks/s (not checked)")
+        else:
+            print(f"L{i}->F{i} {name:<14} follower would move {diffs[i]} ticks  F limits={limits[i]}")
+    if far(diffs) and not (args.wait_align or args.auto_align):
+        lph.closePort()
+        fph.closePort()
+        sys.exit(
+            f"leader and follower poses differ too much on {['F%d' % i for i in far(diffs)]} "
+            f"(> {args.max_start_diff} ticks). Pose the leader like the follower and retry, "
+            f"or use --wait-align / --auto-align."
+        )
+    moved = set()  # follower joints driven by --auto-align (torque on)
+    try:
+        last_print = 0.0
+        while far(diffs):
+            if args.auto_align:
+                # drive only the joints that are too far, slowly, towards where the leader is now
+                too_far = far(diffs)
+                for i in too_far:
+                    lpos = read_pos(lph, pk, i)
+                    if lpos is None or diffs[i] is None:
+                        continue
+                    if i in velocity:
+                        if i not in vel_active:
+                            start_velocity(i)
+                        moved.add(i)
+                        drive_velocity(i, target(i, lpos), read_f(i), cap=args.align_speed)
+                        continue
+                    if i not in moved:
+                        pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
+                        pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, args.align_speed)
+                        moved.add(i)
+                    pk.write2ByteTxRx(fph, i, ADDR_GOAL_POSITION, target(i, lpos))
+                    pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
+                for i in vel_active - set(too_far):
+                    set_speed(i, 0)  # close enough: wait for the others
+            if time.perf_counter() - last_print >= 0.5:
+                last_print = time.perf_counter()
+                label = "auto-align follower" if args.auto_align else "align leader"
+                print(f"{label}: " + "  ".join(f"F{i}:{d:+d}" if d is not None else f"F{i}:?"
+                                               for i, d in diffs.items()), flush=True)
+            time.sleep(0.1 if args.auto_align else 0.5)
+            diffs = start_diffs()
+        for i in vel_active:
+            set_speed(i, 0)
+    except KeyboardInterrupt:
+        restore_velocity_joints()
+        lph.closePort()
+        fph.closePort()
+        sys.exit("aborted before mirroring; "
+                 + (f"F{sorted(moved)} stopped where they were" if moved else "follower was not moved"))
+    print("aligned", flush=True)
+    if args.align_only:
+        restore_velocity_joints()  # speed-mode joints go back to position mode (torque off)
+        lph.closePort()
+        fph.closePort()
+        print("align-only: done" + (f", F{sorted(moved)} were moved to the leader pose" if moved else ""))
+        return
+
+    waiting = set()  # range-mapped joints held limp until they are inside their usable range
 
     def write_goal(i, goal):
         if i in shared:
@@ -422,7 +462,8 @@ def main():
                 time.sleep(0.005)
                 continue
             if i in velocity:
-                start_velocity(i)  # the speed loop itself only ever drives back inside the range
+                if i not in vel_active:  # --auto-align may have started it already
+                    start_velocity(i)  # the speed loop itself only ever drives back inside the range
                 continue
             hold = read_pos(fph, pk, i)
             lo, hi = limits[i]
@@ -542,23 +583,7 @@ def main():
     except KeyboardInterrupt:
         print("\ninterrupted")
     finally:
-        # A second Ctrl+C / stop signal must not cut the cleanup short: a joint left in speed mode keeps
-        # turning at its last speed until it hits its mechanical stop.
-        for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
-            if hasattr(signal, name):
-                signal.signal(getattr(signal, name), signal.SIG_IGN)
-        lph.is_using = fph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
-        for i in sorted(vel_active):
-            try:
-                set_speed(i, 0)  # stop every speed-mode joint first; the mode change below takes ~1 s each
-            except Exception:
-                fph.is_using = False
-        for i in sorted(vel_active):
-            try:
-                stop_velocity(i)
-            except Exception as e:  # keep restoring the other joints
-                fph.is_using = False
-                print(f"F{i}: could not restore position mode ({e!r}); its speed was set to 0")
+        restore_velocity_joints()
         if args.release:
             for i in args.ids:
                 if i in shared:

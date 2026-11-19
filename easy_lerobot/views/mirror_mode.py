@@ -21,8 +21,8 @@ MOTOR_IDS = ["1", "2", "3", "4", "5", "6"]
 # The follower is always moved slowly to the leader pose first (core/align.py).
 MIRROR_OPTIONS = [
     *align.ALIGN_FLAGS,
-    *align.RANGE_FLAGS,
-    "--velocity-ids", "5", "--vel-max", "3000", "--vel-kp", "6",
+    *align.JOINT5_FLAGS,
+    "--vel-max", "3000", "--vel-kp", "6",
     "--monitor-hz", "0",
 ]
 
@@ -62,6 +62,17 @@ def refresh():
 
 
 def on_toggle():
+    if st.session_state["torque_on"] and not test:
+        # Every use of the follower's servos starts by moving it slowly to the leader pose (core/align.py).
+        with st.spinner("フォロワーをリーダーの姿勢にゆっくり合わせています…"):
+            ok, message = align.align_follower(LEADER_PORT, FOLLOWER_PORT)
+        if not ok:
+            result = follower_torque("status")
+            result["ok"] = False
+            result.setdefault("errors", {})["align"] = message
+            st.session_state["torque_result"] = result
+            st.session_state["torque_on"] = bool(result["torque"]) and all(result["torque"].values())
+            return
     result = follower_torque("on" if st.session_state["torque_on"] else "off")
     st.session_state["torque_result"] = result
     # Show what the motors actually report, not what the switch asked for.
@@ -220,10 +231,12 @@ with st.container(border=True):
             st.caption(f"{'ミラー' if busy == 'mirror' else '録画'}中は切り替えできません")
         elif not follower_ok:
             st.caption("フォロワーが未接続です")
+        elif "align" in result["errors"]:
+            st.markdown(f":orange[{result['errors']['align']}]")
         elif result["errors"]:
             st.markdown(f":orange[応答しないモーター: {', '.join('F' + i for i in result['errors'])}]")
         else:
-            st.caption("ON で今の姿勢を保持 ・ OFF で脱力（腕が落ちます）")
+            st.caption("ON でリーダーの姿勢にゆっくり合わせてから保持 ・ OFF で脱力（腕が落ちます）")
     with toggle_col:
         with st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center", gap="small"):
             st.button("", icon=":material/refresh:", type="tertiary", help="状態を読み直す",
