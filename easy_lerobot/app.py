@@ -13,10 +13,14 @@ import time
 
 import streamlit as st
 
+from core.ui import connection_guard
+
 # The value shipped in secrets.toml.example; refusing it keeps the app closed until a real password is set.
 EXAMPLE_PASSWORD = "change-me"
 
 st.set_page_config(page_title="easy_lerobot", layout="centered")
+# Grey the page out with a spinner while the Pi is shutting down or rebooting.
+connection_guard()
 
 
 def password_entered() -> bool:

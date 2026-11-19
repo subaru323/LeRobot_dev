@@ -6,6 +6,7 @@ what is nice to have (cameras), each with the time it was first seen. Nothing he
 opens a serial port, so the checks never get in the way of a running mirror.
 """
 
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -32,6 +33,16 @@ def system_uptime_s() -> float | None:
     try:
         return float(Path("/proc/uptime").read_text().split()[0])
     except (FileNotFoundError, ValueError, IndexError):
+        return None
+
+
+def process_start_after_boot_s() -> float | None:
+    """Seconds after boot at which this process started (Linux only)."""
+    try:
+        stat = Path("/proc/self/stat").read_text()
+        ticks = int(stat[stat.rindex(")") + 2:].split()[19])  # field 22: starttime
+        return ticks / os.sysconf("SC_CLK_TCK")
+    except (FileNotFoundError, ValueError, IndexError, OSError, AttributeError):
         return None
 
 
@@ -85,8 +96,16 @@ class StartupLog:
     """Remembers when each check first passed, so the page reads like a boot log."""
 
     def __init__(self):
-        self.server_started = time.time()
-        self.boot_uptime = system_uptime_s()  # how long the machine had been up when the server started
+        # When the server process really started (not when this log was first created, which
+        # can be later: Streamlit rebuilds cached objects after a code change).
+        started_after_boot = process_start_after_boot_s()
+        uptime = system_uptime_s()
+        if started_after_boot is not None and uptime is not None:
+            self.server_started = time.time() - (uptime - started_after_boot)
+            self.boot_uptime = started_after_boot  # how long the machine had been up at that moment
+        else:
+            self.server_started = time.time()
+            self.boot_uptime = uptime
         self.first_ok: dict[str, float] = {}
         self.ready_at: float | None = None
 
