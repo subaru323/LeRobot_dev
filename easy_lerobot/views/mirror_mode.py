@@ -5,7 +5,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from core import logs, procs
+from core import align, logs, procs
 from core.hardware import arm_ports, present_ports
 from core.ui import test_mode, test_mode_badge
 
@@ -18,9 +18,10 @@ MOTOR_IDS = ["1", "2", "3", "4", "5", "6"]
 # Same as the "Mirror L -> F" launch config: joint 5 (wrist_roll) moves through the 4095/0 seam, so it is
 # range-mapped and driven in speed mode (see docs/LOG.md P-004). --monitor-hz 0 prints one goal line per
 # second instead of a carriage-return live display, which would grow the log as a single endless line.
-# --wait-align is left out: a pose mismatch is reported on screen instead of waiting silently.
+# The follower is always moved slowly to the leader pose first (core/align.py).
 MIRROR_OPTIONS = [
-    "--range-files", "dev_calibration/joint5_maxmin.json",
+    *align.ALIGN_FLAGS,
+    *align.RANGE_FLAGS,
     "--velocity-ids", "5", "--vel-max", "3000", "--vel-kp", "6",
     "--monitor-hz", "0",
 ]

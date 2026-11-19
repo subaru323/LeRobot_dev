@@ -122,6 +122,12 @@ def main():
     )
     parser.add_argument("--align-speed", type=int, default=200, help="Follower speed cap in ticks/s for --auto-align")
     parser.add_argument(
+        "--align-only",
+        action="store_true",
+        help="Exit once aligned instead of mirroring (with --auto-align: the follower keeps torque at the "
+        "leader pose), e.g. before handing the arms to lerobot-record",
+    )
+    parser.add_argument(
         "--align-now",
         action="store_true",
         help="Treat the current leader and follower poses as matching: store per-joint offsets in --offsets-file",
@@ -336,7 +342,12 @@ def main():
         fph.closePort()
         sys.exit("aborted before mirroring; "
                  + (f"F{sorted(moved)} keep torque where they stopped" if moved else "follower was not moved"))
-    print("aligned")
+    print("aligned", flush=True)
+    if args.align_only:
+        lph.closePort()
+        fph.closePort()
+        print("align-only: done" + (f", F{sorted(moved)} hold the leader pose" if moved else ""))
+        return
 
     waiting = set()  # range-mapped joints held limp until they are inside their usable range
 

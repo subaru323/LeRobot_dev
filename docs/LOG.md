@@ -157,3 +157,9 @@
   - 変更ファイル：`easy_lerobot/views/record.py`、`easy_lerobot/core/recording.py`
   - テスト：LeRobot と同じログと確認を出す偽のプログラムを procs.start で起動し、失敗扱いになること・書き込み処理に進まないこと・案内文が出ることを確認
   - 未検証：実機での録画（一致している場合に従来どおり録画できること）。校正値を意図的に揃え直したい場合は、録画画面ではなく LeRobot の校正を手で実行する必要がある
+
+- 2026-11-19 05:28｜実装｜―｜FR｜―
+  - 変更内容：アプリ（easy_lerobot）でフォロワーをリーダーに追従させる前に、必ず自動で姿勢を合わせるようにした（すばる様の方針）。mirrorMODE は mirror_leader に `--auto-align --max-start-diff 100` を渡す。録画は開始前に `mirror_leader.py --auto-align --align-only` を実行し、合わせられなければ録画を始めずに案内を出す（60 秒で打ち切り）。mirror_leader に、合わせ終えたら終了する `--align-only` を追加
+  - 変更ファイル：`dev_scripts/mirror_leader.py`、`easy_lerobot/core/align.py`（新規）、`easy_lerobot/views/mirror_mode.py`、`easy_lerobot/views/record.py`
+  - テスト：偽の SDK で align_follower がずれあり・なしの両方で成功を返すことを確認
+  - 未検証：実機でのアプリからのミラー・録画。5番関節は範囲ファイルにより位置モードの合わせから外しており、録画（lerobot-record）での 5 番は P-004 の継ぎ目問題が残る

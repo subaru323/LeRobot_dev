@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from core import key_input, procs, recording
+from core import align, key_input, procs, recording
 from core.hardware import arm_ports, present_ports
 from core.ui import test_mode, test_mode_badge
 
@@ -35,6 +35,14 @@ LEADER_PORT, FOLLOWER_PORT = arm_ports()  # detected on the Pi; fixed COM ports 
 
 
 def start_recording():
+    st.session_state.pop("rec_align_error", None)
+    if not test:
+        # lerobot-record drives the follower straight to the leader pose: move it there slowly first.
+        with st.spinner("フォロワーをリーダーの姿勢にゆっくり合わせています…"):
+            ok, message = align.align_follower(LEADER_PORT, FOLLOWER_PORT)
+        if not ok:
+            st.session_state["rec_align_error"] = message
+            return
     name = st.session_state["rec_dataset"]
     st.session_state["rec_base"] = recording.recorded_episodes(name, test)
     st.session_state["rec_was_running"] = True
@@ -181,7 +189,9 @@ if not recording_now:
         start_recording()
         st.rerun()
 
-    if busy == "mirror":
+    if st.session_state.get("rec_align_error") and busy is None:
+        st.markdown(f":red[:material/error: {st.session_state['rec_align_error']}]")
+    elif busy == "mirror":
         st.caption("ミラー中は録画を開始できません。mirrorMODE で停止してください。")
     elif not (leader_ok and follower_ok):
         st.caption("リーダーとフォロワーの USB と電源をつなぐと開始できます。")
