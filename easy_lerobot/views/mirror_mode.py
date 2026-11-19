@@ -169,8 +169,12 @@ st.html(
         letter-spacing: .04em;
     }
     /* The stop button is the one that matters for safety: make it the biggest thing on screen. */
-    .st-key-mirror_stop button { height: 240px; border-radius: 30px; }
-    .st-key-mirror_stop button p { font-size: 2.7rem; line-height: 1.45; }
+    .st-key-mirror_stop button { height: 250px; border-radius: 32px; }
+    .st-key-mirror_stop button p { font-size: clamp(2.6rem, 12vw, 3.2rem); line-height: 1.3; }
+    /* A big white rounded square above the label, as on a media "stop" key */
+    .st-key-mirror_stop button p::before { content: ""; display: block; width: 70px; height: 70px; margin: 0 auto 18px;
+        background: #fff; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+    .st-key-mirror_start button { height: 170px; border-radius: 30px; }
     </style>
     """
 )
@@ -183,7 +187,7 @@ if st.button("戻る", icon=":material/arrow_back:", type="tertiary"):
     st.switch_page("views/home.py")
 
 festival_badge()
-page_title("mirrorMODE", "リーダーを動かすと、フォロワーがまねをします")
+page_title("mirrorMODE", "ロボットアーム ミラー操作")
 test_mode_badge()
 st.html(arm_row("リーダー", "手で動かす側のアーム", leader_ok) + arm_row("フォロワー", "まねをして動く側のアーム", follower_ok))
 
@@ -201,9 +205,9 @@ def mirror_control():
         st.rerun()
 
     if now_running:
-        st.html('<div class="el-status"><span class="el-dot on"></span>ミラー中</div>'
+        st.html('<div class="el-status"><span class="el-dot on"></span>ミラー中<span class="el-live">LIVE</span></div>'
                 '<div class="el-status-sub">リーダーを手で動かしてアームを操作します</div>')
-        if st.button("■  \nミラー停止", key="mirror_stop", width="stretch"):
+        if st.button("ミラー停止", key="mirror_stop", width="stretch"):
             stop_mirror()
             st.session_state["mirror_was_running"] = False
             st.session_state.pop("torque_result", None)

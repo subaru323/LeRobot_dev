@@ -95,30 +95,42 @@ _THEME_CSS = """
 .stApp {
     background: radial-gradient(110% 60% at 50% -10%, rgba(124,58,237,.28) 0%, rgba(10,10,15,0) 60%), #0a0a0f !important;
 }
-.block-container { padding-top: 2rem; }
+/* Hide Streamlit's own top bar (Deploy / menu): the page should look like an app on the phone */
+header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
+.block-container { padding-top: 1.2rem; }
+/* Tighter vertical rhythm so the main controls fit on one phone screen */
+[data-testid="stVerticalBlock"] { gap: .55rem; }
+@media (max-width: 640px) { .block-container { padding-left: 1.1rem !important; padding-right: 1.1rem !important; } }
 /* Page title: bold italic with a purple swoosh under it */
 .el-title { text-align: center; margin: .2rem 0 0; }
-.el-title h1 { font-size: 2.5rem; font-weight: 900; font-style: italic; letter-spacing: .01em; margin: 0; padding: 0;
-    color: #fff; }
-.el-title .swoosh { width: 48%; max-width: 260px; height: 6px; margin: -4px auto 0; border-radius: 99px;
-    background: linear-gradient(90deg, #7c3aed, #c084fc); box-shadow: 0 0 14px rgba(167,139,250,.55); }
-.el-sub { text-align: center; color: #b4b4c4; margin: .55rem 0 1.1rem; }
+.el-title h1 { font-size: clamp(2.5rem, 12vw, 3.3rem); font-weight: 900; font-style: italic; letter-spacing: -.01em;
+    margin: 0; padding: 0; color: #fff; line-height: 1.15; }
+.el-title .swoosh { width: 52%; max-width: 280px; height: 7px; margin: -2px auto 0; border-radius: 99px;
+    transform: translateX(14%) rotate(-2deg);
+    background: linear-gradient(90deg, #6d28d9, #a855f7 60%, #d8b4fe); box-shadow: 0 0 16px rgba(168,85,247,.6); }
+.el-sub { text-align: center; color: #c4c4d4; margin: .5rem 0 .9rem; font-size: 1.05rem; letter-spacing: .04em; }
 /* Cards: st.container(border=True, key="el_card_...") and our own rows */
 [class*="st-key-el_card"], .el-card {
     background: #15151c !important; border: 1px solid #2a2a36 !important; border-radius: 18px !important;
 }
 .el-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: #15151c; border: 1px solid #2a2a36; border-radius: 18px; padding: 14px 18px; margin-bottom: 10px; }
-.el-row .name { font-size: 1.3rem; font-weight: 800; line-height: 1.3; color: #fff; }
-.el-row .what { font-size: .85rem; color: #9a9aab; }
-.el-row .state { display: flex; align-items: center; gap: 10px; padding-left: 16px; border-left: 1px solid #2a2a36;
-    font-weight: 800; font-size: 1.1rem; color: #6b6b7b; white-space: nowrap; }
+    background: linear-gradient(180deg, #17171f, #121218); border: 1px solid #2a2a36; border-radius: 20px;
+    padding: 14px 18px; margin-bottom: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.el-row .name { font-size: 1.4rem; font-weight: 900; line-height: 1.25; color: #fff; }
+.el-row .what { font-size: .92rem; color: #9a9aab; margin-top: 2px; }
+.el-row .state { display: flex; align-items: center; gap: 12px; padding-left: 18px; border-left: 1px solid #33333f;
+    min-height: 46px; font-weight: 900; font-size: 1.25rem; color: #6b6b7b; white-space: nowrap; }
 .el-row .state.on { color: #4ade80; }
-.el-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #4b4b5a; flex: none; }
-.el-dot.on { background: #4ade80; box-shadow: 0 0 12px rgba(74,222,128,.9); }
-.el-status { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 1.1rem 0 .2rem;
-    font-size: 2.3rem; font-weight: 900; color: #fff; }
-.el-status-sub { text-align: center; color: #b4b4c4; margin-bottom: .9rem; }
+.el-dot { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: #4b4b5a; flex: none; }
+.el-dot.on { background: #4ade80; box-shadow: 0 0 14px rgba(74,222,128,.95); }
+.el-status { display: flex; justify-content: center; align-items: center; gap: 16px; margin: .9rem 0 .2rem;
+    font-size: clamp(2.6rem, 13vw, 3.4rem); font-weight: 900; color: #fff; line-height: 1.1; }
+.el-status .el-dot { width: 26px; height: 26px; }
+.el-live { font-size: 1rem; font-weight: 800; letter-spacing: .08em; color: #86efac; padding: 5px 12px; border-radius: 12px;
+    border: 1.5px solid rgba(74,222,128,.55); background: rgba(74,222,128,.12); }
+.el-status-sub { text-align: center; color: #c4c4d4; margin-bottom: .8rem; font-size: 1rem; }
+/* Bigger switches for fingers */
+[data-testid="stToggle"] label, .stToggle label { transform: scale(1.35); transform-origin: right center; }
 /* Buttons: rounded; "go" buttons purple, "stop" buttons red (pages add .st-key-* rules) */
 .stButton button { border-radius: 14px; }
 </style>

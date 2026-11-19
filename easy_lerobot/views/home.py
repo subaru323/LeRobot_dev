@@ -13,6 +13,7 @@ MODES = [
 st.html(
     """
     <style>
+    .st-key-gear_row { margin-bottom: -2.6rem; position: relative; z-index: 2; }
     [class*="st-key-mode_"] button {
         height: 180px;
         border-radius: 22px;
@@ -26,8 +27,13 @@ st.html(
         line-height: 1.8;
     }
     [class*="st-key-mode_"] button p strong {
-        font-size: 1.6rem;
+        font-size: 2rem;
+        font-weight: 900;
+        font-style: italic;
     }
+    [class*="st-key-mode_"] button { height: 150px; background: linear-gradient(180deg, #17171f, #121218);
+        box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+    .st-key-mode_mirrorMODE button { border-color: rgba(167,139,250,.55); }
     </style>
     """
 )
@@ -37,21 +43,20 @@ def on_test_mode_change():
     set_test_mode(st.session_state["_test_mode_toggle"])
 
 
-title_col, gear_col = st.columns([6, 1], vertical_alignment="center")
-with title_col:
-    festival_badge()
-    page_title("easy_lerobot")
-with gear_col:
-    with st.container(horizontal=True, horizontal_alignment="right"):
-        with st.popover("", icon=":material/settings:", help="設定"):
-            st.toggle(
-                "テストモード",
-                key="_test_mode_toggle",
-                value=test_mode(),
-                on_change=on_test_mode_change,
-                help="アームをつながずに画面の流れだけを確かめます。ポート・モーター・ミラー・録画はすべて偽物になります。",
-            )
-            st.caption("アームなしで画面の流れを確かめるためのモードです。")
+# Settings gear on its own row at the top right, so it stays there on a narrow phone screen
+# (side-by-side columns stack vertically on phones and pushed it under the title).
+with st.container(horizontal=True, horizontal_alignment="right", key="gear_row"):
+    with st.popover("", icon=":material/settings:", help="設定"):
+        st.toggle(
+            "テストモード",
+            key="_test_mode_toggle",
+            value=test_mode(),
+            on_change=on_test_mode_change,
+            help="アームをつながずに画面の流れだけを確かめます。ポート・モーター・ミラー・録画はすべて偽物になります。",
+        )
+        st.caption("アームなしで画面の流れを確かめるためのモードです。")
+festival_badge()
+page_title("easy_lerobot", "ロボットアームを動かしてみよう")
 
 test_mode_badge()
 st.write("使うモードを選んでください。")
