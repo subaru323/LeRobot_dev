@@ -23,6 +23,7 @@ Example:
 
 import argparse
 import json
+import signal
 import sys
 import time
 from pathlib import Path
@@ -156,6 +157,12 @@ def main():
         args.offsets_file = Path("dev_calibration/mirror_offsets.json")
     shared = set(args.shared_ids)
 
+    def stop_requested(signum, frame):
+        raise KeyboardInterrupt
+
+    # `kill`, systemd and a Pi shutdown send SIGTERM: stop like Ctrl+C so the cleanup below still runs.
+    signal.signal(signal.SIGTERM, stop_requested)
+
     pk = scs.PacketHandler(0)
     lph = open_bus(args.leader_port, args.baudrate)
     fph = open_bus(args.follower_port, args.baudrate)
@@ -164,6 +171,33 @@ def main():
     missing += [f"F{i}" for i in args.ids if i not in shared and pk.ping(fph, i)[1] != scs.COMM_SUCCESS]
     if missing:
         sys.exit(f"no response from {', '.join(missing)}")
+
+    def set_mode(i, mode):
+        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
+        pk.write1ByteTxRx(fph, i, ADDR_LOCK, 0)
+        pk.write1ByteTxRx(fph, i, ADDR_OPERATING_MODE, mode)
+        pk.write1ByteTxRx(fph, i, ADDR_LOCK, 1)
+        time.sleep(1.0)  # the motor restarts after an EEPROM mode change
+        for _ in range(30):
+            try:
+                if pk.ping(fph, i)[1] == scs.COMM_SUCCESS:
+                    break
+            except IndexError:  # truncated reply while the motor is still booting
+                fph.is_using = False
+            time.sleep(0.1)
+        fph.clearPort()
+
+    # A run that was killed (or lost its host) mid-mirror can leave a joint in speed mode, turning at its
+    # last speed: stop it and put it back in position mode before anything else reads or drives it.
+    for i in args.ids:
+        if i in shared:
+            continue
+        mode, res, _ = pk.read1ByteTxRx(fph, i, ADDR_OPERATING_MODE)
+        if res == scs.COMM_SUCCESS and mode != 0:
+            pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, 0)
+            set_mode(i, 0)
+            pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
+            print(f"F{i} was left in operating mode {mode}: stopped and put back in position mode")
 
     limits = {}
     for i in args.ids:
@@ -292,21 +326,6 @@ def main():
             pos = (pos - homing[i]) % TURN
         return pos
 
-    def set_mode(i, mode):
-        pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 0)
-        pk.write1ByteTxRx(fph, i, ADDR_LOCK, 0)
-        pk.write1ByteTxRx(fph, i, ADDR_OPERATING_MODE, mode)
-        pk.write1ByteTxRx(fph, i, ADDR_LOCK, 1)
-        time.sleep(1.0)  # the motor restarts after an EEPROM mode change
-        for _ in range(30):
-            try:
-                if pk.ping(fph, i)[1] == scs.COMM_SUCCESS:
-                    break
-            except IndexError:  # truncated reply while the motor is still booting
-                fph.is_using = False
-            time.sleep(0.1)
-        fph.clearPort()
-
     def set_speed(i, v):
         v = int(max(-args.vel_max, min(args.vel_max, v)))
         pk.write2ByteTxRx(fph, i, ADDR_GOAL_SPEED, abs(v) | (0x8000 if v < 0 else 0))
@@ -314,10 +333,10 @@ def main():
     def start_velocity(i):
         raw, _, _ = pk.read2ByteTxRx(fph, i, ADDR_HOMING_OFFSET)
         homing[i] = -(raw & 0x7FF) if raw & 0x800 else raw & 0x7FF
+        vel_active.add(i)  # before the mode change, so an interrupt during it still restores position mode
         set_mode(i, 1)
         set_speed(i, 0)
         pk.write1ByteTxRx(fph, i, ADDR_ACCELERATION, args.acceleration)
-        vel_active.add(i)
         pk.write1ByteTxRx(fph, i, ADDR_TORQUE_ENABLE, 1)
         print(f"F{i}: speed mode (homing {homing[i]}), direction follows the range")
 
@@ -485,9 +504,23 @@ def main():
     except KeyboardInterrupt:
         print("\ninterrupted")
     finally:
+        # A second Ctrl+C / stop signal must not cut the cleanup short: a joint left in speed mode keeps
+        # turning at its last speed until it hits its mechanical stop.
+        for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
+            if hasattr(signal, name):
+                signal.signal(getattr(signal, name), signal.SIG_IGN)
         lph.is_using = fph.is_using = False  # Ctrl+C mid-transaction leaves the SDK's busy flag set
         for i in sorted(vel_active):
-            stop_velocity(i)
+            try:
+                set_speed(i, 0)  # stop every speed-mode joint first; the mode change below takes ~1 s each
+            except Exception:
+                fph.is_using = False
+        for i in sorted(vel_active):
+            try:
+                stop_velocity(i)
+            except Exception as e:  # keep restoring the other joints
+                fph.is_using = False
+                print(f"F{i}: could not restore position mode ({e!r}); its speed was set to 0")
         if args.release:
             for i in args.ids:
                 if i in shared:
