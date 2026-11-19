@@ -144,7 +144,15 @@ def arm_ports(allow_detect: bool = True) -> tuple[str, str]:
             _cache["detection"] = detect(boards)
             _cache["boards"] = boards
             _cache["at"] = time.monotonic()
-    roles = _cache["detection"].roles
+    # A board that has been unplugged loses its role, so the readiness log cannot stay at
+    # "ready" and nothing is started on a port that is gone; it is detected again when back.
+    detection = _cache["detection"]
+    gone = [role for role, port in detection.roles.items() if port not in boards]
+    for role in gone:
+        detection.notes.pop(detection.roles.pop(role), None)
+    if gone:
+        _cache["boards"] = None
+    roles = detection.roles
     return roles.get("leader", UNDETECTED), roles.get("follower", UNDETECTED)
 
 
