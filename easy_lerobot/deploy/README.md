@@ -80,3 +80,32 @@ tail -n 30 ~/LeRobot_dev/easy_lerobot/logs/mirror.log    # 直近のミラー
 
 - 録画の「この回を終える」「撮り直す」は、キー送信を使うため画面のないラズパイでは押せない。時間が来ると自動で進む
 - 通信は HTTP。パスワードは学内の Wi-Fi で使う前提
+
+## インターネット経由の中継（展示用・任意）
+
+来場者が自分のスマホのモバイル回線から開けるように、VPS を中継にする。仕組みと決めたことは `openspec/changes/add-festival-relay/` を参照。
+
+1. ラズパイでトンネル用の鍵を作る（sudo は要らない）
+
+   ```bash
+   ssh-keygen -t ed25519 -N "" -C "lerobot-pi-relay" -f ~/.ssh/relay_ed25519
+   ```
+
+2. VPS に、ログインできない専用ユーザー `relay` を作り、公開鍵を制限つきで登録する（`/home/relay/.ssh/authorized_keys`）
+
+   ```
+   restrict,port-forwarding,permitlisten="127.0.0.1:8501",permitlisten="127.0.0.1:2222" ssh-ed25519 AAAA... lerobot-pi-relay
+   ```
+
+3. `deploy/relay-tunnel.service.example` の `<VPS のホスト名>` を書き換えて登録する（sudo が要る）
+
+   ```bash
+   sudo cp relay-tunnel.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now relay-tunnel
+   systemctl status relay-tunnel            # active (running) なら成功
+   ```
+
+4. スマホで `https://<VPS のホスト名>/` を開く。開発用の PC からは `ProxyJump` で VPS を経由し、VPS の `127.0.0.1:2222` へ ssh するとラズパイに入れる
+
+展示が終わったら `sudo systemctl disable --now relay-tunnel` で止める。
