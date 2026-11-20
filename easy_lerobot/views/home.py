@@ -1,6 +1,7 @@
 import streamlit as st
 
 from core import startup
+from core.help import help_button
 from core.ui import set_test_mode, test_mode, test_mode_badge
 
 MODES = [
@@ -39,6 +40,7 @@ with title_col:
     st.title("easy_lerobot")
 with gear_col:
     with st.container(horizontal=True, horizontal_alignment="right"):
+        help_button()
         with st.popover("", icon=":material/settings:", help="設定"):
             st.toggle(
                 "テストモード",
