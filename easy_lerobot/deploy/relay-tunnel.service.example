@@ -1,0 +1,16 @@
+# VPS への ssh の逆向きトンネル（openspec/changes/add-festival-relay の D1）。
+# <VPS のホスト名> を書き換えて /etc/systemd/system/relay-tunnel.service に置く。
+# 鍵は ssh-keygen -t ed25519 -N "" -f ~/.ssh/relay_ed25519 で作り、公開鍵を VPS の relay ユーザーに制限つきで登録する。
+[Unit]
+Description=Reverse SSH tunnel to the festival relay (VPS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=lerobot
+ExecStart=/usr/bin/ssh -N -i /home/lerobot/.ssh/relay_ed25519 -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -p 443 -R 127.0.0.1:8501:localhost:8501 -R 127.0.0.1:2222:localhost:22 relay@<VPS のホスト名>
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

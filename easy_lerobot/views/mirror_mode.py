@@ -7,6 +7,7 @@ import streamlit as st
 
 from core import align, logs, procs
 from core.hardware import arm_ports, present_ports
+from core.help import help_button
 from core.ui import test_mode, test_mode_badge
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -176,7 +177,12 @@ if st.button("戻る", icon=":material/arrow_back:", type="tertiary"):
     st.session_state.pop("torque_result", None)
     st.switch_page("views/home.py")
 
-st.title("mirrorMODE")
+title_col, help_col = st.columns([6, 1], vertical_alignment="center")
+with title_col:
+    st.title("mirrorMODE")
+with help_col:
+    with st.container(horizontal=True, horizontal_alignment="right"):
+        help_button("help_button_mirror")
 with st.container(horizontal=True, gap="small"):
     test_mode_badge()
     port_badge("リーダー", LEADER_PORT, leader_ok)

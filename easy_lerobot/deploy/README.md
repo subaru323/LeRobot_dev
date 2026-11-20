@@ -80,3 +80,66 @@ tail -n 30 ~/LeRobot_dev/easy_lerobot/logs/mirror.log    # 直近のミラー
 
 - 録画の「この回を終える」「撮り直す」は、キー送信を使うため画面のないラズパイでは押せない。時間が来ると自動で進む
 - 通信は HTTP。パスワードは学内の Wi-Fi で使う前提
+
+## インターネット経由の中継（展示用・任意）
+
+来場者が自分のスマホのモバイル回線から開けるように、VPS を中継にする。仕組みと決めたことは `openspec/changes/add-festival-relay/` を参照。
+
+1. ラズパイでトンネル用の鍵を作る（sudo は要らない）
+
+   ```bash
+   ssh-keygen -t ed25519 -N "" -C "lerobot-pi-relay" -f ~/.ssh/relay_ed25519
+   ```
+
+2. VPS に、ログインできない専用ユーザー `relay` を作り、公開鍵を制限つきで登録する（`/home/relay/.ssh/authorized_keys`）
+
+   ```
+   restrict,port-forwarding,permitlisten="127.0.0.1:8501",permitlisten="127.0.0.1:2222" ssh-ed25519 AAAA... lerobot-pi-relay
+   ```
+
+3. `deploy/relay-tunnel.service.example` の `<VPS のホスト名>` を書き換えて登録する（sudo が要る）
+
+   ```bash
+   sudo cp relay-tunnel.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now relay-tunnel
+   systemctl status relay-tunnel            # active (running) なら成功
+   ```
+
+4. スマホで `https://<VPS のホスト名>/` を開く。開発用の PC からは `ProxyJump` で VPS を経由し、VPS の `127.0.0.1:2222` へ ssh するとラズパイに入れる
+
+展示が終わったら `sudo systemctl disable --now relay-tunnel` で止める。
+
+### 気をつけること（中継）
+
+- 学校の Wi-Fi は外向きの 22 番を通さないことがある。トンネルも開発用 PC からの ssh も、VPS の 443 番を使う（443 番は nginx が HTTPS と ssh に振り分ける）
+- 検証用の Wi-Fi はインターネット側がとても遅いことがある。Streamlit の画面をトンネル越しに開くと、画面のファイル（数 MB）を毎回この回線で送るため、数十秒〜開けないことがある（`openspec/changes/add-festival-relay/design.md` の D3）
+- 起動した直後は、ラズパイが Wi-Fi につながるまで 1 分ほどかかる。その間はトンネルも張られない
+- `sudo` が要る操作（systemd への登録など）は、`!` 付きのコマンドや端末のない ssh ではパスワードを聞けずに止まる。`ssh -t` で端末を付けて打つ
+
+## 手首カメラをディスプレイに出す（展示用・任意）
+
+カメラの映像はネットで送らず、ラズパイのミニ HDMI につないだディスプレイに全画面で出す。デスクトップは使わない（電源ボタンのために文字の画面で起動している設定はそのまま）。
+
+1. 映るか試す（sudo は要らない）
+
+   ```bash
+   ls -l /dev/v4l/by-id/                       # カメラの名前を確かめる
+   SDL_VIDEODRIVER=kmsdrm ffplay -fs -f v4l2 -input_format mjpeg -video_size 1280x720 /dev/video0
+   ```
+
+2. `deploy/wrist-camera.service.example` の `<カメラの by-id>` を書き換えて登録する（sudo が要る）
+
+   ```bash
+   sudo cp wrist-camera.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now wrist-camera
+   ```
+
+### 気をつけること（カメラ）
+
+- **ディスプレイはラズパイの電源を入れる前につなぐ。** 起動した後につなぐと認識されないことがある（`/sys/class/drm/card1-HDMI-A-1/status` が `disconnected` のまま）。そのときはつないだまま再起動する
+- ミニ HDMI は 2 つある。電源（USB-C）に近い方（HDMI0 = `HDMI-A-1`）にさす
+- ffplay だけで CPU を約 50%（1 コアの半分）使う（1280×720・30 枚/秒）。カクつくときは `-video_size 640x480` に下げる
+- ログに `No accelerated colorspace conversion found from yuv422p to rgba` が出るが、表示には影響しない
+- カメラは `/dev/video0` の番号ではなく `/dev/v4l/by-id/` の名前で指定する。USB 機器を足すと番号が変わることがある
