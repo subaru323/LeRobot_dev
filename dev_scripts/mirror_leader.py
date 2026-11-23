@@ -120,7 +120,7 @@ def main():
         help="Instead of refusing, slowly move the follower joints that differ too much to the leader pose "
         "(at --align-speed), then start mirroring",
     )
-    parser.add_argument("--align-speed", type=int, default=200, help="Follower speed cap in ticks/s for --auto-align")
+    parser.add_argument("--align-speed", type=int, default=600, help="Follower speed cap in ticks/s for --auto-align")
     parser.add_argument(
         "--align-only",
         action="store_true",
