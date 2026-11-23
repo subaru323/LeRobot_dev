@@ -75,7 +75,11 @@ def unwrap(pos, lo, rng_span):
 
 
 def read_pos(ph, pk, id_):
-    value, res, _ = pk.read2ByteTxRx(ph, id_, ADDR_PRESENT_POSITION)
+    try:
+        value, res, _ = pk.read2ByteTxRx(ph, id_, ADDR_PRESENT_POSITION)
+    except IndexError:  # truncated reply (e.g. a motor restarting after a mode change): treat as a failed read
+        ph.is_using = False
+        return None
     return decode(value) if res == scs.COMM_SUCCESS else None
 
 
@@ -427,10 +431,12 @@ def main():
             diffs = start_diffs()
         for i in vel_active:
             set_speed(i, 0)
-    except KeyboardInterrupt:
+    except BaseException as e:  # Ctrl+C, or an error: never leave a joint in speed mode
         restore_velocity_joints()
         lph.closePort()
         fph.closePort()
+        if not isinstance(e, KeyboardInterrupt):
+            raise
         sys.exit("aborted before mirroring; "
                  + (f"F{sorted(moved)} stopped where they were" if moved else "follower was not moved"))
     print("aligned", flush=True)
