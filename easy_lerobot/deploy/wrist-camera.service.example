@@ -1,0 +1,17 @@
+# 手首カメラの映像を HDMI のディスプレイに全画面で出す（openspec/changes/add-festival-relay の D5）。
+# デスクトップなし（文字の画面で起動）のまま、SDL の kmsdrm でディスプレイに直接描く。
+# カメラは ls -l /dev/v4l/by-id/ で名前を確かめて、<カメラの by-id> を書き換える（video-index0 の方）。
+# /etc/systemd/system/wrist-camera.service に置く。
+[Unit]
+Description=Show the wrist camera full screen on the HDMI display
+After=multi-user.target
+
+[Service]
+User=lerobot
+Environment=SDL_VIDEODRIVER=kmsdrm
+ExecStart=/usr/bin/ffplay -hide_banner -loglevel error -nostats -an -fs -f v4l2 -input_format mjpeg -video_size 1280x720 -framerate 30 /dev/v4l/by-id/<カメラの by-id>
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

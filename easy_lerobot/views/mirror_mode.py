@@ -7,6 +7,7 @@ import streamlit as st
 
 from core import align, logs, procs
 from core.hardware import arm_ports, present_ports
+from core.help import help_button
 from core.ui import festival_badge, page_title, test_mode, test_mode_badge
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -186,6 +187,8 @@ if st.button("戻る", icon=":material/arrow_back:", type="tertiary"):
     st.session_state.pop("torque_result", None)
     st.switch_page("views/home.py")
 
+with st.container(horizontal=True, horizontal_alignment="right", key="help_row"):
+    help_button("help_button_mirror")
 festival_badge()
 page_title("mirrorMODE", "ロボットアーム ミラー操作")
 test_mode_badge()

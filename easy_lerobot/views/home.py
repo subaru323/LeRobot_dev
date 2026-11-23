@@ -1,6 +1,7 @@
 import streamlit as st
 
 from core import startup
+from core.help import help_button
 from core.ui import festival_badge, page_title, set_test_mode, test_mode, test_mode_badge
 
 MODES = [
@@ -46,6 +47,7 @@ def on_test_mode_change():
 # Settings gear on its own row at the top right, so it stays there on a narrow phone screen
 # (side-by-side columns stack vertically on phones and pushed it under the title).
 with st.container(horizontal=True, horizontal_alignment="right", key="gear_row"):
+    help_button()
     with st.popover("", icon=":material/settings:", help="設定"):
         st.toggle(
             "テストモード",
