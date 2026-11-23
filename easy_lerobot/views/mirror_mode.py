@@ -7,7 +7,7 @@ import streamlit as st
 
 from core import align, logs, procs
 from core.hardware import arm_ports, present_ports
-from core.ui import test_mode, test_mode_badge
+from core.ui import festival_badge, page_title, test_mode, test_mode_badge
 
 APP_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = APP_DIR.parent
@@ -119,11 +119,11 @@ def mirror_error_message() -> str:
     return f"ミラーが止まりました: {last}"
 
 
-def port_badge(role: str, port: str, present: bool):
-    if present:
-        st.badge(f"{role}  {port}", icon=":material/link:", color="green")
-    else:
-        st.badge(f"{role}  {port}  未接続", icon=":material/link_off:", color="gray")
+def arm_row(role: str, what: str, present: bool) -> str:
+    """One connection row: arm name, what it is, and a coloured status (no device path)."""
+    on = "on" if present else ""
+    return (f'<div class="el-row"><div><div class="name">{role}</div><div class="what">{what}</div></div>'
+            f'<div class="state {on}"><span class="el-dot {on}"></span>{"接続中" if present else "未接続"}</div></div>')
 
 
 # --- state -----------------------------------------------------------------
@@ -146,25 +146,35 @@ torque_known = bool(result["torque"])
 st.html(
     """
     <style>
-    .block-container { padding-top: 3rem; padding-bottom: 1rem; max-width: 680px; }
+    .block-container { padding-bottom: 1rem; max-width: 560px; }
     .st-key-mirror_start button, .st-key-mirror_stop button {
         height: 150px;
-        border-radius: 24px;
         border: none;
-        color: #fff;
+        border-radius: 26px;
         transition: filter .15s, transform .05s;
     }
     /* !important: Streamlit's own hover / disabled backgrounds would win otherwise. */
-    .st-key-mirror_start button, .st-key-mirror_start button:hover { background: #16a34a !important; }
-    .st-key-mirror_stop button, .st-key-mirror_stop button:hover { background: #dc2626 !important; }
-    .st-key-mirror_start button:hover, .st-key-mirror_stop button:hover { filter: brightness(1.08); color: #fff; }
+    .st-key-mirror_start button, .st-key-mirror_start button:hover {
+        background: linear-gradient(135deg, #7c3aed, #a855f7) !important; color: #fff !important;
+        box-shadow: 0 10px 30px rgba(124,58,237,.45); }
+    .st-key-mirror_stop button, .st-key-mirror_stop button:hover {
+        background: linear-gradient(180deg, #f87171, #ef4444) !important; color: #fff !important;
+        box-shadow: 0 10px 34px rgba(239,68,68,.45); }
+    .st-key-mirror_start button:hover, .st-key-mirror_stop button:hover { filter: brightness(1.08); }
     .st-key-mirror_start button:active, .st-key-mirror_stop button:active { transform: scale(.99); }
-    .st-key-mirror_start button:disabled { background: #3f3f46 !important; color: #a1a1aa !important; }
+    .st-key-mirror_start button:disabled { background: #22222c !important; color: #6b6b7b !important; box-shadow: none; }
     .st-key-mirror_start button p, .st-key-mirror_stop button p {
         font-size: 2rem;
-        font-weight: 800;
+        font-weight: 900;
         letter-spacing: .04em;
     }
+    /* The stop button is the one that matters for safety: make it the biggest thing on screen. */
+    .st-key-mirror_stop button { height: 250px; border-radius: 32px; }
+    .st-key-mirror_stop button p { font-size: clamp(2.6rem, 12vw, 3.2rem); line-height: 1.3; }
+    /* A big white rounded square above the label, as on a media "stop" key */
+    .st-key-mirror_stop button p::before { content: ""; display: block; width: 70px; height: 70px; margin: 0 auto 18px;
+        background: #fff; border-radius: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+    .st-key-mirror_start button { height: 170px; border-radius: 30px; }
     </style>
     """
 )
@@ -176,11 +186,10 @@ if st.button("戻る", icon=":material/arrow_back:", type="tertiary"):
     st.session_state.pop("torque_result", None)
     st.switch_page("views/home.py")
 
-st.title("mirrorMODE")
-with st.container(horizontal=True, gap="small"):
-    test_mode_badge()
-    port_badge("リーダー", LEADER_PORT, leader_ok)
-    port_badge("フォロワー", FOLLOWER_PORT, follower_ok)
+festival_badge()
+page_title("mirrorMODE", "ロボットアーム ミラー操作")
+test_mode_badge()
+st.html(arm_row("リーダー", "手で動かす側のアーム", leader_ok) + arm_row("フォロワー", "まねをして動く側のアーム", follower_ok))
 
 
 # --- mirror start / stop (main control) -------------------------------------
@@ -196,12 +205,13 @@ def mirror_control():
         st.rerun()
 
     if now_running:
-        if st.button("■  停止", key="mirror_stop", width="stretch"):
+        st.html('<div class="el-status"><span class="el-dot on"></span>ミラー中<span class="el-live">LIVE</span></div>'
+                '<div class="el-status-sub">リーダーを手で動かしてアームを操作します</div>')
+        if st.button("ミラー停止", key="mirror_stop", width="stretch"):
             stop_mirror()
             st.session_state["mirror_was_running"] = False
             st.session_state.pop("torque_result", None)
             st.rerun()
-        st.markdown(":green-badge[:material/sync: ミラー中]　リーダーを動かすとフォロワーが追従します")
         return
 
     recording = procs.running("record")
@@ -223,7 +233,7 @@ def mirror_control():
 mirror_control()
 
 # --- follower torque (secondary control) -----------------------------------
-with st.container(border=True):
+with st.container(border=True, key="el_card_torque"):
     label_col, toggle_col = st.columns([5, 1], vertical_alignment="center")
     with label_col:
         st.markdown("**フォロワーのトルク**")
