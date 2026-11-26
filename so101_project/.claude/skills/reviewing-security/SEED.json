@@ -1,0 +1,21 @@
+{
+ "package": "knowhow-seeds",
+ "version": "2026-11-26.1347",
+ "seed": "reviewing-security",
+ "状態": "試作",
+ "能力": "コードの変更を SQL インジェクション・XSS などの観点で見直し、攻撃の筋道つきで指摘して直す",
+ "items": [
+  "K-0041",
+  "K-0077",
+  "K-0078",
+  "K-0079",
+  "K-0024"
+ ],
+ "earliest_review_due": "2027-02-17",
+ "master": "C:\\Users\\genes\\Documents\\PROJECTS\\ASSETS\\Claude_knowhow",
+ "files": {
+  "references/ノウハウ.md": "5e0cb906969bdba0e7c962058c3a2c07453656528f35eb50a5ad2c91d2657341",
+  "references/観点.md": "40a74b22906b4525b9eaca6dfc22da3e5ef21cc362d8d1087b76875cd8a95a65",
+  "SKILL.md": "2af07f40aefb3b6a4eba7a6133ebaf80fcb585d04446fb51e132c58e94217143"
+ }
+}

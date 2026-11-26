@@ -1,0 +1,23 @@
+{
+ "package": "knowhow-seeds",
+ "version": "2026-11-26.1347",
+ "seed": "enforcing-project-rules",
+ "状態": "試作",
+ "能力": "プロジェクトの決まりを、文章でなく仕組み（打つ前のフック・始めの点検・決まりと判定の表・担当つきの監査）で守らせる",
+ "items": [
+  "K-0021",
+  "K-0069",
+  "K-0082",
+  "K-0083",
+  "K-0085",
+  "K-0084",
+  "K-0050",
+  "K-0081"
+ ],
+ "earliest_review_due": "2027-02-17",
+ "master": "C:\\Users\\genes\\Documents\\PROJECTS\\ASSETS\\Claude_knowhow",
+ "files": {
+  "references/ノウハウ.md": "7383ca84bc8b0a40f709b992753c02d187e04ce788a757066b22ca7f4693fa2c",
+  "SKILL.md": "69bf1015edcbe43d94363483c5b3448bb03e52a7fe4414b556563fac2f737645"
+ }
+}

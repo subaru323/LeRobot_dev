@@ -1,0 +1,12 @@
+2026-10-28 tools/success_interval.py の出力
+$ python tools/success_interval.py 10 0 2 5 8 10
+N=10  Wilson 95% interval of the success rate
+    0/10: 0.00 - 0.28
+    2/10: 0.06 - 0.51
+    5/10: 0.24 - 0.76
+    8/10: 0.49 - 0.94
+   10/10: 0.72 - 1.00
+$ python tools/success_interval.py 20 10 16
+N=20  Wilson 95% interval of the success rate
+   10/20: 0.30 - 0.70
+   16/20: 0.58 - 0.92

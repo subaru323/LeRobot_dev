@@ -1,0 +1,8 @@
+INFO 2026-11-16 17:10:57 cy_server.py:43 Policy server lerobot_version=0.7.0 protocol=1
+INFO 2026-11-16 17:10:57 cy_server.py:44 Loading deployment=pusht model=remote_e2e/act_pusht_tiny/checkpoints/000040/pretrained_model revision=default device=cpu; readiness follows model warmup
+INFO 2026-11-16 17:10:59 cy_server.py:64 Deployment warmed: name=pusht instance=9250bc7de8f14900a0245320d488aad5 modes=chunk action_rate=10.0 Hz horizon=2.000s language=False; waiting for transport readiness
+INFO 2026-11-16 17:10:59 e\server.py:994 Policy server ready: deployment=pusht instance=9250bc7de8f14900a0245320d488aad5; awaiting one client
+INFO 2026-11-16 17:11:31 e\server.py:543 Session admitted instance=9250bc7de8f14900a0245320d488aad5 session=91551021064040a7b33fcb7c4cf57115
+INFO 2026-11-16 17:11:31 e\server.py:795 Session awaiting initial presence instance=9250bc7de8f14900a0245320d488aad5 session=91551021064040a7b33fcb7c4cf57115 grace_s=60.000 inference_pending=False
+INFO 2026-11-16 17:11:31 e\server.py:776 Session initial presence established instance=9250bc7de8f14900a0245320d488aad5 session=91551021064040a7b33fcb7c4cf57115
+INFO 2026-11-16 17:11:36 e\server.py:728 Policy progress: deployment=pusht actions=5 text_queries=0 errors=0 stale=0 invalidations=0 resets=2 control wait max=0.000s over 5.9s; queue mean/max=0.000/0.000s worker mean/max=0.046/0.055s (last 5 operations, all outcomes); client logs include transport delay and playback headroom

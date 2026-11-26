@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SO-101 シミュレータ</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: "Hiragino Sans", "Yu Gothic", sans-serif; background:#111; }
+  #canvas-holder { position: absolute; top:0; left:0; width:100%; height:100%; }
+  #ui {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    background: rgba(20,24,30,0.75); color: #fff; padding: 10px 14px;
+    border-radius: 8px; max-width: 340px; font-size: 13px; line-height: 1.5;
+  }
+  #ui h1 { font-size: 14px; margin: 0 0 6px 0; }
+  #desc { font-size: 11.5px; color: rgba(255,255,255,0.75); margin: 0 0 8px 0; white-space: pre-line; }
+  #shots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  button {
+    background: #2b6de8; color: #fff; border: none; padding: 6px 10px;
+    border-radius: 6px; font-size: 12px; cursor: pointer;
+  }
+  button.secondary { background: #4a5568; }
+  button.speed { background: #4a5568; padding: 5px 9px; }
+  button.speed.active { background: #2b6de8; }
+  /* 干渉した瞬間へ飛ぶボタン。通常のカメラワークと区別するため赤 */
+  button.hit { background: #c0392b; }
+  button:hover { filter: brightness(1.15); }
+  #legend { margin-top: 10px; font-size: 11.5px; }
+  #legend div { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+  #legend span.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
+  #bottom-controls {
+    position: absolute; bottom: 12px; left: 12px; z-index: 10;
+    display: flex; gap: 8px; align-items: center;
+    background: rgba(20,24,30,0.6); padding: 8px 10px; border-radius: 8px;
+  }
+  #bottom-controls .label { color: rgba(255,255,255,0.7); font-size: 11.5px; }
+  #hint {
+    position: absolute; bottom: 12px; right: 12px; z-index: 10;
+    color: rgba(255,255,255,0.55); font-size: 11px; text-align: right;
+  }
+  #uiToggle {
+    position: absolute; top: 12px; right: 12px; z-index: 11;
+    background: rgba(20,24,30,0.7); padding: 6px 10px;
+  }
+
+  /* ---- 条件スライダーパネル(右側) ---- */
+  #params {
+    position: absolute; top: 52px; right: 12px; z-index: 10;
+    background: rgba(20,24,30,0.80); color: #fff; padding: 12px 14px;
+    border-radius: 8px; width: 288px; font-size: 12px; line-height: 1.45;
+    max-height: calc(100% - 120px); overflow-y: auto;
+  }
+  #params h2 { font-size: 13px; margin: 0 0 2px 0; }
+  #params .sub { font-size: 10.5px; color: rgba(255,255,255,0.55); margin: 0 0 10px 0; }
+  #params .row { margin-bottom: 9px; }
+  #params .row .top { display: flex; justify-content: space-between; align-items: baseline; }
+  #params .row .nm { color: rgba(255,255,255,0.85); }
+  #params .row .vl { font-weight: bold; font-variant-numeric: tabular-nums; }
+  #params input[type=range] { width: 100%; margin: 2px 0 0 0; accent-color: #2b6de8; }
+  #params select { width: 100%; margin: 3px 0 0 0; padding: 3px 4px; font-size: 11.5px;
+                   color: #fff; background: rgba(255,255,255,0.12);
+                   border: 1px solid rgba(255,255,255,0.28); border-radius: 4px; }
+  #params select option { color: #111; background: #fff; }
+  #presets { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 12px 0; }
+  #presets button { background: #4a5568; padding: 4px 8px; font-size: 11px; }
+  /* 判定バッジ(#infoTop)と内訳表(#info)は同じ .ir を使うので #params 側で指定する */
+  #info { border-top: 1px solid rgba(255,255,255,0.18); padding-top: 9px; margin-top: 4px; }
+  #infoTop { margin-bottom: 10px; }
+  #params .ir { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: 11.5px; }
+  #params .ir .k { color: rgba(255,255,255,0.6); flex: 0 0 auto; }
+  #params .ir .v { text-align: right; font-variant-numeric: tabular-nums; }
+  /* 判定は3つ並ぶので、ラベル(何の判定か)を小さく左に残したまま値を強調する */
+  #params .ir.big { align-items: baseline; font-size: 12.5px; font-weight: bold;
+                    padding: 5px 7px; border-radius: 6px; margin: 0 0 4px 0; }
+  #params .ir.big .k { font-size: 10.5px; font-weight: normal; }
+  #params .st-ok   { color: #6fdc8c; }
+  #params .st-warn { color: #f2c14e; }
+  #params .st-ng   { color: #ff7a6b; }
+  #params .ir.big.st-ok   { background: rgba(111,220,140,0.16); }
+  #params .ir.big.st-warn { background: rgba(242,193,78,0.16); }
+  #params .ir.big.st-ng   { background: rgba(255,122,107,0.18); }
+  #note { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 9px; }
+</style>
+</head>
+<body>
+<div id="bootMsg" style="position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#111;color:#ddd;font:15px/1.8 'Yu Gothic',sans-serif;text-align:center">
+  <div>場面を組み立てています（20 秒ほど）…<br><span style="font-size:12px;color:#889">敷き詰め・動き・当たり判定・腕どうしの判定を計算しています</span></div>
+</div>
+
+<div id="canvas-holder"></div>
+
+<button id="uiToggle">UIを隠す (プレゼン用)</button>
+
+<div id="ui">
+  <div id="sceneSwitch" style="margin:-2px 0 10px 0;">
+    <select id="sceneSel" style="width:100%;font-size:13px;padding:6px 8px;
+      border-radius:6px;border:1px solid #4a5666;background:#2b3543;color:#e8edf3;"></select>
+    <a href="jog.html" style="display:block;margin-top:6px;color:#8ab4ff;font-size:12px;">→ SO-101 を手で動かす画面（関節のスライダー・目標の点へ）</a>
+  </div>
+  <h1 id="title">ザックリ3Dモックビューア</h1>
+  <p id="desc"></p>
+  <div>カメラワーク:</div>
+  <div id="shots"></div>
+  <div id="legend"></div>
+</div>
+
+<div id="params" style="display:none">
+  <h2>条件を変えて試す</h2>
+  <p class="sub">動かすとその場でラインを組み直します</p>
+  <!-- big:true の判定行だけは一番上に出す。下にまとめると項目が増えたときに
+       スクロールの外へ出て、打合せ中に「どこを見ればいいのか」になるため -->
+  <div id="infoTop"></div>
+  <div id="presets"></div>
+  <div id="sliders"></div>
+  <div id="info"></div>
+  <div id="note">
+  </div>
+</div>
+
+<div id="bottom-controls">
+  <button id="toggleAnim">アニメーション: 再生中 (クリックで一時停止)</button>
+  <span class="label">再生速度</span>
+  <button class="speed" data-speed="0.15">0.15x</button>
+  <button class="speed" data-speed="0.35">0.35x</button>
+  <button class="speed" data-speed="1">1x (実速度)</button>
+  <button class="speed" data-speed="2">2x</button>
+</div>
+
+<div id="hint">左ドラッグ: 平行移動 / 右ドラッグ: 視点回転 / ホイール: ズーム</div>
+
+<!-- 読み込み診断。
+     このビューアは file:// のダブルクリック起動を前提にしているので、
+     開発者ツールを開かずに原因が分かる必要がある。どのファイルが落ちたか、
+     どこで例外が出たかを拾って、後段の失敗表示に出す。 -->
+<script>
+window.__diag = { failed: [], errors: [] };
+window.__loadFail = function (src) {
+  window.__diag.failed.push(String(src).split("/").slice(-2).join("/"));
+};
+window.addEventListener("error", function (e) {
+  if (e && e.message) {
+    window.__diag.errors.push(e.message +
+      (e.filename ? "  (" + String(e.filename).split("/").pop() + ":" + e.lineno + ")" : ""));
+  }
+});
+</script>
+
+<!-- three.js は同梱のローカルファイルを読み込むため、インターネット接続不要・二重クリックで起動可能 -->
+<script src="lib/three.min.js" onerror="__loadFail(this.src)"></script>
+<script src="lib/OrbitControls.js" onerror="__loadFail(this.src)"></script>
+
+<!-- SO-101 の関節の寸法(URDF の値)と、そこから作る関節軸。絵と逆運動学は同じ値を読む -->
+<script src="kinematics.js"           onerror="__loadFail(this.src)"></script>
+<script src="so101.js"                onerror="__loadFail(this.src)"></script>
+<script src="motion.js"               onerror="__loadFail(this.src)"></script>
+<script src="puzzle.js"               onerror="__loadFail(this.src)"></script>
+<script src="collision-view.js"      onerror="__loadFail(this.src)"></script>
+<script src="models/so101_meshes.js"  onerror="__loadFail(this.src)"></script>
+<script src="models/so101_visuals.js" onerror="__loadFail(this.src)"></script>
+<script src="models/so101_points.js"  onerror="__loadFail(this.src)"></script>
+<script src="models/so101_tris.js"    onerror="__loadFail(this.src)"></script>
+<script src="collide.js"              onerror="__loadFail(this.src)"></script>
+<script src="chikuwa-collision.js"   onerror="__loadFail(this.src)"></script>
+<script src="self-collision.js"      onerror="__loadFail(this.src)"></script>
+<script>window.SCENE_SKIP_DEFAULT = true;   // scene-data.js の読み込みでは組まない。下で「組み立て中」を出してから組む</script>
+<script src="scene-data.js"           onerror="__loadFail(this.src)"></script>
+<script src="vision.js"               onerror="__loadFail(this.src)"></script>
+<script>
+// 立ち上げ: 先に「組み立て中」を描いてから組む(白い画面で待たされないように。2026-11-17)。合計の時間は変わらない。
+//   測った時間は window.__boot に入れる(scripts = ファイルを読み終えるまで・build = 組み立て・total = ページを開いてから絵が出るまで [ミリ秒])
+window.__simStart = function () {
+  // scene-data.js は次のどちらでもよい:
+  //   (A) SCENE_MODEL … パラメータを渡すとシーンを組み直せる「関数版」。スライダーが出る
+  //   (B) SCENE_DATA  … 固定のシーンデータ。従来どおりそのまま表示する
+  const model = (typeof SCENE_MODEL !== "undefined") ? SCENE_MODEL : null;
+  let uiValues = model ? model.defaultUiValues() : null;
+  // URLに ?V=90&GAP=150&STEP=100 のように書くと、その条件で開けます
+  // (メールで「この条件で見てください」と送るとき用。file:// のままで効きます)
+  if (model && location.search) {
+    const q = new URLSearchParams(location.search);
+    model.controls.forEach(c => {
+      const v = parseFloat(q.get(c.key));
+      if (!isFinite(v)) return;
+      // プルダウン(type:"select")はクランプせずそのまま入れる
+      uiValues[c.key] = (c.type === "select") ? v : Math.min(Math.max(v, c.min), c.max);
+    });
+    // ?_force=1 … 検算用: 指が入らないすき間でも「入る」として解かせる(当たり判定が赤を出すかを目で見る)
+    if (q.get("_force") === "1") uiValues.FORCE_FIT = true;
+    // ?LAYOUT={"pieces":[{"x":..,"z":..,"yaw":..}]} … 置き場をファイルの中身で渡す(計画書_完成形まで の S-5。layouts/*.json と同じ形)
+    if (q.get("LAYOUT")) {
+      try { uiValues.LAYOUT = JSON.parse(q.get("LAYOUT")); }
+      catch (e) { console.error("LAYOUT の JSON が読めない: " + e.message); }
+    }
+  }
+  // ★この画面では scene-data.js に初期値を組ませていない(SCENE_SKIP_DEFAULT。SCENE_DATA = null)ので、ここで 1 度だけ組む。
+  //   SCENE_DATA があるとき(印を立てずに読んだとき)は、初期値のままならそれを使う(同じものを 2 度組まない)。
+  //   ★URL で条件を変えたとき(?GAP=4 など)は、初期値の SCENE_DATA を使うと
+  //     欄の数字だけ変わって絵と表が初期値のまま、になる(2026-11-12 に踏んだ)。そのときは組み直す。
+  const urlChanged = !!(model && uiValues &&
+    JSON.stringify(uiValues) !== JSON.stringify(model.defaultUiValues()));
+  let data = (typeof SCENE_DATA !== "undefined" && SCENE_DATA && !urlChanged)
+               ? SCENE_DATA
+               : (model ? model.buildFromUi(uiValues) : null);
+  if (!data) {
+    // 「読み込めていません」だけだと現場で手が止まるので、
+    // 何がどう足りないのかを画面に全部出す。
+    const dg = window.__diag || { failed: [], errors: [] };
+
+    // ★HTML を data: URL に取り込んで表示するタイプのプレビュー
+    //   (Claude Code の右ペインなど) では、相対パスの <script src> が
+    //   一切解決できず、THREE から順に全部 undefined になる。
+    //   これはこちらの不具合ではないので、真っ先にそれと分かるように出す。
+    if (location.protocol === "data:" || location.href.slice(0, 5) === "data:") {
+      document.body.innerHTML =
+        "<div style='color:#eee;font:14px/1.8 \"Yu Gothic\",sans-serif;padding:28px;max-width:760px'>" +
+        "<h2 style='margin:0 0 10px'>このプレビューでは表示できません</h2>" +
+        "<p>いま表示しているのは HTML を <code>data:</code> URL に取り込んだ画面です。" +
+        "この方式だと <code>lib/three.min.js</code> や <code>models/*.mesh.js</code> のような" +
+        "<b>相対パスのファイルを一切読み込めない</b>ため、シーンを組み立てられません。" +
+        "ビューア側の不具合ではありません。</p>" +
+        "<p style='color:#6fdc8c'><b>エクスプローラから index.html をダブルクリックして開いてください。</b>" +
+        "それで全機能が動きます。</p></div>";
+      return;
+    }
+    const need = {
+      "THREE (lib/three.min.js)": typeof THREE,
+      "THREE.OrbitControls": (typeof THREE !== "undefined" && THREE.OrbitControls) ? "ok" : "undefined",
+      "KIN (kinematics.js)": typeof KIN,
+      "SO101 (so101.js)": typeof SO101,
+      "PUZZLE (puzzle.js)": typeof PUZZLE,
+      "SCENE_MODEL (scene-data.js)": typeof SCENE_MODEL,
+      "MESHES (models/so101_meshes.js)": (typeof MESHES !== "undefined")
+        ? Object.keys(MESHES).length + " 個" : "undefined",
+      "SELF_COLLIDE (self-collision.js)": typeof SELF_COLLIDE
+    };
+    const rows = Object.keys(need).map(k =>
+      "<tr><td style='padding:2px 14px 2px 0'>" + k + "</td><td style='color:" +
+      (need[k] === "undefined" ? "#ff7a6b" : "#6fdc8c") + "'>" + need[k] + "</td></tr>").join("");
+    document.body.innerHTML =
+      "<div style='color:#eee;font:13px/1.7 \"Yu Gothic\",sans-serif;padding:28px;max-width:820px'>" +
+      "<h2 style='margin:0 0 12px'>シーンを組み立てられませんでした</h2>" +
+      "<table style='border-collapse:collapse;margin-bottom:16px'>" + rows + "</table>" +
+      (dg.failed.length
+        ? "<p style='color:#ff7a6b'><b>読み込みに失敗したファイル:</b><br>" + dg.failed.join("<br>") + "</p>"
+        : "<p style='color:#9aa'>ファイルの読み込み自体は全て成功しています。</p>") +
+      (dg.errors.length
+        ? "<p style='color:#f2c14e'><b>発生したエラー:</b><br>" + dg.errors.join("<br>") + "</p>"
+        : "") +
+      "<p style='color:#9aa;margin-top:18px'>よくある原因:<br>" +
+      "・<b>ブラウザのキャッシュ</b> … <b>Ctrl+Shift+R</b> で強制再読み込みしてください<br>" +
+      "・index.html だけを別の場所へコピーした（lib/ models/ scene-data.js が同じ階層に必要です）<br>" +
+      "・models/*.mesh.js が未生成 … <code>python tools/build_models.py</code> を実行してください</p>" +
+      "<p style='color:#667'>現在のURL: " + location.href + "</p></div>";
+    return;
+  }
+
+  const env = data.environment || {};
+  const DEG = Math.PI / 180;
+
+  // ---------- 基本セットアップ(組み直しても作り直さない部分) ----------
+  const holder = document.getElementById("canvas-holder");
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(env.backgroundColor || "#dfe6ee");
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.02, 500);
+  camera.position.set(6, 4, 6);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const useShadow = env.shadows !== false;
+  if (useShadow) {
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+  holder.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0.8, 0);
+  controls.enableDamping = true;
+  // ★マウスに触った瞬間にカメラワークを解除する。
+  //   「ぐるり」は毎フレーム位置を上書きするので、これが無いと視点を動かせない
+  controls.addEventListener("start", function () {
+    currentShot = null; currentShotIndex = null; flyFrom = null;
+    if (typeof markFreeCam === "function") markFreeCam();
+  });
+  controls.dampingFactor = 0.08;
+  // ★左ドラッグと右ドラッグを入れ替える(利用者指定)
+  //     左ドラッグ = 平行移動 / 右ドラッグ = 視点回転
+  //   three.js の MapControls と同じ割り当て。OrbitControls の既定は逆なので、
+  //   インスタンスに対して明示的に上書きする。
+  if (THREE.MOUSE) {
+    controls.mouseButtons.LEFT  = THREE.MOUSE.PAN;
+    controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+  }
+
+  // ライト
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  dirLight.position.set(4, 8, 6);
+  if (useShadow) {
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    const sc = dirLight.shadow.camera;
+    const ext = env.shadowExtent || 4;
+    sc.left = -ext; sc.right = ext; sc.top = ext; sc.bottom = -ext;
+    sc.near = 0.1; sc.far = 30;
+    dirLight.shadow.bias = -0.0006;
+  }
+  scene.add(dirLight);
+  const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+  dirLight2.position.set(-6, 4, -5);
+  scene.add(dirLight2);
+
+  // 床・グリッド
+  if (env.showGrid !== false) {
+    const grid = new THREE.GridHelper(30, 60, 0x8a94a6, 0xaab2bd);
+    grid.position.y = 0.0005;
+    scene.add(grid);
+  }
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 60),
+    new THREE.MeshStandardMaterial({ color: env.groundColor || "#b9c2cc", roughness: 1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.001;
+  if (useShadow) ground.receiveShadow = true;
+  scene.add(ground);
+
+  // 装置一式はこの下にぶら下げる。条件を変えたらここだけ捨てて作り直す。
+  const worldRoot = new THREE.Group();
+  scene.add(worldRoot);
+
+  // ---------- 展開処理: groups(組立の複製) と repeat(パーツの大量複製) ----------
+  function expandPartRepeat(p) {
+    if (!p.repeat) return [p];
+    const count = p.repeat.count || 1;
+    const sp = p.repeat.spacing || [0, 0, 0];
+    const basePos = p.position || [0, 0, 0];
+    const results = [];
+    for (let i = 0; i < count; i++) {
+      const pos = [
+        (basePos[0] || 0) + (sp[0] || 0) * i,
+        (basePos[1] || 0) + (sp[1] || 0) * i,
+        (basePos[2] || 0) + (sp[2] || 0) * i
+      ];
+      const clone = Object.assign({}, p, { id: p.id + "#" + i, position: pos });
+      delete clone.repeat;
+      results.push(clone);
+    }
+    return results;
+  }
+
+  function expandAnimationForPart(anim, part) {
+    if (!part || !part.repeat) return [anim];
+    const count = part.repeat.count || 1;
+    const phaseOffset = part.repeat.phaseOffset || 0;
+    const results = [];
+    for (let i = 0; i < count; i++) {
+      results.push(Object.assign({}, anim, {
+        target: part.id + "#" + i,
+        phaseOffsetSeconds: (anim.phaseOffsetSeconds || 0) + phaseOffset * i
+      }));
+    }
+    return results;
+  }
+
+  function expandScene(rawData) {
+    const expandedParts = [];
+    const expandedAnimations = [];
+
+    (rawData.groups || []).forEach(group => {
+      const count = group.count || 1;
+      const off = group.offset || [0, 0, 0];
+      const groupParts = group.parts || [];
+      const groupAnims = group.animations || [];
+      for (let g = 0; g < count; g++) {
+        const suffix = "__" + (group.idPrefix || "grp") + g;
+        const idMap = {};
+        groupParts.forEach(p => { idMap[p.id] = p.id + suffix; });
+
+        groupParts.forEach(p => {
+          const newParent = p.parent ? (idMap[p.parent] || p.parent) : null;
+          const pos = (p.position || [0, 0, 0]).slice();
+          if (!p.parent) {
+            pos[0] = (pos[0] || 0) + (off[0] || 0) * g;
+            pos[1] = (pos[1] || 0) + (off[1] || 0) * g;
+            pos[2] = (pos[2] || 0) + (off[2] || 0) * g;
+          }
+          const newPart = Object.assign({}, p, { id: idMap[p.id], parent: newParent, position: pos });
+          expandPartRepeat(newPart).forEach(pp => expandedParts.push(pp));
+        });
+
+        groupAnims.forEach(a => {
+          const newTarget = idMap[a.target] || a.target;
+          const srcPart = groupParts.find(p => p.id === a.target);
+          const retargeted = Object.assign({}, a, { target: newTarget });
+          if (srcPart) {
+            expandAnimationForPart(retargeted, Object.assign({}, srcPart, { id: newTarget })).forEach(aa => expandedAnimations.push(aa));
+          } else {
+            expandedAnimations.push(retargeted);
+          }
+        });
+      }
+    });
+
+    (rawData.parts || []).forEach(p => {
+      expandPartRepeat(p).forEach(pp => expandedParts.push(pp));
+    });
+    (rawData.animations || []).forEach(a => {
+      const srcPart = (rawData.parts || []).find(p => p.id === a.target);
+      expandAnimationForPart(a, srcPart).forEach(aa => expandedAnimations.push(aa));
+    });
+
+    return { parts: expandedParts, animations: expandedAnimations };
+  }
+
+  // ---------- 補間 ----------
+  function sampleTrack(track, t) {
+    const n = track.length;
+    if (t <= track[0].t) return track[0].v;
+    if (t >= track[n - 1].t) return track[n - 1].v;
+    let i = 0;
+    while (i < n - 1 && track[i + 1].t <= t) i++;
+    const a = track[i], b = track[i + 1];
+    if (b.hold) return a.v;
+    let u = (b.t > a.t) ? (t - a.t) / (b.t - a.t) : 1;
+    if (b.ease === "inOut") u = u < 0.5 ? 2 * u * u : -1 + (4 - 2 * u) * u;
+    else if (b.ease === "in") u = u * u;
+    else if (b.ease === "out") u = u * (2 - u);
+    if (typeof a.v === "number") return a.v + (b.v - a.v) * u;
+    return [
+      (a.v[0] || 0) + ((b.v[0] || 0) - (a.v[0] || 0)) * u,
+      (a.v[1] || 0) + ((b.v[1] || 0) - (a.v[1] || 0)) * u,
+      (a.v[2] || 0) + ((b.v[2] || 0) - (a.v[2] || 0)) * u
+    ];
+  }
+
+  // ---------- ジオメトリ/マテリアル ----------
+  let geometryCache = {};
+  let materialCache = {};
+  function makeGeometry(part) {
+    const s = part.size || [];
+    const key = part.shape + ":" + s.join(",");
+    if (geometryCache[key]) return geometryCache[key];
+    let geo;
+    switch (part.shape) {
+      case "box":
+        geo = new THREE.BoxGeometry(s[0] || 1, s[1] || 1, s[2] || 1);
+        break;
+      case "cylinder":
+        geo = new THREE.CylinderGeometry(s[0] || 0.5, s[1] || 0.5, s[2] || 1, s[3] || 32);
+        break;
+      case "sphere":
+        geo = new THREE.SphereGeometry(s[0] || 0.5, 24, 16);
+        break;
+      case "cone":
+        geo = new THREE.ConeGeometry(s[0] || 0.5, s[1] || 1, s[2] || 32);
+        break;
+      case "tube": {
+        // 中空の筒(ちくわ・パイプなど)。size = [外半径, 内半径, 長さ, 円周分割数]
+        const ro = s[0] !== undefined ? s[0] : 0.05;
+        const ri = s[1] !== undefined ? s[1] : 0.02;
+        const h = s[2] !== undefined ? s[2] : 0.2;
+        const seg = s[3] || 24;
+        const pts = [
+          new THREE.Vector2(ri, -h / 2),
+          new THREE.Vector2(ro, -h / 2),
+          new THREE.Vector2(ro, h / 2),
+          new THREE.Vector2(ri, h / 2),
+          new THREE.Vector2(ri, -h / 2)
+        ];
+        geo = new THREE.LatheGeometry(pts, seg);
+        break;
+      }
+      default:
+        geo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    }
+    geometryCache[key] = geo;
+    return geo;
+  }
+
+  // ---------- CAD メッシュ (models/*.mesh.js) の復元 ----------
+  // 位置は bbox 内 16bit 量子化、法線は int8 で入っている。
+  // 生の .obj に比べて 1/10 前後に縮むので file:// のまま実用になる。
+  function b64ToBytes(s) {
+    const bin = atob(s);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  const meshGeoCache = {};   // "モデル名#グループ番号" -> BufferGeometry
+  function buildMeshGeometries(modelName) {
+    if (meshGeoCache[modelName]) return meshGeoCache[modelName];
+    const src = (typeof MESHES !== "undefined") ? MESHES[modelName] : null;
+    if (!src) {
+      console.warn("メッシュが見つかりません:", modelName);
+      return meshGeoCache[modelName] = [];
+    }
+    const list = src.groups.map(g => {
+      const qp = new Uint16Array(b64ToBytes(g.p).buffer);
+      const qn = new Int8Array(b64ToBytes(g.n).buffer);
+      const raw = b64ToBytes(g.i);
+      const idx = g.i32 ? new Uint32Array(raw.buffer) : new Uint16Array(raw.buffer);
+
+      const n = qp.length / 3;
+      const pos = new Float32Array(qp.length);
+      const ox = g.q[0], oy = g.q[1], oz = g.q[2];
+      const sx = g.q[3], sy = g.q[4], sz = g.q[5];
+      for (let i = 0; i < n; i++) {
+        pos[i * 3    ] = ox + qp[i * 3    ] * sx;
+        pos[i * 3 + 1] = oy + qp[i * 3 + 1] * sy;
+        pos[i * 3 + 2] = oz + qp[i * 3 + 2] * sz;
+      }
+      const nor = new Float32Array(qn.length);
+      for (let i = 0; i < qn.length; i++) nor[i] = qn[i] / 127;
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      geo.userData.keepCached = true;   // disposeWorld で捨てさせない
+      return { geo: geo, color: g.c };
+    });
+    return meshGeoCache[modelName] = list;
+  }
+
+  // shape:"mesh" のパーツを組み立てる。
+  //   part.mesh      … MESHES のキー (例 "arm_J2")
+  //   part.color     … 指定するとCAD側の色を無視して単色にする
+  //   part.opacity   … 半透明にしたいとき
+  function addMeshTo(group, part) {
+    const unique = !!part.uniqueMaterial || part.opacity !== undefined;
+    buildMeshGeometries(part.mesh).forEach(g => {
+      const op = part.opacity !== undefined ? part.opacity : 1;
+      const col = part.color || g.color;
+      const key = "M:" + col + ":" + op + ":" + (part.metal ? 1 : 0);
+      let mat = unique ? null : materialCache[key];
+      if (!mat) {
+        mat = new THREE.MeshStandardMaterial({
+          color: col,
+          transparent: op < 1,
+          opacity: op,
+          depthWrite: op >= 1,
+          roughness: part.metal ? 0.40 : 0.62,
+          metalness: part.metal ? 0.20 : 0.05
+        });
+        if (!unique) materialCache[key] = mat;
+      }
+      const m = new THREE.Mesh(g.geo, mat);
+      if (useShadow && part.noShadow !== true) {
+        m.castShadow = op >= 1;
+        m.receiveShadow = true;
+      }
+      group.add(m);
+    });
+  }
+
+  function degToRad3(arr) {
+    if (!arr) return [0, 0, 0];
+    return arr.map(d => (d || 0) * DEG);
+  }
+
+  function makeMaterial(part, unique) {
+    const op = part.opacity !== undefined ? part.opacity : 1;
+    const dbl = part.shape === "tube" || part.doubleSide === true;
+    const key = (part.color || "#7c8794") + ":" + op + ":" + !!part.wireframe + ":" + dbl + ":" + (part.metal ? 1 : 0);
+    const build = () => new THREE.MeshStandardMaterial({
+      color: part.color || "#7c8794",
+      transparent: op < 1,
+      opacity: op,
+      depthWrite: op >= 1,
+      wireframe: !!part.wireframe,
+      side: dbl ? THREE.DoubleSide : THREE.FrontSide,
+      // 環境マップを持たないので metalness を上げると反射する物が無く「真っ黒」になる。
+      // 金属らしさは roughness を下げるハイライトだけで出し、metalness は低く抑える
+      roughness: part.metal ? 0.40 : 0.72,
+      metalness: part.metal ? 0.20 : 0.05
+    });
+    if (unique) return build();
+    if (!materialCache[key]) materialCache[key] = build();
+    return materialCache[key];
+  }
+
+  // ---------- 装置一式の組み立て / 作り直し ----------
+  let nodes = {};        // id -> THREE.Group
+  let animations = [];   // 展開済みアニメーション
+
+  function disposeWorld() {
+    worldRoot.traverse(o => {
+      if (o.isMesh) {
+        // CADメッシュは条件を変えても中身が変わらないので使い回す。
+        // ここで dispose すると2回目の組み直しで真っ白になる
+        if (o.geometry && !o.geometry.userData.keepCached) o.geometry.dispose();
+        const mats = Array.isArray(o.material) ? o.material : (o.material ? [o.material] : []);
+        mats.forEach(m => m.dispose());
+      }
+    });
+    while (worldRoot.children.length) worldRoot.remove(worldRoot.children[0]);
+    geometryCache = {};
+    materialCache = {};
+    nodes = {};
+    animations = [];
+    cvHitMeshes = {};
+  }
+
+  // =========================================================================
+  // ★当たり判定の可視化
+  //   SCENE_MODEL.probe(ui) が返す「判定に実際に使っている形状」を、
+  //   ビューアと同じ親子関係で部品に変換して足す。
+  //   ★scene-data を触らずに済むので、既存のモックにもそのまま効く。
+  //   絵と判定がズレていたら、ここで一目で分かる。
+  // =========================================================================
+  let cvMode = 0;                    // 0=通常 / 1=重ねて表示 / 2=判定のみ
+
+  // ★干渉点のチェック(絶対条件7 / K-39)
+  //   「当たり判定: 重ねる / これだけ」のときに ON にすると、
+  //   ★その時刻に干渉していると判定された判定体だけが赤くなる。
+  //   これが無いと、当たり判定を重ねて出しても
+  //   「どれとどれが当たっているのか」が絵から分からない。
+  //   実際、利用者が「干渉の瞬間」を開いて
+  //   「2つとも干渉していないように見える」で止まった。
+  //
+  //   ★色の出どころは scene-data の build が返す data.hits。
+  //     これは★ビルドが使った checkPose と NFIX そのもの(絶対条件9)で作ってある。
+  //     ビューア側で当たり判定を計算し直さない。し直すと絵と合否がまた食い違う。
+  let hitCheck = false;
+  let cvHitMeshes = {};              // 判定体の名前 -> [THREE.Mesh]
+  let hitSegs = [];                  // [{t0,t1,ids}] … data.hits
+  let hitCycle = 0;                  // 1周の秒数(関節アニメと同じ)。0 なら折り返さない
+  const HIT_COLOR = "#ff1e1e";
+  const HIT_OPACITY = 0.72;          // 赤は他の判定体より濃くして手前に見せる
+  function withCollisionParts(d) {
+    // ★隠しているときは作らない。
+    //   判定体は 3,000個を超える。作るだけで probe(幾何のフルビルド 5.7秒)が走り、
+    //   three.js にその数のメッシュを作らせることになる。
+    //   ★「見えないが在る」状態を毎回作っていたのが、開いたときの重さの正体。
+    //   ボタンを押した瞬間に作り直す(applyCvMode がやる)。
+    if (cvMode === 0) return d;
+    if (!model || typeof model.probe !== "function" ||
+        typeof COLLISION_VIEW === "undefined") return d;
+    let pb = null;
+    try { pb = model.probe(uiValues); } catch (e) { pb = null; }
+    if (!pb) return d;
+    let extra = [];
+    try { extra = COLLISION_VIEW.parts(pb, { work: pb.heldWorkView }); }
+    catch (e) { extra = []; }
+    if (!extra.length) return d;
+    return Object.assign({}, d, { parts: d.parts.concat(extra) });
+  }
+  function applyCvMode() {
+    hitPaintedKey = null;            // ★塗り直しを強制する
+    // ★隠している間は判定体を作っていない。出す側へ回したなら、ここで作り直す。
+    //   ★作り直しは一度だけ。次からは既にあるので rebuild しない。
+    //   ★rebuild() は使わない。あれは model.buildFromUi = **解き直し(30分)**。
+    //     ここで要るのは「いまの data から絵を作り直す」だけ。
+    if (cvMode > 0 && !Object.keys(nodes).some(id => id.indexOf("cv_") === 0)) {
+      buildWorld(data);                                   // 解き直さない
+      animations.forEach(function(an){ applyAnimation(an, animT); });   // 時刻を保つ
+      applyCvMode();                                      // 作った直後に表示を合わせる
+      return;
+    }
+    Object.keys(nodes).forEach(id => {
+      const n = nodes[id];
+      if (!n) return;
+      if (id.indexOf("cv_") === 0) n.visible = (cvMode > 0);
+      else if (id.indexOf("arm_J") === 0 || id.indexOf("vis_") === 0 || id === "work" ||
+               id === "wheel_stand" || id === "wheel_held" || id === "wheel")
+        n.visible = (cvMode !== 2);
+    });
+  }
+
+  function buildWorld(d) {
+    disposeWorld();
+    const expanded = expandScene(withCollisionParts(d));
+
+    // keys(キーフレーム)アニメーションの前処理。
+    // 各キーは pos / rot(度) / scale / opacity のうち書いたものだけ持てばよい。
+    const opacityAnimated = {}; // 透明度をアニメさせるパーツはマテリアルを個別化する
+    expanded.animations.forEach(anim => {
+      if (anim.type !== "keys" || !anim.keys) return;
+      const tracks = {};
+      ["pos", "rot", "scale", "opacity", "angle"].forEach(ch => {
+        const arr = anim.keys
+          .filter(k => k[ch] !== undefined)
+          .map(k => ({ t: k.t || 0, v: k[ch], hold: !!k.hold, ease: k.ease }))
+          .sort((a, b) => a.t - b.t);
+        if (arr.length) tracks[ch] = arr;
+      });
+      anim._tracks = tracks;
+      if (tracks.opacity) opacityAnimated[anim.target] = true;
+    });
+
+    const pending = expanded.parts.slice();
+    let safety = 0;
+    while (pending.length && safety < 20) {
+      safety++;
+      for (let i = pending.length - 1; i >= 0; i--) {
+        const part = pending[i];
+        const parentNode = part.parent ? nodes[part.parent] : worldRoot;
+        if (part.parent && !parentNode) continue; // 親が未生成なら次のパスへ
+
+        const group = new THREE.Group();
+        const pos = part.position || [0, 0, 0];
+        group.position.set(pos[0] || 0, pos[1] || 0, pos[2] || 0);
+        // 回転の指定は2通り:
+        //   rotationDeg … XYZオイラー角(従来どおり)
+        //   axis+angleDeg … 任意の軸まわりの回転。ロボットの関節はこちらを使う
+        //     (関節軸は空間の斜め方向を向いているので、オイラー角では表せない)
+        if (part.axis) {
+          const av = new THREE.Vector3(part.axis[0], part.axis[1], part.axis[2]).normalize();
+          group.quaternion.setFromAxisAngle(av, (part.angleDeg || 0) * DEG);
+        } else {
+          const rot = degToRad3(part.rotationDeg);
+          group.rotation.set(rot[0], rot[1], rot[2]);
+        }
+        const sc = part.scale || [1, 1, 1];
+        group.scale.set(sc[0], sc[1], sc[2]);
+
+        // shape:"group" は形を持たない基準点(空グループ)。子パーツをまとめて動かす用。
+        if (part.shape === "mesh") {
+          // CAD から取り込んだ形状(models/*.mesh.js)。色は CAD の材質色をそのまま使う
+          addMeshTo(group, part);
+        } else if (part.shape && part.shape !== "group") {
+          // ★hit を持つ部品(= 判定体)は必ず材質を専有させる。
+          //   共有材質のままだと1つ赤くしたときに同じ色の判定体が全部赤くなる。
+          const unique = !!part.uniqueMaterial || !!opacityAnimated[part.id] || !!part.hit;
+          const mesh = new THREE.Mesh(makeGeometry(part), makeMaterial(part, unique));
+          if (useShadow && part.noShadow !== true) {
+            mesh.castShadow = (part.opacity === undefined || part.opacity >= 1);
+            mesh.receiveShadow = true;
+          }
+          group.add(mesh);
+        }
+
+        group.userData.partId = part.id;
+        // ★判定体 → メッシュの対応を覚える。part.hit は checkPose が返す
+        //   link / obstacle の名前と★同じ文字列(collision-view.js が入れる)。
+        //   ここがずれると赤くなる場所が嘘になるので、名前は変換しない。
+        if (part.hit) {
+          group.userData.hitId = part.hit;
+          group.traverse(c => {
+            if (!c.isMesh || !c.material) return;
+            c.userData.baseColor = c.material.color.getHex();
+            c.userData.baseOpacity = c.material.opacity;
+            c.userData.baseTransparent = c.material.transparent;
+            c.userData.baseDepthWrite = c.material.depthWrite;
+            (cvHitMeshes[part.hit] || (cvHitMeshes[part.hit] = [])).push(c);
+          });
+        }
+        // 関節は「軸まわりの角度」でアニメーションさせるので、軸を覚えておく
+        if (part.axis) group.userData.axis = part.axis.slice();
+        group.userData.basePosition = group.position.clone();
+        group.userData.baseRotation = group.rotation.clone();
+        group.userData.baseScale = group.scale.clone();
+
+        parentNode.add(group);
+        nodes[part.id] = group;
+        pending.splice(i, 1);
+      }
+    }
+    if (pending.length) {
+      console.warn("親パーツが見つからず配置できなかったパーツがあります:", pending.map(p => p.id));
+    }
+    animations = expanded.animations;
+
+    // ★干渉の時刻表を取り込む。build が返した hits をそのまま使う(再計算しない)。
+    hitSegs = Array.isArray(d.hits) ? d.hits : [];
+    hitPaintedKey = null;            // ★部品を作り直したので、塗り直しを強制する
+    // 折り返しの周期は★関節アニメと同じものを使う。ここがずれると
+    // 「赤いのに絵は当たっていない」時刻が出て、また信用できなくなる。
+    hitCycle = 0;
+    for (const a of animations) {
+      if (a.type === "keys" && a.loop !== false && /^j[1-9]$/.test(a.target || "") && a.duration) {
+        hitCycle = a.duration; break;
+      }
+    }
+    if (!hitCycle && hitSegs.length) hitCycle = hitSegs[hitSegs.length - 1].t1;
+  }
+
+  // ★いまの時刻に干渉している判定体だけを赤くする。
+  //   cvMode が 0(判定を隠す)のとき、または 干渉点のチェックが OFF のときは、
+  //   全部もとの色へ戻す。
+  let hitPaintedKey = null;          // 前フレームと同じ顔ぶれなら塗り直さない
+  function applyHitHighlight(t) {
+    const on = (cvMode > 0) && hitCheck && hitSegs.length;
+    let ids = null;
+    if (on) {
+      let tw = t;
+      if (hitCycle > 0) tw = ((t % hitCycle) + hitCycle) % hitCycle;
+      for (let i = 0; i < hitSegs.length; i++) {
+        // ★区間で持っているので、コマ間で干渉している間はその区間ずっと赤いまま
+        if (tw >= hitSegs[i].t0 && tw < hitSegs[i].t1) { ids = hitSegs[i].ids; break; }
+      }
+    }
+    const key = on ? (ids ? ids.join("|") : "") : "(off)";
+    if (key === hitPaintedKey) return;
+    hitPaintedKey = key;
+    const red = {};
+    if (ids) for (const id of ids) red[id] = 1;
+    Object.keys(cvHitMeshes).forEach(hid => {
+      const hot = !!red[hid];
+      cvHitMeshes[hid].forEach(m => {
+        if (hot) {
+          m.material.color.setStyle(HIT_COLOR);
+          m.material.opacity = HIT_OPACITY;
+          m.material.transparent = true;
+          m.material.depthWrite = false;
+        } else {
+          m.material.color.setHex(m.userData.baseColor);
+          m.material.opacity = m.userData.baseOpacity;
+          m.material.transparent = m.userData.baseTransparent;
+          m.material.depthWrite = m.userData.baseDepthWrite;
+        }
+      });
+    });
+  }
+
+  // ---------- アニメーション ----------
+  function applyAnimation(anim, tSecondsRaw) {
+    const node = nodes[anim.target];
+    if (!node) return;
+    const base = node.userData;
+    const tSeconds = tSecondsRaw + (anim.phaseOffsetSeconds || 0);
+
+    if (anim.type === "rotate") {
+      const axis = anim.axis || "y";
+      const angle = ((anim.speed || 30) * DEG) * tSeconds;
+      node.rotation.copy(base.baseRotation);
+      node.rotation[axis] += angle;
+    } else if (anim.type === "translateLoop" || anim.type === "translateOnce") {
+      const axis = anim.axis || "x";
+      const dist = anim.distance !== undefined ? anim.distance : 1;
+      const dur = anim.duration || 2;
+      let phase;
+      if (anim.type === "translateLoop") {
+        const cyclePos = (tSeconds % (dur * 2)) / dur; // 0..2
+        phase = cyclePos <= 1 ? cyclePos : 2 - cyclePos;
+      } else {
+        phase = Math.min(Math.max(tSeconds, 0) / dur, 1);
+      }
+      node.position.copy(base.basePosition);
+      node.position[axis] += dist * phase;
+    } else if (anim.type === "translateCycle") {
+      const axis = anim.axis || "x";
+      const dist = anim.distance !== undefined ? anim.distance : 1;
+      const dur = anim.duration || 2;
+      const tWrapped = ((tSeconds % dur) + dur) % dur;
+      node.position.copy(base.basePosition);
+      node.position[axis] += dist * (tWrapped / dur);
+    } else if (anim.type === "keys") {
+      // 複数区間をつなぐ動き(搬送 → ジャンプ → 落下 → 退出 など)
+      const tr = anim._tracks || {};
+      const dur = anim.duration || 1;
+      let t = tSeconds;
+      if (anim.loop === false) t = Math.min(Math.max(t, 0), dur);
+      else t = ((t % dur) + dur) % dur;
+      if (tr.pos) { const v = sampleTrack(tr.pos, t); node.position.set(v[0], v[1], v[2]); }
+      if (tr.rot) { const v = sampleTrack(tr.rot, t); node.rotation.set(v[0] * DEG, v[1] * DEG, v[2] * DEG); }
+      if (tr.scale) { const v = sampleTrack(tr.scale, t); node.scale.set(v[0], v[1], v[2]); }
+      // angle: そのパーツ自身の回転軸まわりの角度[度]。ロボットの関節用。
+      // 関節軸は空間の斜め方向を向いているので、オイラー角では表せない
+      if (tr.angle !== undefined) {
+        const a = node.userData.axis;
+        if (a) {
+          const deg = sampleTrack(tr.angle, t);
+          node.quaternion.setFromAxisAngle(
+            new THREE.Vector3(a[0], a[1], a[2]).normalize(), deg * DEG);
+        }
+      }
+      if (tr.opacity) {
+        const o = sampleTrack(tr.opacity, t);
+        node.traverse(c => {
+          if (c.isMesh && c.material) {
+            c.material.transparent = o < 1;
+            c.material.opacity = o;
+            c.material.depthWrite = o >= 0.999;
+          }
+        });
+      }
+    }
+  }
+
+  // ---------- カメラワーク ----------
+  let cameraShots = [];
+  let currentShot = null;
+  let currentShotIndex = null;
+  let shotStartTime = 0;
+  let flyFrom = null;
+
+  function activateShot(shot, idx, elapsedNow) {
+    currentShot = shot;
+    currentShotIndex = idx;
+    shotStartTime = elapsedNow;
+    if (shot.type === "flyTo") {
+      flyFrom = { position: camera.position.clone(), target: controls.target.clone() };
+    }
+    if (shot.type === "fixed" && shot.position) {
+      camera.position.set(shot.position[0], shot.position[1], shot.position[2]);
+    }
+    if (shot.target && shot.type === "fixed") {
+      controls.target.set(shot.target[0], shot.target[1], shot.target[2]);
+    }
+    // ★shot.atTime があれば、その瞬間へアニメーションを飛ばして止める。
+    //   「当たった瞬間の配置」をワンクリックで見るために使う。
+    //   一時停止しないと、見た瞬間に動いていってしまう。
+    if (shot.atTime !== undefined) {
+      animT = shot.atTime;
+      playing = false;
+      if (toggleBtn) {
+        toggleBtn.textContent = "アニメーション: 一時停止中 (クリックで再生)";
+      }
+      animations.forEach(a => applyAnimation(a, animT));
+    }
+  }
+
+  // ★カメラの位置からの画角("view" = 止まったカメラ・"track" = 手首のカメラのように腕と動く)。向き(up)と縦の画角(fov)も合わせる。
+  //   このあいだは OrbitControls を止める(OrbitControls は up = 真上の前提で回すので、up を変えると向きが狂う)。外したら元に戻す
+  let camLocked = false, camHidden = [];
+  //   shot.hidePrefix: この視点のあいだ隠す部品の id の頭(手首のカメラから撮るとき、カメラ自身の形 vis_cam_ が視野をふさぐ)
+  function setCamHidden(prefix) {
+    camHidden.forEach(n => { n.visible = true; }); camHidden = [];
+    if (!prefix) return;
+    Object.keys(nodes).forEach(id => { if (id.indexOf(prefix) === 0 && nodes[id].visible) { nodes[id].visible = false; camHidden.push(nodes[id]); } });
+  }
+  function updateCamera(elapsedNow) {
+    const lockNow = !!currentShot && (currentShot.type === "view" || currentShot.type === "track");
+    if (!lockNow && camLocked) { camLocked = false; setCamHidden(null); camera.up.set(0, 1, 0); camera.fov = 45; camera.updateProjectionMatrix(); }
+    if (!currentShot) return;
+    const shot = currentShot;
+    if (lockNow) {
+      let p = shot.position, tg = shot.target, up = shot.up;
+      if (shot.type === "track" && shot.keys && shot.keys.length) {
+        const K = shot.keys; let i = 0;
+        while (i < K.length - 2 && K[i + 1].t <= animT) i++;
+        const a = K[i], b = K[i + 1] || a, u = b.t > a.t ? Math.min(1, Math.max(0, (animT - a.t) / (b.t - a.t))) : 0;
+        const L = (x, y) => x.map((v, k) => v + (y[k] - v) * u);
+        p = L(a.p, b.p); tg = L(a.tg, b.tg); up = L(a.up, b.up);
+      }
+      if (!camLocked || (shot.hidePrefix && !camHidden.length)) setCamHidden(shot.hidePrefix || null);
+      camLocked = true;
+      camera.fov = shot.fov || 45; camera.updateProjectionMatrix();
+      camera.up.set(up[0], up[1], up[2]);
+      camera.position.set(p[0], p[1], p[2]);
+      camera.lookAt(tg[0], tg[1], tg[2]);
+      controls.target.set(tg[0], tg[1], tg[2]);
+      return;
+    }
+    if (shot.type === "orbit") {
+      const t = elapsedNow - shotStartTime;
+      const angle = ((shot.speed || 15) * DEG) * t + (shot.startAngleDeg || 0) * DEG;
+      const r = shot.radius !== undefined ? shot.radius : 8;
+      const h = shot.height !== undefined ? shot.height : 4;
+      const tgt = shot.target || [0, 0, 0];
+      camera.position.set(
+        tgt[0] + r * Math.sin(angle),
+        tgt[1] + h,
+        tgt[2] + r * Math.cos(angle)
+      );
+      controls.target.set(tgt[0], tgt[1], tgt[2]);
+    } else if (shot.type === "flyTo" && flyFrom) {
+      const dur = shot.duration || 1.5;
+      const t = Math.min((elapsedNow - shotStartTime) / dur, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const toPos = shot.position || [6, 4, 6];
+      const toTarget = shot.target || [0, 0, 0];
+      camera.position.lerpVectors(flyFrom.position, new THREE.Vector3(toPos[0], toPos[1], toPos[2]), ease);
+      controls.target.lerpVectors(flyFrom.target, new THREE.Vector3(toTarget[0], toTarget[1], toTarget[2]), ease);
+      // ★着いたら手放す。着いた後も毎フレーム上書きして操作を奪っていた。
+      //   ここを lerp の前に置くと flyFrom が null のまま参照して落ちる(一度やった)
+      if (t >= 1) { currentShot = null; flyFrom = null; }
+    }
+    // "fixed" は以降ユーザーが自由に動かせるよう何もしない
+  }
+
+  // ---------- 画面表示(タイトル・凡例・カメラボタン)の更新 ----------
+  // 当たり判定の表示状態は、組み直しのたびに反映し直す
+  const _origBuildWorld = buildWorld;
+  buildWorld = function (d) { const r = _origBuildWorld(d); applyCvMode(); return r; };
+
+  const titleEl = document.getElementById("title");
+  const descEl = document.getElementById("desc");
+  const shotsDiv = document.getElementById("shots");
+  /** 「自由に動かす」ボタンの見た目を、いま手動かどうかに合わせる */
+  function markFreeCam(on) {
+    const b = document.getElementById("btnFreeCam");
+    if (!b) return;
+    const free = (on === undefined) ? true : on;
+    b.classList.toggle("secondary", !free);
+  }
+  const legendDiv = document.getElementById("legend");
+  const infoDiv = document.getElementById("info");
+  const infoTopDiv = document.getElementById("infoTop");
+
+  function refreshUiFromData(d, keepShot) {
+    titleEl.textContent = d.title || "ザックリ3Dモックビューア";
+    if (d.description) { descEl.textContent = d.description; descEl.style.display = ""; }
+    else { descEl.style.display = "none"; }
+
+    // カメラボタン(ショットの座標は寸法に依存するので作り直す)
+    cameraShots = (d.cameraShots || []).filter(Boolean);   // 台・手首のカメラが無いときは null が入る
+    shotsDiv.innerHTML = "";
+
+    // ★「自由」ボタン。カメラワークを解除して手で動かす状態にする
+    //   (マウスに触るだけでも自動で解除される)
+    const freeBtn = document.createElement("button");
+    freeBtn.textContent = "自由に動かす";
+    freeBtn.id = "btnFreeCam";
+    freeBtn.title = "左ドラッグ=平行移動 / 右ドラッグ=視点回転 / ホイール=ズーム";
+    freeBtn.addEventListener("click", () => {
+      currentShot = null; currentShotIndex = null; flyFrom = null; markFreeCam();
+    });
+    shotsDiv.appendChild(freeBtn);
+
+    // ★当たり判定の表示。通常 → 重ねて表示 → 判定のみ の3状態
+    const cvBtn = document.createElement("button");
+    cvBtn.id = "btnCv";
+    cvBtn.classList.add("secondary");
+    const CV_LABEL = ["当たり判定: 隠す", "当たり判定: 重ねる", "当たり判定: これだけ"];
+    cvBtn.textContent = CV_LABEL[cvMode];
+    cvBtn.title = "判定に実際に使っている形状を表示します(絵と判定のズレを見るため)";
+    cvBtn.addEventListener("click", () => {
+      cvMode = (cvMode + 1) % 3;
+      cvBtn.textContent = CV_LABEL[cvMode];
+      applyCvMode();
+    });
+    shotsDiv.appendChild(cvBtn);
+
+    // ★干渉点のチェック。判定体を出しているときだけ意味がある(絶対条件7 / K-39)
+    const hitBtn = document.createElement("button");
+    hitBtn.id = "btnHitCheck";
+    hitBtn.classList.add("secondary");
+    const HIT_LABEL = ["干渉点のチェック: OFF", "干渉点のチェック: ON"];
+    hitBtn.textContent = HIT_LABEL[hitCheck ? 1 : 0];
+    hitBtn.title = "当たり判定を出しているとき、その時刻に干渉していると"
+                 + "判定された判定体だけを赤くします(ビルドが使った判定そのもの)";
+    hitBtn.addEventListener("click", () => {
+      hitCheck = !hitCheck;
+      hitBtn.textContent = HIT_LABEL[hitCheck ? 1 : 0];
+      if (hitCheck && cvMode === 0) {   // ★出していないと何も見えないので一緒に出す
+        cvMode = 1;
+        cvBtn.textContent = CV_LABEL[cvMode];
+        applyCvMode();
+      }
+      hitPaintedKey = null;
+    });
+    shotsDiv.appendChild(hitBtn);
+
+    cameraShots.forEach((shot, idx) => {
+      const btn = document.createElement("button");
+      btn.textContent = shot.name || ("ショット" + (idx + 1));
+      if (shot.type === "fixed") btn.classList.add("secondary");
+      // ★干渉ジャンプのボタンは赤くして、通常のカメラワークと区別する
+      if (shot.atTime !== undefined) {
+        btn.classList.add("hit");
+        if (shot.hitInfo) btn.title = shot.hitInfo;
+      }
+      btn.addEventListener("click", () => {
+        activateShot(shot, idx, clock.getElapsedTime());
+        markFreeCam(false);
+      });
+      shotsDiv.appendChild(btn);
+    });
+    // 組み直しのときは今見ているショットを引き継ぐ(カメラを飛ばし直さない)
+    if (keepShot && currentShotIndex !== null && cameraShots[currentShotIndex]) {
+      currentShot = cameraShots[currentShotIndex];
+    }
+
+    legendDiv.innerHTML = "";
+    (d.legend || []).forEach(item => {
+      const row = document.createElement("div");
+      const sw = document.createElement("span");
+      sw.className = "sw";
+      sw.style.background = item.color || "#888";
+      row.appendChild(sw);
+      row.appendChild(document.createTextNode(item.label || ""));
+      legendDiv.appendChild(row);
+    });
+
+    infoDiv.innerHTML = "";
+    if (infoTopDiv) infoTopDiv.innerHTML = "";
+    (d.info || []).forEach(item => {
+      const row = document.createElement("div");
+      row.className = "ir" + (item.big ? " big" : "") + (item.state ? " st-" + item.state : "");
+      const k = document.createElement("span"); k.className = "k"; k.textContent = item.label;
+      const v = document.createElement("span"); v.className = "v"; v.textContent = item.value;
+      row.appendChild(k); row.appendChild(v);
+      // 判定(big)はパネル上部、内訳は下部へ振り分ける
+      ((item.big && infoTopDiv) ? infoTopDiv : infoDiv).appendChild(row);
+    });
+  }
+
+  // ---------- 条件スライダー ----------
+  const valueLabels = {};
+  function setupParamPanel() {
+    if (!model) return;
+    const panel = document.getElementById("params");
+    panel.style.display = "";
+
+    const presetsDiv = document.getElementById("presets");
+    (model.presets || []).forEach(pre => {
+      const b = document.createElement("button");
+      b.textContent = pre.name;
+      b.addEventListener("click", () => {
+        Object.keys(pre.values).forEach(k => {
+          uiValues[k] = pre.values[k];
+          const el = document.getElementById("sl_" + k);
+          if (el) el.value = pre.values[k];
+        });
+        rebuild();
+      });
+      presetsDiv.appendChild(b);
+    });
+
+    const slidersDiv = document.getElementById("sliders");
+    model.controls.forEach(c => {
+      if (c.hidden) return;          // ★使わなくなった項目は出さない(値は保持する)
+      const row = document.createElement("div"); row.className = "row";
+      const top = document.createElement("div"); top.className = "top";
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = c.label;
+      const vl = document.createElement("span"); vl.className = "vl";
+      top.appendChild(nm); top.appendChild(vl);
+      // type:"select" のものはスライダーではなくプルダウンにする
+      let sl;
+      if (c.type === "select") {
+        sl = document.createElement("select");
+        sl.id = "sl_" + c.key;
+        (c.options || []).forEach(o => {
+          const op = document.createElement("option");
+          op.value = o.value; op.textContent = o.label;
+          sl.appendChild(op);
+        });
+        sl.value = uiValues[c.key];
+        sl.addEventListener("change", () => {
+          uiValues[c.key] = parseFloat(sl.value);
+          rebuild();
+        });
+      } else {
+        sl = document.createElement("input");
+        sl.type = "range"; sl.id = "sl_" + c.key;
+        sl.min = c.min; sl.max = c.max; sl.step = c.step; sl.value = uiValues[c.key];
+        sl.addEventListener("input", () => {
+          uiValues[c.key] = parseFloat(sl.value);
+          rebuild();
+        });
+      }
+      row.appendChild(top); row.appendChild(sl);
+      slidersDiv.appendChild(row);
+      valueLabels[c.key] = vl;
+    });
+    updateValueLabels();
+  }
+
+  function updateValueLabels() {
+    if (!model) return;
+    model.controls.forEach(c => {
+      const el = valueLabels[c.key];
+      if (!el) return;
+      if (c.type === "select") {
+        const hit = (c.options || []).filter(o => o.value === uiValues[c.key])[0];
+        el.textContent = hit ? hit.label : String(uiValues[c.key]);
+        return;
+      }
+      let txt = uiValues[c.key] + " " + c.unit;
+      // m/min のスライダーは m/s も併記する(キー名ではなく単位で判定する)
+      if (c.unit === "m/min") txt += "（" + (uiValues[c.key] / 60).toFixed(2) + " m/s）";
+      el.textContent = txt;
+    });
+  }
+
+  // スライダーを動かしている間に何度も呼ばれるので、1フレーム1回に間引く
+  let rebuildQueued = false;
+  function rebuild() {
+    if (rebuildQueued) return;
+    rebuildQueued = true;
+    requestAnimationFrame(() => {
+      rebuildQueued = false;
+      data = model.buildFromUi(uiValues);
+      buildWorld(data);
+      refreshUiFromData(data, true);
+      updateValueLabels();
+      // ★組み直したあと、今の時刻を新しい部品へ当て直す。
+      //   これが無いと、一時停止して見ていた「干渉の瞬間」が
+      //   判定表示を切り替えただけで初期姿勢に戻る。
+      //   ★「干渉の瞬間」と「判定だけ表示」は重ねて使うのが本筋。
+      if (typeof animations !== "undefined" && animations)
+        animations.forEach(function(an){ applyAnimation(an, animT); });
+    });
+  }
+
+  // ---------- 初期化 ----------
+  // 調査用の出口。file:// で開発者ツールを開いたときに
+  // __viewer.world("arm_J6") のように叩いて実座標を確かめられるようにしておく。
+  window.__viewer = {
+    scene: scene,
+    node: function (id) { return nodes[id]; },
+    ids: function () { return Object.keys(nodes); },
+    world: function (id) {
+      const n = nodes[id];
+      if (!n) return null;
+      scene.updateMatrixWorld(true);
+      const v = new THREE.Vector3().setFromMatrixPosition(n.matrixWorld);
+      return [v.x, v.y, v.z];
+    },
+    ui: function () { return uiValues; }
+  };
+
+  buildWorld(data);
+  refreshUiFromData(data, false);
+  setupParamPanel();
+
+  // プレゼン用にUIを隠す/戻す
+  const uiToggle = document.getElementById("uiToggle");
+  let uiHidden = false;
+  uiToggle.addEventListener("click", () => {
+    uiHidden = !uiHidden;
+    ["ui", "bottom-controls", "hint", "params"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (id === "params" && !model) return;
+      el.style.display = uiHidden ? "none" : "";
+    });
+    uiToggle.textContent = uiHidden ? "UIを表示" : "UIを隠す (プレゼン用)";
+  });
+
+  let playing = true;
+  const toggleBtn = document.getElementById("toggleAnim");
+  toggleBtn.addEventListener("click", () => {
+    playing = !playing;
+    toggleBtn.textContent = playing
+      ? "アニメーション: 再生中 (クリックで一時停止)"
+      : "アニメーション: 一時停止中 (クリックで再生)";
+  });
+
+  let speed = data.defaultSpeed || 1;
+  const speedBtns = Array.prototype.slice.call(document.querySelectorAll("button.speed"));
+  speedBtns.forEach(b => {
+    b.classList.toggle("active", parseFloat(b.dataset.speed) === speed);
+    b.addEventListener("click", () => {
+      speed = parseFloat(b.dataset.speed);
+      speedBtns.forEach(x => x.classList.toggle("active", x === b));
+    });
+  });
+
+  // ---------- メインループ ----------
+  const clock = new THREE.Clock();
+  let animT = 0;
+
+  if (cameraShots.length) activateShot(cameraShots[0], 0, 0);
+
+  // 確認用: ?_shot=1&_t=3.2 でカメラと時刻を固定できる(スクリーンショット検証用)
+  {
+    const dbg = new URLSearchParams(location.search);
+    if (dbg.has("_shot")) {
+      const si = parseInt(dbg.get("_shot"), 10);
+      if (cameraShots[si]) activateShot(cameraShots[si], si, 0);
+    }
+    // ?_ui=0 で全パネルを隠す(スクリーンショット検証・プレゼン用)
+    if (dbg.get("_ui") === "0") {
+      ["ui", "bottom-controls", "hint", "params", "uiToggle"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+      });
+    }
+    if (dbg.has("_t")) {
+      animT = parseFloat(dbg.get("_t")) || 0;
+      playing = false;
+      toggleBtn.textContent = "アニメーション: 一時停止中 (クリックで再生)";
+    }
+    // ?_cv=1(重ねる)/ 2(判定だけ)・?_hit=1(干渉点のチェック) … 撮影で当たり判定を見るため
+    const cvN = parseInt(dbg.get("_cv"), 10);
+    if (cvN > 0) for (let i = 0; i < cvN; i++) { const b = document.getElementById("btnCv"); if (b) b.click(); }
+    if (dbg.get("_hit") === "1") { const b = document.getElementById("btnHitCheck"); if (b) b.click(); }
+  }
+
+  function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener("resize", onResize);
+
+  // ?_cam=top(&_fov=60) … 上のカメラの位置・向き・絵の上から、640×480 で撮る(計画書_完成形まで の S-3・S-9)。
+  //   tools/overhead-truth.js が書く「ピースの角の画素」の正解と、同じ絵になる(式は so101.js の overheadImage と同じ向き)。
+  //   左上に 640×480 で描き、ほかの欄は隠す。台なし(STAND=0)では使えない。条件を変えて組み直したときは追わない(撮影用)。
+  let topCam = null;
+  {
+    const dbg = new URLSearchParams(location.search), oc = data.overheadCamera;
+    if (dbg.get("_cam") === "top") {
+      if (!oc) {      // 黙ってふつうの絵を撮らないように、画面に大きく出す(点検 C13 の 8)
+        console.error("_cam=top: 上のカメラの台が無い(STAND=0)ので撮れない");
+        window.__topCam = { error: "上のカメラの台が無い" };
+        document.body.innerHTML = "<div style='font:28px sans-serif;color:#c00;padding:40px'>_cam=top: 上のカメラの台が無い(STAND=0)ので撮れない</div>";
+      }
+      else {
+        const fov = parseFloat(dbg.get("_fov")) || SO101.CAM_FOV.top;
+        topCam = new THREE.PerspectiveCamera(fov, 640 / 480, 0.005, 5);
+        topCam.position.fromArray(oc.tip); topCam.up.fromArray(oc.up);
+        topCam.lookAt(oc.tip[0] + oc.dir[0], oc.tip[1] + oc.dir[1], oc.tip[2] + oc.dir[2]);
+        renderer.setPixelRatio(1); renderer.setSize(640, 480);
+        Object.assign(renderer.domElement.style, { position: "fixed", left: "0px", top: "0px" });
+        Array.prototype.forEach.call(document.body.children, el => { if (el.id !== "canvas-holder" && el.tagName !== "SCRIPT") el.style.display = "none"; });
+        window.removeEventListener("resize", onResize);
+        window.__topCam = { fov: fov, width: 640, height: 480 };
+      }
+    }
+  }
+
+  function tick() {
+    requestAnimationFrame(tick);
+    const dt = Math.min(clock.getDelta(), 0.1);
+    const elapsed = clock.getElapsedTime();
+    if (playing) animT += dt * speed;
+
+    animations.forEach(a => applyAnimation(a, animT));
+    applyHitHighlight(animT);
+    if (topCam) { renderer.render(scene, topCam); return; }
+    updateCamera(elapsed);
+
+    if (!camLocked) controls.update();
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  // 静止画チェック用の外部フック(自動スクリーンショット等で使う)
+  window.__mock3d = {
+    freeze: function () { playing = false; controls.enableDamping = false; },
+    setTime: function (t) { animT = t; animations.forEach(a => applyAnimation(a, animT)); },
+    setCamera: function (pos, tgt) {
+      currentShot = null;
+      currentShotIndex = null;
+      camera.position.set(pos[0], pos[1], pos[2]);
+      controls.target.set(tgt[0], tgt[1], tgt[2]);
+      controls.update();
+    },
+    render: function () { renderer.render(scene, camera); },
+    partCount: function () { return Object.keys(nodes).length; },
+    // 条件を差し替える(スクリーンショット自動化から使う)
+    setParams: function (vals) {
+      if (!model) return;
+      Object.keys(vals).forEach(k => {
+        uiValues[k] = vals[k];
+        const el = document.getElementById("sl_" + k);
+        if (el) el.value = vals[k];
+      });
+      data = model.buildFromUi(uiValues);
+      buildWorld(data);
+      refreshUiFromData(data, true);
+      updateValueLabels();
+      // ★組み直したあと、今の時刻を新しい部品へ当て直す。
+      //   これが無いと、一時停止して見ていた「干渉の瞬間」が
+      //   判定表示を切り替えただけで初期姿勢に戻る。
+      //   ★「干渉の瞬間」と「判定だけ表示」は重ねて使うのが本筋。
+      if (typeof animations !== "undefined" && animations)
+        animations.forEach(function(an){ applyAnimation(an, animT); });
+    },
+    info: function () { return (data.info || []).map(r => r.label + ": " + r.value); }
+  };
+};
+(function () {
+  var tScripts = performance.now();
+  var started = false;
+  function go() {
+    if (started) return; started = true;
+    var t0 = performance.now();
+    try { window.__simStart(); }
+    catch (e) {   // 組み立てで例外が出たら、空の画面にせず原因を出す
+      console.error(e);
+      document.body.innerHTML = "<div style='color:#eee;font:13px/1.7 \"Yu Gothic\",sans-serif;padding:28px;max-width:820px'>" +
+        "<h2 style='margin:0 0 12px'>場面を組み立てる途中でエラーが出ました</h2><pre style='white-space:pre-wrap;color:#f2c14e'>" +
+        String(e && e.stack || e).replace(/</g, "&lt;") + "</pre><p style='color:#9aa'>読み込みに失敗したファイル: " +
+        ((window.__diag && window.__diag.failed.join(", ")) || "なし") + "</p></div>";
+    }
+    finally {
+      var m = document.getElementById("bootMsg"); if (m) m.remove();
+      window.__boot = { scripts: Math.round(tScripts), build: Math.round(performance.now() - t0), total: Math.round(performance.now()) };
+      console.log("立ち上げ [ms]: " + JSON.stringify(window.__boot));
+    }
+  }
+  // 「組み立て中」を 1 度描かせてから組む。隠れたタブでは requestAnimationFrame が来ないので、タイマーでも始める(早い方)
+  requestAnimationFrame(function () { setTimeout(go, 0); });
+  setTimeout(go, 200);
+})();
+</script>
+
+<script>
+// ---------------------------------------------------------------------------
+// シーン切替(プルダウン)
+//   ★iframe を使わず、普通のページ遷移で移る。
+//     file:// で開いたときに iframe の中身が出ないことがあるため。
+//     単体で開けているページ同士を行き来するだけなので、確実に動く。
+//   相対パスは <このフォルダ>/index.html → ../<別フォルダ>/index.html
+// ---------------------------------------------------------------------------
+(function () {
+  var SCENES = [
+    ["sim", "LeRobot SO-101 ブロックパズル"]
+  ];
+  var sel = document.getElementById("sceneSel");
+  if (!sel) return;
+  // いま自分がどのフォルダにいるか(URL の1つ上のディレクトリ名)
+  var parts = decodeURIComponent(location.pathname).split("/");
+  var here = parts[parts.length - 2] || "";
+  SCENES.forEach(function (s, i) {
+    var o = document.createElement("option");
+    o.value = s[0]; o.textContent = s[1];
+    if (s[0] === here) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", function () {
+    if (sel.value && sel.value !== here) location.href = "../" + sel.value + "/index.html";
+  });
+})();
+</script>
+</body>
+</html>

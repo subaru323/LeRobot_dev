@@ -1,0 +1,400 @@
+usage: lerobot-rollout [-h] [--config_path str] [--robot str]
+                       [--robot.type {openarm_follower,bi_openarm_follower,rebot_b601_follower,bi_rebot_b601_follower,so100_follower,so101_follower,bi_so_follower,yam_follower,bi_yam_follower,earthrover_mini_plus,hope_jr_hand,hope_jr_arm,koch_follower,lekiwi,lekiwi_client,omx_follower,reachy2,sim,unitree_g1}]
+                       [--teleop str]
+                       [--teleop.type {openarm_leader,bi_openarm_leader,openarm_mini,bi_openarm_mini,rebot_102_leader,bi_rebot_102_leader,so100_leader,so101_leader,bi_so_leader,homunculus_glove,homunculus_arm,koch_leader,omx_leader,reachy2_teleoperator,unitree_g1}]
+                       [--policy str]
+                       [--policy.type {act,cosmos3_nano,cosmos3_edge,diffusion,dm05,eo1,evo1,fastwam,pi05,fineart_vla,flux3,g05,gaussian_actor,groot,lawam,lingbot_va,lingbot_vla_v2,longwam,molmoact2,multi_task_dit,pi0,pi0_fast,smolvla,tdmpc,vla_jepa,vqbet,wall_oss_05,wall_x,xvla}]
+                       [--strategy str]
+                       [--strategy.type {base,sentry,highlight,episodic,dagger}]
+                       [--inference str] [--inference.type {sync,rtc,remote}]
+                       [--planner str] [--planner.backend str]
+                       [--planner.model_id str] [--planner.api_base str]
+                       [--planner.api_key str] [--planner.api_key_env [str]]
+                       [--planner.request_timeout_s float]
+                       [--planner.request_max_retries int]
+                       [--planner.auto_serve bool] [--planner.serve_port int]
+                       [--planner.serve_command [str]]
+                       [--planner.parallel_servers int]
+                       [--planner.num_gpus int]
+                       [--planner.client_concurrency int]
+                       [--planner.serve_ready_timeout_s float]
+                       [--planner.max_new_tokens int]
+                       [--planner.temperature float]
+                       [--planner.max_model_len [int]]
+                       [--planner.camera_key [str]]
+                       [--planner.chat_template_kwargs [dict[str,Any]]]
+                       [--planner.reasoning_effort [str]]
+                       [--planner.system_prompt str]
+                       [--planner.instructions list[str]]
+                       [--planner.history int] [--planner.log_path [str]]
+                       [--dataset str] [--dataset.repo_id str]
+                       [--dataset.single_task str] [--dataset.root [str|Path]]
+                       [--dataset.fps int]
+                       [--dataset.episode_time_s int|float]
+                       [--dataset.reset_time_s int|float]
+                       [--dataset.num_episodes int] [--dataset.video bool]
+                       [--dataset.push_to_hub bool] [--dataset.private [bool]]
+                       [--dataset.tags [list[str]]]
+                       [--dataset.num_image_writer_processes int]
+                       [--dataset.num_image_writer_threads_per_camera int]
+                       [--dataset.video_encoding_batch_size int]
+                       [--rgb_encoder str] [--dataset.rgb_encoder.vcodec str]
+                       [--dataset.rgb_encoder.pix_fmt str]
+                       [--dataset.rgb_encoder.g [int]]
+                       [--dataset.rgb_encoder.crf [int|float]]
+                       [--dataset.rgb_encoder.preset [int|str]]
+                       [--dataset.rgb_encoder.fast_decode int]
+                       [--dataset.rgb_encoder.video_backend str]
+                       [--dataset.rgb_encoder.extra_options dict[str,Any]]
+                       [--depth_encoder str]
+                       [--dataset.depth_encoder.vcodec str]
+                       [--dataset.depth_encoder.pix_fmt str]
+                       [--dataset.depth_encoder.g [int]]
+                       [--dataset.depth_encoder.crf [int|float]]
+                       [--dataset.depth_encoder.preset [int|str]]
+                       [--dataset.depth_encoder.fast_decode int]
+                       [--dataset.depth_encoder.video_backend str]
+                       [--dataset.depth_encoder.extra_options dict[str,Any]]
+                       [--dataset.depth_encoder.depth_min float]
+                       [--dataset.depth_encoder.depth_max float]
+                       [--dataset.depth_encoder.shift float]
+                       [--dataset.depth_encoder.use_log bool]
+                       [--dataset.streaming_encoding bool]
+                       [--dataset.encoder_queue_maxsize int]
+                       [--dataset.encoder_threads [int]]
+                       [--dataset.no_stamp bool] [--fps float]
+                       [--duration float] [--status_interval_s float]
+                       [--interactive bool] [--autosteer_interval_s float]
+                       [--interpolation_multiplier int] [--device [str]]
+                       [--tf32 [bool]] [--task str] [--display_data bool]
+                       [--display_mode str] [--display_ip [str]]
+                       [--display_port [int]]
+                       [--display_compressed_images bool] [--play_sounds bool]
+                       [--resume bool] [--rename_map dict[str,str]]
+                       [--return_to_initial_position bool]
+                       [--use_torch_compile bool]
+                       [--torch_compile_backend str]
+                       [--torch_compile_mode str]
+                       [--compile_warmup_inferences int]
+
+options:
+  -h, --help            show this help message and exit
+  --config_path str     Path for a config file to parse with draccus (default:
+                        None)
+  --robot str           Config file for robot (default: None)
+  --teleop str          Config file for teleop (default: None)
+  --policy str          Config file for policy (default: None)
+  --strategy str        Config file for strategy (default: None)
+  --inference str       Config file for inference (default: None)
+  --planner str         Config file for planner (default: None)
+  --dataset str         Config file for dataset (default: None)
+  --rgb_encoder str     Config file for rgb_encoder (default: None)
+  --depth_encoder str   Config file for depth_encoder (default: None)
+
+RolloutConfig:
+  Top-level configuration for the ``lerobot-rollout`` CLI.
+  
+  Combines hardware, policy, strategy, and runtime settings.  The
+  ``__post_init__`` method performs fail-fast validation to reject
+  invalid flag combinations early.
+
+  --fps float           Runtime (default: 30.0)
+  --duration float      Run time in seconds; 0 = infinite (24/7 mode). In
+                        interactive mode this bounds each /start segment, not
+                        the whole session. (default: 0.0)
+  --status_interval_s float
+                        Periodic health logs in seconds; 0 disables them.
+                        Inactive in interactive mode. (default: 5.0)
+  --interactive bool    Control the rollout from stdin with chat-style
+                        commands (/start, /subtask, /vqa, /autosteer, /reset,
+                        /stop) while hardware and policy stay warm. The robot
+                        does not move until /start, and logs below ERROR are
+                        muted for the session's duration. (default: False)
+  --autosteer_interval_s float
+                        /autosteer: seconds of robot motion between two "what
+                        is the next subtask?" queries, measured from the
+                        moment a subtask is applied. Lower values re-plan
+                        sooner but spend more of the loop generating text
+                        instead of acting. (default: 10.0)
+  --interpolation_multiplier int
+                        Robot commands sent per policy action. Values > 1
+                        linearly interpolate between consecutive policy
+                        actions for smoother motion: commands go to the robot
+                        at ``fps × multiplier`` Hz while policy inference and
+                        dataset recording stay at ``fps`` Hz. (default: 1)
+  --device [str]
+  --tf32 [bool]         TF32 in float32 matmuls and cuDNN convolutions on
+                        Ampere and newer GPUs. (default: True)
+  --task str            
+  --display_data bool   
+  --display_mode str    Visualization backend used when display_data is True:
+                        "rerun" or "foxglove". (default: rerun)
+  --display_ip [str]    For "rerun": IP of a remote server to send to. For
+                        "foxglove": interface to bind the WebSocket server to
+                        (127.0.0.1 for local only, 0.0.0.0 for all
+                        interfaces). (default: None)
+  --display_port [int]  For "rerun": port of the remote server. For
+                        "foxglove": port to bind the WebSocket server to.
+                        (default: None)
+  --display_compressed_images bool
+                        Whether to display compressed (JPEG) images instead of
+                        raw frames (default: False)
+  --play_sounds bool    Use vocal synthesis to read events (default: True)
+  --resume bool         
+  --rename_map dict[str,str]
+                        Rename map for mapping robot/dataset observation keys
+                        to policy keys (default: {})
+  --return_to_initial_position bool
+                        Hardware teardown When True (default), smoothly
+                        interpolate the robot back to the joint positions
+                        captured at startup before disconnecting. Set to False
+                        to leave the robot in its final achieved pose at
+                        shutdown. (default: True)
+  --use_torch_compile bool
+                        Torch compile (default: False)
+  --torch_compile_backend str
+  --torch_compile_mode str
+  --compile_warmup_inferences int
+
+Optional ['robot']:
+  Hardware
+
+RobotConfig ['robot']:
+  Hardware
+
+  --robot.type {openarm_follower,bi_openarm_follower,rebot_b601_follower,bi_rebot_b601_follower,so100_follower,so101_follower,bi_so_follower,yam_follower,bi_yam_follower,earthrover_mini_plus,hope_jr_hand,hope_jr_arm,koch_follower,lekiwi,lekiwi_client,omx_follower,reachy2,sim,unitree_g1}
+                        Which type of RobotConfig ['robot'] to use (default:
+                        None)
+
+Optional ['teleop']:
+
+TeleoperatorConfig ['teleop']:
+
+  --teleop.type {openarm_leader,bi_openarm_leader,openarm_mini,bi_openarm_mini,rebot_102_leader,bi_rebot_102_leader,so100_leader,so101_leader,bi_so_leader,homunculus_glove,homunculus_arm,koch_leader,omx_leader,reachy2_teleoperator,unitree_g1}
+                        Which type of TeleoperatorConfig ['teleop'] to use
+                        (default: None)
+
+Optional ['policy']:
+  Policy (loaded from --policy.path via __post_init__)
+
+PreTrainedConfig ['policy']:
+  Policy (loaded from --policy.path via __post_init__)
+
+  --policy.type {act,cosmos3_nano,cosmos3_edge,diffusion,dm05,eo1,evo1,fastwam,pi05,fineart_vla,flux3,g05,gaussian_actor,groot,lawam,lingbot_va,lingbot_vla_v2,longwam,molmoact2,multi_task_dit,pi0,pi0_fast,smolvla,tdmpc,vla_jepa,vqbet,wall_oss_05,wall_x,xvla}
+                        Which type of PreTrainedConfig ['policy'] to use
+                        (default: None)
+
+RolloutStrategyConfig ['strategy']:
+  Strategy (polymorphic: --strategy.type=base|sentry|highlight|dagger|episodic,
+  or any name registered by a third-party package)
+
+  --strategy.type {base,sentry,highlight,episodic,dagger}
+                        Which type of RolloutStrategyConfig ['strategy'] to
+                        use (default: None)
+
+InferenceEngineConfig ['inference']:
+  Inference backend (polymorphic: --inference.type=sync|rtc|remote)
+
+  --inference.type {sync,rtc,remote}
+                        Which type of InferenceEngineConfig ['inference'] to
+                        use (default: None)
+
+Optional ['planner']:
+
+PlannerConfig ['planner']:
+  VLM client settings plus the planner's own knobs.
+  
+  ``instructions`` is an optional closed vocabulary: when set, a next-subtask reply must be
+  one of these strings verbatim. ``history`` is the number of past (observation, applied
+  command) pairs shown to the VLM; zero disables it. ``log_path`` appends every VLM
+  exchange (full request text and raw reply) as one JSON line per call.
+
+  --planner.backend str
+                        Only ``openai`` (OpenAI-compatible vLLM server, auto-
+                        spawned when auto_serve=True); ``stub`` is for tests.
+                        (default: openai)
+  --planner.model_id str
+  --planner.api_base str
+                        OpenAI-compatible endpoint; ``EMPTY`` key works for
+                        local servers. (default: http://localhost:8000/v1)
+  --planner.api_key str
+  --planner.api_key_env [str]
+                        Read the key from this environment variable (e.g.
+                        HF_TOKEN) so it stays out of commands and logs.
+                        (default: None)
+  --planner.request_timeout_s float
+  --planner.request_max_retries int
+  --planner.auto_serve bool
+  --planner.serve_port int
+  --planner.serve_command [str]
+                        Override the auto-serve command; ``{port}``
+                        substituted per replica. (default: None)
+  --planner.parallel_servers int
+                        Independent servers for round-robin routing (one per
+                        GPU). num_gpus=0 = one each. (default: 1)
+  --planner.num_gpus int
+  --planner.client_concurrency int
+  --planner.serve_ready_timeout_s float
+  --planner.max_new_tokens int
+  --planner.temperature float
+  --planner.max_model_len [int]
+                        Auto-serve context length (None → 32768); other vLLM
+                        flags go in serve_command. (default: None)
+  --planner.camera_key [str]
+                        Camera for keyframes; None → first
+                        ``observation.images.*`` key. (default: None)
+  --planner.chat_template_kwargs [dict[str,Any]]
+                        Forwarded as extra_body.chat_template_kwargs (e.g.
+                        {"enable_thinking": false}). (default: None)
+  --planner.reasoning_effort [str]
+                        OpenAI-style thinking budget hint
+                        ("low"/"medium"/"high"); forwarded to the server when
+                        set. Used to cap a thinking model's reasoning so it
+                        leaves tokens for the actual JSON answer on OpenAI-
+                        compatible endpoints. (default: None)
+  --planner.system_prompt str
+  --planner.instructions list[str]
+  --planner.history int
+  --planner.log_path [str]
+
+Optional ['dataset']:
+  Dataset (required, optional or rejected according to the strategy's ``dataset_mode``)
+
+DatasetRecordConfig ['dataset']:
+  Dataset (required, optional or rejected according to the strategy's ``dataset_mode``)
+
+  --dataset.repo_id str
+                        Dataset identifier. By convention it should match
+                        '{hf_username}/{dataset_name}' (e.g. `lerobot/test`).
+                        (default: )
+  --dataset.single_task str
+                        A short but accurate description of the task performed
+                        during the recording (e.g. "Pick the Lego block and
+                        drop it in the box on the right.") (default: )
+  --dataset.root [str|Path]
+                        Root directory where the dataset will be stored (e.g.
+                        'dataset/path'). If None, defaults to
+                        $HF_LEROBOT_HOME/repo_id. (default: None)
+  --dataset.fps int     Limit the frames per second. (default: 30)
+  --dataset.episode_time_s int|float
+                        Number of seconds for data recording for each episode.
+                        (default: 60)
+  --dataset.reset_time_s int|float
+                        Number of seconds for resetting the environment after
+                        each episode. (default: 60)
+  --dataset.num_episodes int
+                        Number of episodes to record. (default: 50)
+  --dataset.video bool  Encode frames in the dataset into video (default:
+                        True)
+  --dataset.push_to_hub bool
+                        Upload dataset to Hugging Face hub. (default: True)
+  --dataset.private [bool]
+                        If True, upload as private; if None, defer to the org
+                        default on the Hub (only affects orgs). (default:
+                        None)
+  --dataset.tags [list[str]]
+                        Add tags to your dataset on the hub. (default: None)
+  --dataset.num_image_writer_processes int
+                        Number of subprocesses handling the saving of frames
+                        as PNG. Set to 0 to use threads only; set to ≥1 to use
+                        subprocesses, each using threads to write images. The
+                        best number of processes and threads depends on your
+                        system. We recommend 4 threads per camera with 0
+                        processes. If fps is unstable, adjust the thread
+                        count. If still unstable, try using 1 or more
+                        subprocesses. (default: 0)
+  --dataset.num_image_writer_threads_per_camera int
+                        Number of threads writing the frames as png images on
+                        disk, per camera. Too many threads might cause
+                        unstable teleoperation fps due to main thread being
+                        blocked. Not enough threads might cause low camera
+                        fps. (default: 4)
+  --dataset.video_encoding_batch_size int
+                        Number of episodes to record before batch encoding
+                        videos Set to 1 for immediate encoding (default
+                        behavior), or higher for batched encoding (default: 1)
+  --dataset.streaming_encoding bool
+                        Enable streaming video encoding: encode frames in
+                        real-time during capture instead of writing PNG images
+                        first. Makes save_episode() near-instant. More info in
+                        the documentation: https://huggingface.co/docs/lerobot
+                        /streaming_video_encoding (default: False)
+  --dataset.encoder_queue_maxsize int
+                        Maximum number of frames to buffer per camera when
+                        using streaming encoding. ~1s buffer at 30fps.
+                        Provides backpressure if the encoder can't keep up.
+                        (default: 30)
+  --dataset.encoder_threads [int]
+                        Number of threads per encoder instance. None = auto
+                        (codec default). Lower values reduce CPU usage, maps
+                        to 'lp' (via svtav1-params) for libsvtav1 and
+                        'threads' for h264/hevc.. (default: None)
+  --dataset.no_stamp bool
+                        Skip appending the date-time tag to repo_id, keeping
+                        the user-provided name as-is (e.g. self-managed
+                        versioned names intended for a later `lerobot-edit-
+                        dataset merge`). (default: False)
+
+RGBEncoderConfig ['dataset.rgb_encoder']:
+  Video encoder settings for camera MP4s (codec, quality, GOP, etc.). Tuned via CLI nested keys,
+  e.g. ``--dataset.rgb_encoder.vcodec=h264`` (see ``RGBEncoderConfig``).
+
+  --dataset.rgb_encoder.vcodec str
+                        Video codec name. "auto" picks a hardware codec if
+                        available, else libsvtav1. (default: libsvtav1)
+  --dataset.rgb_encoder.pix_fmt str
+                        Pixel format (e.g. yuv420p). (default: yuv420p)
+  --dataset.rgb_encoder.g [int]
+                        GOP size (keyframe interval). (default: 2)
+  --dataset.rgb_encoder.crf [int|float]
+                        Quality level. Lower means better quality and larger
+                        files. (default: 30)
+  --dataset.rgb_encoder.preset [int|str]
+                        Speed/quality preset. Accepted values are codec-
+                        specific. (default: None)
+  --dataset.rgb_encoder.fast_decode int
+                        Fast-decode tuning. Accepted values are codec-
+                        specific, 0 disables it. (default: 0)
+  --dataset.rgb_encoder.video_backend str
+                        Encoding backend. Only "pyav" is currently supported.
+                        (default: pyav)
+  --dataset.rgb_encoder.extra_options dict[str,Any]
+                        Extra codec options merged last, e.g. {"tune":
+                        "film"}. (default: {})
+
+DepthEncoderConfig ['dataset.depth_encoder']:
+  Video encoder settings for depth-map MP4s (codec, quality, GOP, etc.). Tuned via CLI nested keys.
+
+  --dataset.depth_encoder.vcodec str
+                        Video codec name. Defaults to HEVC Main 12 (a 12-bit-
+                        capable codec). (default: hevc)
+  --dataset.depth_encoder.pix_fmt str
+                        Pixel format. Defaults to 12-bit grayscale. (default:
+                        gray12le)
+  --dataset.depth_encoder.g [int]
+                        GOP size (keyframe interval). (default: 2)
+  --dataset.depth_encoder.crf [int|float]
+                        Quality level. Lower means better quality and larger
+                        files. (default: 30)
+  --dataset.depth_encoder.preset [int|str]
+                        Speed/quality preset. Accepted values are codec-
+                        specific. (default: None)
+  --dataset.depth_encoder.fast_decode int
+                        Fast-decode tuning. Accepted values are codec-
+                        specific, 0 disables it. (default: 0)
+  --dataset.depth_encoder.video_backend str
+                        Encoding backend. Only "pyav" is currently supported.
+                        (default: pyav)
+  --dataset.depth_encoder.extra_options dict[str,Any]
+  --dataset.depth_encoder.depth_min float
+                        Minimum depth in meters, mapped to the lowest quantum.
+                        (default: 0.01)
+  --dataset.depth_encoder.depth_max float
+                        Maximum depth in meters, mapped to the highest
+                        quantum. (default: 10.0)
+  --dataset.depth_encoder.shift float
+                        Pre-log offset in meters for numerical stability near
+                        zero. (default: 3.5)
+  --dataset.depth_encoder.use_log bool
+                        Use logarithmic quantization (True) or linear (False).
+                        (default: True)

@@ -1,0 +1,25 @@
+{
+ "package": "knowhow-seeds",
+ "version": "2026-11-26.1347",
+ "seed": "running-night-work",
+ "状態": "試作",
+ "能力": "人がいない間（夜など）に AI に作業を進めさせる仕組み（作業の列・予約タスク・朝の報告）を組む",
+ "items": [
+  "K-0041",
+  "K-0030",
+  "K-0048",
+  "K-0024",
+  "K-0029",
+  "K-0080",
+  "K-0083",
+  "K-0084"
+ ],
+ "earliest_review_due": "2027-02-17",
+ "master": "C:\\Users\\genes\\Documents\\PROJECTS\\ASSETS\\Claude_knowhow",
+ "files": {
+  "references/ノウハウ.md": "fa96ff51446d8bf17262baa98310648926cc243d7542e4341ea6b1378c6eb86f",
+  "references/列の雛形.md": "ff2bb7de64972eb90c9da5284e2530223c572aab88cf17a30eb21e85baa4ec1a",
+  "references/指示文の雛形.md": "be2ea63572c5e939199d078c75ecd6b98269891f9db554b38ee47194ab8d7910",
+  "SKILL.md": "831f5164ba7d3c0d7bac78fe9f646b22bb58c60538cd5c9a2c667c7c39abfa3a"
+ }
+}

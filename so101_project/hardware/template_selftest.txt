@@ -1,0 +1,9 @@
+  ok   pan: from the rear 118.8 (D2 118.8), from the left 300.0 (D2 300.0)
+  ok   pole: from the rear 433.3 (D2 433.3), from the left 319.5 (D2 319.5)
+  ok   lens: from the rear 237.3 (D2 237.3), from the left 319.5 (D2 319.5)
+  ok   8 pages back together: overlaps disagree in 0 px, differ from the whole in 0 px, cover 100.00 % of the board
+  ok   page 210.0 x 297.0 mm at 300 dpi;  ok   the bottom bar is 100.2 mm (ticks included; pass 100 +- 0.5)
+  ok   the pole centre cross is drawn at (353.3, 19.5)
+  ok   the saved PDF has 8 pages, MediaBox (595.2, 841.92) pt (A4 595.3 x 841.9)
+  ok   overlaps: left-right 40.0 mm, rear-front 34.0 mm (all seams the same; at least 10.0)
+SELFTEST OK

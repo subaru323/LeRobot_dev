@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sim",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8802", "--bind", "127.0.0.1", "--directory", "C:\\Users\\genes\\Documents\\PROJECTS\\lerobot\\sim"],
+      "port": 8802
+    }
+  ]
+}

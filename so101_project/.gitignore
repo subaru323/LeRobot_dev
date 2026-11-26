@@ -1,0 +1,26 @@
+# --- separate repositories (cloned, not ours) ---
+/MAIN_PG/
+/LeRobot_dev/
+
+# --- environments and caches ---
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# --- run results (large; regenerate with the tools) ---
+/sim/out/
+/outputs/
+/lerobot_v0.7.0/remote_e2e/diffusion_pusht_migrated/
+/lerobot_v0.7.0/remote_e2e/act_pusht_tiny/
+*.safetensors
+
+# --- backups and logs ---
+/_backup/
+MUJOCO_LOG.TXT
+
+# --- local-only Claude settings ---
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

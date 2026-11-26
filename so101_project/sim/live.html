@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>SO-101 見て動かす</title>
+<!--
+  見て動かす画面(docs/Simulation_Logic_Documents/09 の §6。利用者 2026-11-17)。
+  index.html とは別のページ。index.html・scene-data.js・vision.js などは読むだけで書き換えない(sim/ のコードの持ち主は別の会話)。
+  エクスプローラーからダブルクリックで開く(インターネット不要)。
+-->
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #111;
+               font-family: "Hiragino Sans", "Yu Gothic", sans-serif; color: #eee; }
+  #canvas-holder { position: absolute; top: 0; left: 0; right: 360px; bottom: 0; }
+  #panel { position: absolute; top: 0; right: 0; width: 360px; bottom: 0; overflow-y: auto;
+           background: #1a1f27; border-left: 1px solid #333; padding: 10px; box-sizing: border-box; font-size: 12px; }
+  #ui { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(20,24,30,0.82);
+        padding: 10px 12px; border-radius: 8px; max-width: 420px; font-size: 12px; line-height: 1.5; }
+  #ui h1 { font-size: 14px; margin: 0 0 4px 0; }
+  #ui .note { color: #b8c2cc; font-size: 11px; margin: 4px 0 0 0; }
+  button { background: #2b6de8; color: #fff; border: none; padding: 5px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; margin: 2px 2px 2px 0; }
+  button.secondary { background: #4a5568; }
+  button.warn { background: #c0392b; }
+  button:disabled { background: #333; color: #777; cursor: default; }
+  select { font-size: 12px; }
+  .win { margin-bottom: 10px; }
+  .win h2 { font-size: 12px; margin: 0 0 3px 0; display: flex; align-items: center; gap: 6px; }
+  .win h2 .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .win canvas { width: 100%; image-rendering: pixelated; background: #000; display: block; }
+  .win .cap { color: #9aa6b2; font-size: 10.5px; margin-top: 2px; }
+  #stages { display: flex; gap: 4px; margin: 6px 0; }
+  #stages span { flex: 1; text-align: center; padding: 3px 0; border-radius: 4px; background: #2a313c; color: #8a96a3; font-size: 11.5px; }
+  #stages span.on { background: #e8a33a; color: #111; font-weight: bold; }
+  #log { font-size: 11.5px; line-height: 1.45; }
+  #log div { border-bottom: 1px solid #2a313c; padding: 3px 0; }
+  #log .t { color: #7f8b97; margin-right: 4px; }
+  #log .ok { color: #7fd88f; }
+  #log .ng { color: #ff7a6b; font-weight: bold; }
+  #log .act { color: #ffd479; }
+  #status { color: #ffd479; margin-top: 4px; white-space: pre-line; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 50;
+             background: rgba(10,12,16,0.92); font-size: 15px; line-height: 1.8; text-align: center; white-space: pre-line; }
+  .legend div { display: flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="canvas-holder"></div>
+<div id="ui">
+  <h1>SO-101 見て動かす（カメラの絵だけで判断する）</h1>
+  <div>
+    形: <select id="set"></select>
+    <button id="start">開始（撮る → 見つける → 選ぶ）</button>
+  </div>
+  <div>
+    <button id="play" class="secondary" disabled>一時停止</button>
+    <button id="kick" class="warn" disabled>かき乱す（まだ取っていないピースを動かす）</button>
+    <label><input type="checkbox" id="showEst" checked> 見積もり（白い枠）</label>
+  </div>
+  <div class="legend">
+    <div><span class="sw" style="background:#ff9f1c"></span>上のカメラの画角と、机の上で写る範囲</div>
+    <div><span class="sw" style="background:#2ec4f0"></span>手首のカメラの画角と、写る範囲（腕と一緒に動く）</div>
+    <div><span class="sw" style="background:#fff;border:1px solid #888"></span>制御が絵から見積もったピースの位置（判断に使う）</div>
+    <div><span class="sw" style="background:#e4572e"></span>色の付いたピース = 本当の置き場（世界の側。制御は読まない）</div>
+  </div>
+  <p class="note" id="limits"></p>
+  <div id="status"></div>
+</div>
+<div id="panel">
+  <div id="stages"><span id="st-look">撮る</span><span id="st-find">見つける</span><span id="st-choose">選ぶ</span><span id="st-move">動く</span></div>
+  <div class="win">
+    <h2><span class="sw" style="background:#ff9f1c"></span>上のカメラ（判断に使った絵）</h2>
+    <canvas id="win-top" width="640" height="480"></canvas>
+    <div class="cap" id="cap-top">まだ撮っていない</div>
+  </div>
+  <div class="win">
+    <h2><span class="sw" style="background:#2ec4f0"></span>手首のカメラ</h2>
+    <canvas id="win-wrist" width="320" height="240"></canvas>
+    <div class="cap" id="cap-wrist">表示だけ（判断にはまだ使っていない。09 §6-3）</div>
+  </div>
+  <div><b>判断の記録</b></div>
+  <div id="log"></div>
+</div>
+<div id="loading">読み込み中…</div>
+
+<script>
+  // scene-data.js は、この印があると読み込みのときに既定の条件で全部の手を組まない(SCENE_DATA = null。持ち主が 2026-11-17 に入れた)。
+  //   live.js は最初の画面の形を、自分で軽く組む(NO_REFINE・SELF 0。形だけに使う)
+  window.SCENE_SKIP_DEFAULT = true;
+  window.__loadFail = function (src) { document.getElementById("loading").textContent = "読み込めないファイル: " + src; };
+</script>
+<script>
+  // 全部のファイルに ?t= を付けて毎回読み直す(ブラウザが前の版を覚えていて、新しい scene-data.js と古い so101.js が混ざりうるため。点検 C29 の 6)。
+  //   file:// で開いたときは付けない。document.write なので、並べた順に読み込まれる。
+  //   scene-data.js と vision.js は live.js が「読み込み中」を出してから読む(読み込みの間、画面が止まるので)
+  (function () {
+    var v = location.protocol === "file:" ? "" : "?t=" + Date.now();
+    ["lib/three.min.js", "lib/OrbitControls.js", "kinematics.js", "so101.js", "motion.js", "puzzle.js", "collision-view.js", "models/so101_meshes.js", "models/so101_visuals.js", "models/so101_points.js", "models/so101_tris.js", "collide.js", "chikuwa-collision.js", "self-collision.js", "live.js"].forEach(function (src) {
+      document.write('<script src="' + src + v + '" onerror="__loadFail(this.src)"><\/script>');
+    });
+  })();
+</script>
+</body>
+</html>
