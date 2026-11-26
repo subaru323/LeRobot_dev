@@ -1,0 +1,41 @@
+# lerobot-policy-server config: diffusion_pusht on CPU, listening on localhost.
+# Feature specs copied from the PushT sim robot descriptor (remote_e2e/dump_descriptor.py),
+# with the camera renamed to the checkpoint's input name (client uses rename_map).
+deployment: pusht
+semantics: pusht-position-v1
+robot_type: sim_robot
+model:
+  # Tiny ACT (40 CPU steps on lerobot/pusht, chunk_size=20) — plumbing test only, not a good policy.
+  # diffusion_pusht can't be served: remote chunk inference requires n_obs_steps=1 (it uses 2).
+  repo_or_path: remote_e2e/act_pusht_tiny/checkpoints/000040/pretrained_model
+  device: cpu
+  tf32: false
+execution:
+  supported_modes: [chunk]
+  action_fps: 10.0
+  action_deadline_s: 30.0
+  idle_timeout_s: 60.0
+  warmup_calls: 1
+zenoh:
+  mode: peer
+  listen_endpoints: ["tcp/127.0.0.1:7447"]
+features:
+  - name: observation.image
+    shape: [96, 96, 3]
+    dtype: uint8
+    kind: rgb
+    names: []
+    semantics: pusht-position-v1
+  - name: observation.state
+    shape: [2]
+    dtype: float32
+    kind: tensor
+    names: [agent.x, agent.y]
+    semantics: pusht-position-v1
+action_feature:
+  name: action
+  shape: [2]
+  dtype: float32
+  kind: tensor
+  names: [agent.x, agent.y]
+  semantics: pusht-position-v1

@@ -1,0 +1,62 @@
+{
+ "checks": [
+  {
+   "id": "K-0061",
+   "主張": "CLAUDE.md にアーキテクチャやファイルの構成を書いておく。",
+   "regex": "(?im)^#+\\s*(architecture|project structure|directory structure|folder structure|アーキテクチャ|ディレクトリ構成|フォルダ構成|ファイル構成)",
+   "where": "CLAUDE.md",
+   "instead": "K-0050 CLAUDE.md には、AI がリポジトリを読んでも分からないことだけを書く（確かめるコマンド、誤解しやすい所、リポジトリの外の決定、2回直したこと）。1ファイル 200 行未満。"
+  },
+  {
+   "id": "K-0055",
+   "主張": "守られない指示には IMPORTANT や大文字を付けると守られる。",
+   "regex": "\\bIMPORTANT\\b|\\bCRITICAL\\b|\\bYOU MUST\\b|\\bNEVER\\b|\\bALWAYS\\b",
+   "where": "AI向けの文書",
+   "instead": "K-0042 IMPORTANT や大文字で強調しない。現行のモデルは普通の1行に従い、強調を重ねると決まりをやりすぎて当てはめる。"
+  },
+  {
+   "id": "K-0056",
+   "主張": "「think hard」「think harder」と書くと、思考の量が増える。",
+   "regex": "(?i)think (very )?hard(er)?",
+   "where": "AI向けの文書",
+   "instead": "K-0047 「think hard」と書いても思考の量は増えない（effort で決まる）。「怠けるな」「終わるまで続けろ」はやりすぎを招く。ただし「よく考え抜いて」のような一般的な指示は、手書きの手順より良い推論を生むことが多い。"
+  },
+  {
+   "id": "K-0057",
+   "主張": "「怠けるな」「終わるまで続けろ」と書くと、最後までやり切る。",
+   "regex": "(?i)don'?t be lazy|keep going until|怠けるな|手を抜くな",
+   "where": "AI向けの文書",
+   "instead": "K-0047 「think hard」と書いても思考の量は増えない（effort で決まる）。「怠けるな」「終わるまで続けろ」はやりすぎを招く。ただし「よく考え抜いて」のような一般的な指示は、手書きの手順より良い推論を生むことが多い。"
+  },
+  {
+   "id": "K-0059",
+   "主張": "思考の機能を使えるモデルでも「一歩ずつ考え、<thinking> に推論を書いてから <answer> に答えよ」と書くと良くなる。",
+   "regex": "<thinking>",
+   "where": "AI向けの文書",
+   "instead": "K-0049 <thinking> タグなどで推論を本文に書かせる手作りの思考の連鎖は使わない。Fable・Opus 5/5.5・Sonnet 5.5 では断られる原因になりうる。推論を見たいなら、要約された思考ブロックを読む。"
+  },
+  {
+   "id": "K-0058",
+   "主張": "最後のアシスタントの発言を「{」などで埋めておく（prefill）と、JSON を強制できる・前置きを消せる。",
+   "regex": "(?i)prefill",
+   "where": "AI向けの文書",
+   "instead": "K-0005 最後のアシスタントの発言を先に埋めておく（prefill）方法は、Claude 4.6 以降でエラーになる。形式は structured outputs かツールの enum で、前置きの削除はシステムプロンプトの指示で行う。"
+  },
+  {
+   "id": "K-0060",
+   "主張": "extended thinking は thinking: {type: enabled, budget_tokens: N} で量を決める。",
+   "regex": "budget_tokens",
+   "where": "AI向けの文書",
+   "instead": "K-0004 Fable 5.2 と Opus 5.5 は思考（thinking）が常にオンで、思考の量は effort で決める。budget_tokens での手動の設定は 4.7 以降でエラーになる。"
+  },
+  {
+   "id": "K-0063",
+   "主張": "スラッシュコマンドは .claude/commands/ に作る。",
+   "regex": "\\.claude/commands/",
+   "where": "全体",
+   "instead": "K-0013 スキルは説明文だけが常に読まれ、本文は呼ばれたときか関係があると判断されたときだけ読まれる。説明文は 1,536 字で切られる。.claude/commands/ はスキルにまとめられた。"
+  }
+ ],
+ "claudemd_max_lines": 200,
+ "claudemd_item": "K-0050 CLAUDE.md には、AI がリポジトリを読んでも分からないことだけを書く（確かめるコマンド、誤解しやすい所、リポジトリの外の決定、2回直したこと）。1ファイル 200 行未満。"
+}

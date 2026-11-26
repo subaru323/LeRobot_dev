@@ -1,0 +1,37 @@
+INFO 2026-11-16 17:10:01 _rollout.py:250 Building rollout context...
+INFO 2026-11-16 17:10:01 e\client.py:129 Remote client lerobot_version=0.7.0 protocol=1
+Traceback (most recent call last):
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 140, in connect
+    transport.open()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\transport\zenoh.py", line 311, in open
+    self._session = zenoh.open(config)
+                    ~~~~~~~~~~^^^^^^^^
+zenoh.ZError: Unable to connect to any of [Single(tcp/127.0.0.1:7447)]. Timeout! at C:\Users\runneradmin\.cargo\git\checkouts\zenoh-9c599d5ef3e0480e\cc83980\zenoh\src\net\runtime\orchestrator.rs:388.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Scripts\lerobot-rollout.exe\__main__.py", line 10, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\scripts\lerobot_rollout.py", line 289, in main
+    cast(Callable[[], None], rollout)()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\configs\parser.py", line 468, in wrapper_inner
+    response = fn(cfg, *args, **kwargs)
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\scripts\lerobot_rollout.py", line 251, in rollout
+    ctx = build_rollout_context(cfg, shutdown_event)
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\rollout\context.py", line 492, in build_rollout_context
+    return build_remote_rollout_context(
+        cfg, shutdown_event, teleop_action_processor, robot_action_processor, robot_observation_processor
+    )
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\rollout\context.py", line 781, in build_remote_rollout_context
+    client = RemoteClient.connect(config)
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 142, in connect
+    raise ConnectionError(
+    ...<4 lines>...
+    ) from exc
+ConnectionError: Cannot open remote connection to 'tcp/127.0.0.1:7447' for deployment 'pusht': Unable to connect to any of [Single(tcp/127.0.0.1:7447)]. Timeout! at C:\Users\runneradmin\.cargo\git\checkouts\zenoh-9c599d5ef3e0480e\cc83980\zenoh\src\net\runtime\orchestrator.rs:388.. Check that the server/router is running and the endpoint, network access and Zenoh security configuration are correct.

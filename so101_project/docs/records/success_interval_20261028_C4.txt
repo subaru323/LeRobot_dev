@@ -1,0 +1,18 @@
+# python tools\success_interval.py 10 3 7
+N=10  Wilson 95% interval of the success rate
+    3/10: 0.11 - 0.60
+    7/10: 0.40 - 0.89
+
+# python tools\success_interval.py --compare 10
+N=10 vs N=10  smallest k2 > k1 with Fisher exact two-sided p < 0.05
+    0/10 -> 5/10 (p=0.033)
+    1/10 -> 7/10 (p=0.020)
+    2/10 -> 8/10 (p=0.023)
+    3/10 -> 9/10 (p=0.020)
+    4/10 -> 10/10 (p=0.011)
+    5/10 -> 10/10 (p=0.033)
+    6/10 -> none
+    7/10 -> none
+    8/10 -> none
+    9/10 -> none
+   10/10 -> none

@@ -1,0 +1,1277 @@
+{
+ "about": "S4 実機日に渡すもの（総合計画書 改訂版の S4、2026-11-23）。tools/puzzle_run.py の実機の道（RealRobot・Camera・load_calib・air_run_ok と tools/so101_common.py の本物の関数）を、偽の基板と偽の USB カメラで流す。世界は MuJoCo（tools/mj_world.py）。既定盤（set 2・種 1）の L 1 個（--pieces 1）。机の回の前に空中の回（--air 40）を流す（実機と同じ関門）。異常を入れる書き込みの番号は、異常なしの試し（scratchpad の s4probe1：空中 260 回・机 288 回、L を持つのは 129〜185 回目、手首の絵は空中と机で 1 枚ずつ）で決めた。期待は流す前に書いた。class: 完成必須 = 期待どおり最後まで行き物理も合う / 停止必須 = 期待の段で止まる（理由の語・力を入れない・絵を見た後に動かない）/ 可否未確定 = 結果は記録だけ。どの回も (A) 力は Enter の後 (B) 止まった後は保持だけ (C) 腕を持ったまま力を抜くのは「支えて Enter」の後 (D) 机で ok なら物理も合う (E) 記録と止まった所 (F) 記録の再生で指令が同じ、を見る",
+ "cases": [
+  {
+   "id": "S4-01",
+   "class": "完成必須",
+   "group": "基準",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    }
+   ],
+   "why": "異常なし。空中の回の後に机の回。机では握りの確かめと終わりの確かめが入る"
+  },
+  {
+   "id": "S4-02",
+   "class": "完成必須",
+   "group": "基準",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40",
+      "--alone"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--alone"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    }
+   ],
+   "why": "D4 の形（机に置くのはその 1 個だけ）の引数 --alone。世界にはほかの 2 個も置いたまま（終わりの確かめが読まないだけ）"
+  },
+  {
+   "id": "S4-03",
+   "class": "停止必須",
+   "group": "基準",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "refused",
+      "reason_any": [
+       "needs an in-air run first"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "空中の回を流さずに机の回：関門で断る"
+  },
+  {
+   "id": "S4-04",
+   "class": "完成必須",
+   "group": "通信",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "read_blip": [
+       40,
+       300,
+       900
+      ]
+     },
+     "expect": {
+      "result": "ok"
+     }
+    }
+   ],
+   "why": "読みの返事が 1 回だけ来ない（3 か所）。読みは再送つき（num_retry）なので続いてよい"
+  },
+  {
+   "id": "S4-05",
+   "class": "完成必須",
+   "group": "通信",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "read_blip": [
+       300,
+       900
+      ]
+     },
+     "expect": {
+      "result": "ok"
+     }
+    }
+   ],
+   "why": "点検 C63 の 3 で足した（2026-11-23）。動いている間だけ、返事が 1 回来ない（2 か所）。動いている間の読み書きが全部再送つきなら続く。偽の基板は再送の無い呼び出しにだけ欠けを出す（再送つきは 1 回目が欠けて 2 回目で通るのと同じ扱い）"
+  },
+  {
+   "id": "S4-10",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "bus": {
+    "motors_homing_shift": [
+     "shoulder_lift",
+     100
+    ]
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "not the one in the k1 file"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "モーターの較正が k1 の物と違う（較正をやり直した後に K1 をやり直していない）"
+  },
+  {
+   "id": "S4-11",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "bus": {
+    "calib_file_differs": true
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "differs from the file"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "較正ファイルがモーターの中の値と違う（別の腕・別の id のファイル）"
+  },
+  {
+   "id": "S4-12",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "wrist_other_k1": true
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "refused",
+      "reason_any": [
+       "another k1 file"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "手首のカメラのファイルが別の k1 で解いた物"
+  },
+  {
+   "id": "S4-13",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "pose_other_intrinsics": true
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "refused",
+      "reason_any": [
+       "was solved with intrinsics"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "上のカメラの姿勢を、別の内部の値（別の解像度）で解いた"
+  },
+  {
+   "id": "S4-14",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "k1err_other_run": true
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "refused",
+      "reason_any": [
+       "K1 run of another k1 file"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "k1-err が別の k1 の K1 の記録から作られた"
+  },
+  {
+   "id": "S4-15",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "pose_no_k1err": true
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "refused",
+      "reason_any": [
+       "no k1err"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "上のカメラの姿勢を --k1err なしで解いた（紙の座標のまま）"
+  },
+  {
+   "id": "S4-16",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "top_size": [
+     1280,
+     720
+    ]
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "the intrinsics are for 1280x720"
+      ],
+      "no_move_after_look": true
+     }
+    }
+   ],
+   "why": "上のカメラの内部の値が 1280×720 の物で、カメラは 640×480 を返す"
+  },
+  {
+   "id": "S4-17",
+   "class": "停止必須",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "swap_cams": true,
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "detect",
+       "board"
+      ],
+      "no_move_after_look": true
+     }
+    }
+   ],
+   "why": "上と手首のカメラの番号の取り違え（USB を差し替えた）。上の絵として手首の絵が来る"
+  },
+  {
+   "id": "S4-18",
+   "class": "可否未確定",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "pose_shift_mm": [
+     5.0,
+     0.0,
+     0.0
+    ]
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ]
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ]
+    }
+   ],
+   "why": "上のカメラの姿勢のファイルが、本当の置き場から 5mm ずれている（台を触って動いた。TOP_NOMINAL_TOL 15mm の内）。安全の誤りが無いことだけ見る"
+  },
+  {
+   "id": "S4-19",
+   "class": "可否未確定",
+   "group": "較正の取り違え",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "k1_shift": {
+     "shoulder_lift": 1.5
+    }
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ]
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ]
+    }
+   ],
+   "why": "古い k1（較正は同じで、肩の上げの換算が 1.5° 違う）で手首・k1-err も解き直した。安全の誤りが無いことだけ見る"
+  },
+  {
+   "id": "S4-20",
+   "class": "停止必須",
+   "group": "古い画像",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "cams": {
+      "stale": [
+       "top",
+       2
+      ]
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "same picture"
+      ]
+     }
+    }
+   ],
+   "why": "終わりの確かめの上の絵が、始めの絵と同じバイト（カメラが固まった）"
+  },
+  {
+   "id": "S4-21",
+   "class": "停止必須",
+   "group": "古い画像",
+   "world": {
+    "pieces": 1
+   },
+   "files": {
+    "pose_shift_mm": [
+     4.0,
+     0.0,
+     0.0
+    ]
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ]
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "cams": {
+      "stale": [
+       "wrist",
+       2
+      ]
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "same picture"
+      ]
+     }
+    }
+   ],
+   "why": "手首で直した後の 2 枚目の手首の絵が 1 枚目と同じ。2 枚目を撮らせるために、上のカメラのファイルを 4mm ずらした（空中の回の結果は問わない）"
+  },
+  {
+   "id": "S4-22",
+   "class": "可否未確定",
+   "group": "古い画像",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ]
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "cams": {
+      "stale": [
+       "wrist",
+       1
+      ]
+     }
+    }
+   ],
+   "why": "机の回の 1 枚目の手首の絵が、前の回（空中、40mm 上）の最後の絵のまま。回をまたぐので同じバイトの止まりでは見つからない。安全の誤りが無いことだけ見る"
+  },
+  {
+   "id": "S4-23",
+   "class": "停止必須",
+   "group": "古い画像",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "cams": {
+      "dead": "top"
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "cannot read a frame"
+      ]
+     }
+    }
+   ],
+   "why": "上のカメラが抜けている（絵が来ない）"
+  },
+  {
+   "id": "S4-24",
+   "class": "停止必須",
+   "group": "古い画像",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "cams": {
+      "dead": "wrist"
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "cannot read a frame"
+      ]
+     }
+    }
+   ],
+   "why": "手首のカメラが抜けている（ピースの上で止まる）"
+  },
+  {
+   "id": "S4-30",
+   "class": "停止必須",
+   "group": "通信",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "comm_loss_at": 150
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "no status packet"
+      ]
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "link_back": true
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "not at the start pose"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "L を持って運ぶ途中で通信が切れる（ケーブル）。力を抜けないまま終わる。つなぎ直して流し直すと、モーターはまだ腕を持っている：支えてから力を抜き、始めの姿勢でないので止まる"
+  },
+  {
+   "id": "S4-31",
+   "class": "停止必須",
+   "group": "通信",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "write_drop_at": 150
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "did not reach"
+      ]
+     }
+    }
+   ],
+   "why": "指令が 1 つだけ届かない（sync_write は返事が無いので気づかない）。着かないので 6 秒で止まる"
+  },
+  {
+   "id": "S4-32",
+   "class": "停止必須",
+   "group": "通信",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "comm_loss_at": 150
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "no status packet"
+      ]
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "link_back": true,
+      "torque_read_fail": true
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "no status packet"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "点検 C63 の 1 で足した（2026-11-23）。S4-30 と同じに運ぶ途中で通信が切れ、つなぎ直した後も Torque_Enable の読みだけが返らない。腕を持っているか分からないまま力を抜くので、その前に「SUPPORT THE ARM」を聞くこと（(C)）"
+  },
+  {
+   "id": "S4-40",
+   "class": "停止必須",
+   "group": "空振り",
+   "world": {
+    "pieces": 1,
+    "mj_faults": [
+     {
+      "kind": "nudge",
+      "piece": "L",
+      "dx_mm": 0,
+      "dz_mm": 40,
+      "after_shot": [
+       "wrist",
+       2
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "nothing in the jaws",
+       "end check"
+      ]
+     }
+    }
+   ],
+   "why": "机の回の手首の確かめの直後に L を 40mm 動かす（S2-04 と同じ空振り。世界の手首の絵は空中の回から数えて 2 枚目）"
+  },
+  {
+   "id": "S4-41",
+   "class": "停止必須",
+   "group": "空振り",
+   "world": {
+    "pieces": 1,
+    "mj_faults": [
+     {
+      "kind": "drop",
+      "piece": "L",
+      "lift_mm": 20
+     }
+    ]
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "nothing in the jaws"
+      ]
+     }
+    }
+   ],
+   "why": "持ち上げた後に落とす（S2-05 と同じ）"
+  },
+  {
+   "id": "S4-50",
+   "class": "停止必須",
+   "group": "保護停止",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "protect_at": 150,
+      "protect_motor": "elbow_flex"
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "motor error status"
+      ]
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "motor error status"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "運ぶ途中で肘のサーボが自分を守って力を切る（Status に印、関節は垂れる）。流し直すと、印が残っているので力を入れる前に止まる（5V を抜いて差すまで）。点検 C63 の 6 の後（2026-11-23）：動いている間も 0.5 秒ごとに Status を読むので、2 段目の期待を「did not reach / high load」から「motor error status」に替えた（コードを直したのと同時。流す前）"
+  },
+  {
+   "id": "S4-51",
+   "class": "停止必須",
+   "group": "保護停止",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "load_at": 150,
+      "load_motor": "shoulder_lift",
+      "load_raw": 700
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "high load on shoulder_lift"
+      ]
+     }
+    }
+   ],
+   "why": "運ぶ途中で肩の負荷の読みが 700（線 600）"
+  },
+  {
+   "id": "S4-60",
+   "class": "停止必須",
+   "group": "再起動",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "interrupt_at": 150
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "KeyboardInterrupt"
+      ]
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "not at the start pose"
+      ],
+      "torque": false
+     }
+    },
+    {
+     "user": "to_start"
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ]
+    }
+   ],
+   "why": "運ぶ途中で Ctrl+C。すぐ流し直すと始めの姿勢でないので止まる。爪を開いて腕を手で写す姿勢へ戻し（盤は直さない）、もう一度流す：落ちた L の置き場から新しく始めてよいか（最後の段は安全だけ見る）"
+  },
+  {
+   "id": "S4-61",
+   "class": "停止必須",
+   "group": "再起動",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "interrupt_at": 250
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "KeyboardInterrupt"
+      ]
+     }
+    },
+    {
+     "user": "to_start"
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "already lies at its board target",
+       "a piece already lies on the board"
+      ],
+      "no_move_after_look": true
+     }
+    }
+   ],
+   "why": "置いた後の戻りで Ctrl+C。腕を手で戻し、盤を直さずに流し直す：L はもう盤の上にあるので、絵を見た後に動かずに止まる。1 回目と 2 回目の走りでは、足した止めまで届かず計画が「盤に重なる」で断った。点検 C63 の 4 の後（2026-11-23）：実機の道で計画がそう断ったときに人への文を足し、期待にその文を加えた（流す前）"
+  },
+  {
+   "id": "S4-62",
+   "class": "停止必須",
+   "group": "再起動",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "expect": {
+      "result": "ok"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "bus": {
+      "crash_at": 150
+     },
+     "expect": {
+      "result": "crashed"
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "not at the start pose"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "運ぶ途中でプログラムが落ちる（記録も保持もない。モーターは腕を持ったまま）。流し直すと、支えてから力を抜き、始めの姿勢でないので止まる"
+  },
+  {
+   "id": "S4-63",
+   "class": "停止必須",
+   "group": "再起動",
+   "world": {
+    "pieces": 1
+   },
+   "steps": [
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1",
+      "--air",
+      "40"
+     ],
+     "bus": {
+      "interrupt_at": 100
+     },
+     "expect": {
+      "result": "stopped",
+      "reason_any": [
+       "KeyboardInterrupt"
+      ]
+     }
+    },
+    {
+     "args": [
+      "--set",
+      "2",
+      "--pieces",
+      "1"
+     ],
+     "expect": {
+      "result": "refused",
+      "reason_any": [
+       "needs an in-air run first"
+      ],
+      "torque": false
+     }
+    }
+   ],
+   "why": "空中の回を途中で止めた後に机の回：いちばん新しい空中の回が ok でないので断る"
+  }
+ ]
+}

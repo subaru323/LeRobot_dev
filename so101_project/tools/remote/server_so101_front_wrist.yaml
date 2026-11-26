@@ -1,0 +1,51 @@
+# lerobot-policy-server settings for THIS project's SO-101 (follower, cameras "front" + "wrist", 640x480).
+# Copied from MAIN_PG/lerobot/examples/remote_inference/server.yaml (53feaef) and changed:
+#   - model.repo_or_path : your trained policy (Hub name or folder)
+#   - a second image feature for the wrist camera
+#   - listen on the GPU PC's LAN address (replace 192.168.0.20)
+# FOR ACT ONLY (cameras named front/wrist at training time). A SmolVLA policy trained with --rename_map
+# expects camera1/camera2: take the feature names from its config.json "input_features", and review
+# language.enabled (SmolVLA uses the task text). That route is not verified either.
+# NOT TESTED (2026-11-16). The server checks these declarations against the checkpoint at start-up; if it
+# refuses, its error message names the field. See docs/目的別/07_推論を別のパソコンで.md.
+deployment: so101_cube
+model:
+  repo_or_path: <HFユーザー名>/act_cube_pick   # or an absolute folder: .../checkpoints/last/pretrained_model
+  revision: null
+  device: cuda
+execution:
+  supported_modes: [chunk]
+  action_fps: 30.0
+  action_deadline_s: 5.0
+  idle_timeout_s: 10.0
+  warmup_calls: 2
+language:
+  enabled: false
+  deadline_s: 60.0
+zenoh:
+  mode: peer
+  listen_endpoints: [tcp/192.168.0.20:7447]
+semantics: so101-degrees-gripper-percent-v1
+robot_type: so101_follower
+features:
+  - name: observation.state
+    shape: [6]
+    dtype: float32
+    names: [shoulder_pan.pos, shoulder_lift.pos, elbow_flex.pos, wrist_flex.pos, wrist_roll.pos, gripper.pos]
+    semantics: so101-degrees-gripper-percent-v1
+  - name: observation.images.front
+    shape: [480, 640, 3]
+    dtype: uint8
+    kind: rgb
+    semantics: rgb-front-table-v1
+  - name: observation.images.wrist
+    shape: [480, 640, 3]
+    dtype: uint8
+    kind: rgb
+    semantics: rgb-wrist-v1
+action_feature:
+  name: action
+  shape: [6]
+  dtype: float32
+  names: [shoulder_pan.pos, shoulder_lift.pos, elbow_flex.pos, wrist_flex.pos, wrist_roll.pos, gripper.pos]
+  semantics: so101-degrees-gripper-percent-v1

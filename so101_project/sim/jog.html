@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SO-101 手で動かす</title>
+<!--
+  jog.html — SO-101 をスライダーで動かす画面(関節ごと・目標の点へ)。
+  形は公式の STL(models/ の生成物)、寸法は so101.js、逆運動学は motion.js・kinematics.js。
+  パズルの画面(index.html)とは独立。同じファイルを読むので、絵と計算は同じ値から作る。
+  ★角度は URDF(so101_new_calib)の角度。実機の LeRobot の角度との対応は確かめていない
+    (計画書_完成形まで の V-4)。この画面の数字を、そのまま実機に送らない。
+-->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #15171b;
+               font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif; color: #e8e8e8; }
+  #view { position: absolute; inset: 0; }
+  #panel { position: absolute; top: 10px; left: 10px; width: 300px; max-height: calc(100% - 20px);
+           overflow-y: auto; background: rgba(20,22,26,0.88); border: 1px solid #333; border-radius: 8px;
+           padding: 10px 12px; font-size: 12px; box-sizing: border-box; }
+  #panel h1 { font-size: 14px; margin: 0 0 2px; }
+  #panel .sub { color: #9aa; font-size: 10.5px; margin-bottom: 8px; line-height: 1.5; }
+  #panel h2 { font-size: 12px; margin: 12px 0 4px; color: #cfd8e3; border-top: 1px solid #333; padding-top: 8px; }
+  .row { margin: 5px 0; }
+  .row .top { display: flex; justify-content: space-between; }
+  .row .vl { font-variant-numeric: tabular-nums; font-weight: bold; }
+  input[type=range] { width: 100%; accent-color: #2b6de8; margin: 2px 0 0; }
+  .num { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; }
+  .num label { font-size: 10.5px; color: #9aa; }
+  .num input { width: 100%; box-sizing: border-box; background: #22252b; color: #eee; border: 1px solid #444;
+               border-radius: 4px; padding: 3px 4px; font-size: 12px; }
+  button { background: #2a2f37; color: #eee; border: 1px solid #4a5260; border-radius: 5px; padding: 4px 8px;
+           font-size: 11.5px; cursor: pointer; margin: 3px 3px 0 0; }
+  button:hover { background: #343b46; }
+  .ir { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; }
+  .ir .k { color: #9aa; }
+  .ir .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: #6fdc8c; } .warn { color: #f2c14e; } .ng { color: #ff6b6b; }
+  #camBox { position: absolute; right: 10px; bottom: 10px; width: 320px; border: 1px solid #555;
+            background: #000; border-radius: 6px; overflow: hidden; }
+  #camBox .cap { position: absolute; left: 6px; top: 4px; font-size: 10.5px; color: #ddd;
+                 text-shadow: 0 0 3px #000; pointer-events: none; }
+  #camCanvas, #ohCanvas { display: block; width: 320px; height: 240px; }
+  #ohBox { position: absolute; right: 10px; top: 10px; width: 320px; border: 1px solid #555;
+           background: #000; border-radius: 6px; overflow: hidden; }
+  #ohBox .cap { position: absolute; left: 6px; top: 4px; font-size: 10.5px; color: #ddd;
+                text-shadow: 0 0 3px #000; pointer-events: none; }
+  a { color: #8ab4ff; }
+  #err { position: absolute; inset: 0; display: none; padding: 30px; background: #200; color: #fcc;
+         white-space: pre-wrap; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<div id="panel">
+  <h1>SO-101 を手で動かす</h1>
+  <div class="sub">公式の 3D モデル（手首のカメラ付き）と、上のカメラの台（置き方 C: 腕を載せる板 + 柱と吊る腕で真上から。寸法は so101.js の OVERHEAD_C【仮】）。マウス：左ドラッグ＝回す、右ドラッグ＝平行移動、ホイール＝ズーム。<br>
+  角度は URDF の角度（0 = 可動域の真ん中）。実機の角度との対応は未確認。<br>
+  <a href="index.html">← パズルの画面へ</a></div>
+
+  <h2>関節（度）</h2>
+  <div id="sliders"></div>
+  <button id="btnZero">全部 0</button>
+  <button id="btnDemo">動きの例を再生</button>
+
+  <h2>目標の点へ（真上から下ろす）</h2>
+  <div class="num">
+    <div><label>X mm</label><input id="tx" type="number" step="5"></div>
+    <div><label>Y mm</label><input id="ty" type="number" step="5"></div>
+    <div><label>高さ mm</label><input id="tz" type="number" step="5"></div>
+    <div><label>爪の向き °</label><input id="tyaw" type="number" step="15"></div>
+  </div>
+  <button id="btnGo">そこへ動かす</button>
+  <button id="btnHere">いまの位置を入れる</button>
+  <div id="ikMsg" class="ir"><span class="k">結果</span><span class="v">—</span></div>
+
+  <h2>いまの状態</h2>
+  <div id="state"></div>
+
+  <h2>表示</h2>
+  <div class="row"><label><input type="checkbox" id="chkStand" checked> 上のカメラの台 C（腕は合板に直に置く。base_link の原点は合板から 2.4mm 上）</label></div>
+  <div class="row"><label><input type="checkbox" id="chkOhView" checked> 上のカメラの見え方（右上）</label></div>
+  <div class="row"><div class="top"><span>上のカメラの画角（縦）【仮】</span><span class="vl" id="ohFovVl"></span></div>
+    <input type="range" id="ohFov" min="30" max="120" step="1" value="60"></div>
+  <div class="row"><label><input type="checkbox" id="chkCam" checked> 手首のカメラの部品</label></div>
+  <div class="row"><label><input type="checkbox" id="chkCamView" checked> 手首のカメラの見え方（右下）</label></div>
+  <div class="row"><div class="top"><span>カメラの画角（縦）【仮】</span><span class="vl" id="fovVl"></span></div>
+    <input type="range" id="fov" min="30" max="120" step="1" value="70"></div>
+</div>
+<div id="ohBox"><canvas id="ohCanvas" width="640" height="480"></canvas>
+  <div class="cap">上のカメラ（置き方 C。真下を向く。画面の上下・画角は【仮】）</div></div>
+<div id="camBox"><canvas id="camCanvas" width="640" height="480"></canvas>
+  <div class="cap">手首のカメラ（レンズの向きは STL から。画面の上下・画角は【仮】）</div></div>
+<div id="err"></div>
+
+<script>
+window.__fail = [];
+window.addEventListener("error", function (e) { window.__fail.push(String(e.message || e)); });
+</script>
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="kinematics.js"></script>
+<script src="so101.js"></script>
+<script src="motion.js"></script>
+<script src="models/so101_meshes.js"></script>
+<script src="models/so101_visuals.js"></script>
+<script src="models/so101_points.js"></script>
+<script>
+(function () {
+  "use strict";
+  var errBox = document.getElementById("err");
+  if (typeof THREE === "undefined" || typeof SO101 === "undefined" || typeof MESHES === "undefined") {
+    errBox.style.display = "block";
+    errBox.textContent = "読み込めないファイルがあります。jog.html は sim/ の中で開いてください（lib/・models/ と同じ所）。\n" +
+      (location.protocol === "data:" ? "この表示枠は相対パスを読めません。エクスプローラーからダブルクリックで開いてください。\n" : "") +
+      window.__fail.join("\n");
+    return;
+  }
+  var DEG = Math.PI / 180;
+  var NAMES = ["shoulder_pan（肩の回転）", "shoulder_lift（肩の上げ下げ）", "elbow_flex（肘）",
+               "wrist_flex（手首の曲げ）", "wrist_roll（手首の回転）"];
+  var LIM = SO101.limitsDeg, JAWLIM = SO101.jaw.limitsDeg;
+
+  // ---------- 状態 ----------
+  var q = [0, 0, 0, 0, 0], jaw = 0;
+  var anim = null;                 // {from, to, jawFrom, jawTo, t, dur} または {keys:[...]}
+
+  // ---------- three.js ----------
+  var host = document.getElementById("view");
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  host.appendChild(renderer.domElement);
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1c1f24);
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.005, 20);
+  camera.position.set(0.45, 0.38, 0.55);
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0.12, 0.10, 0);
+  controls.update();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x404048, 0.75));
+  var sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(0.6, 1.2, 0.4); scene.add(sun);
+  var sun2 = new THREE.DirectionalLight(0xffffff, 0.25); sun2.position.set(-0.5, 0.4, -0.6); scene.add(sun2);
+
+  // 机(上面が y = 0)と 50mm の格子・URDF の軸(赤 X・緑 Y・青 Z = 高さ)
+  var table = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.01, 0.8),
+                             new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.9 }));
+  table.position.set(0.15, -0.005, 0); scene.add(table);
+  var grid = new THREE.GridHelper(0.8, 16, 0x6b7380, 0x4a515c); grid.position.set(0.15, 0.0005, 0); scene.add(grid);
+  function axisLine(dirView, color) {
+    var g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.001, 0),
+      new THREE.Vector3(dirView[0] * 0.08, 0.001 + dirView[1] * 0.08, dirView[2] * 0.08)]);
+    scene.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: color })));
+  }
+  axisLine(SO101.toView([1, 0, 0]), 0xff5555); axisLine(SO101.toView([0, 1, 0]), 0x55dd55); axisLine(SO101.toView([0, 0, 1]), 0x5588ff);
+
+  // ---------- 形(MESHES の復元。index.html と同じ形式) ----------
+  function b64ToBytes(s) { var bin = atob(s), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  var geoCache = {};
+  function meshGeos(name) {
+    if (geoCache[name]) return geoCache[name];
+    var src = MESHES[name];
+    if (!src) { console.warn("メッシュが無い:", name); return geoCache[name] = []; }
+    return geoCache[name] = src.groups.map(function (g) {
+      var qp = new Uint16Array(b64ToBytes(g.p).buffer), qn = new Int8Array(b64ToBytes(g.n).buffer);
+      var raw = b64ToBytes(g.i), idx = g.i32 ? new Uint32Array(raw.buffer) : new Uint16Array(raw.buffer);
+      var pos = new Float32Array(qp.length);
+      for (var i = 0; i < qp.length; i += 3) {
+        pos[i] = g.q[0] + qp[i] * g.q[3]; pos[i + 1] = g.q[1] + qp[i + 1] * g.q[4]; pos[i + 2] = g.q[2] + qp[i + 2] * g.q[5];
+      }
+      var nor = new Float32Array(qn.length);
+      for (var k = 0; k < qn.length; k++) nor[k] = qn[k] / 127;
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      return { geo: geo, color: g.c };
+    });
+  }
+
+  // ---------- 腕:リンクの組ごとに three の Group(行列を毎回直接入れる) ----------
+  // 各組の中は「全関節 0 の姿勢の画面の座標」で形を置く。組の行列 = [R | p − R·o](KIN.fk の frames と同じ変換)
+  var GROUPS = ["base", "j1", "j2", "j3", "j4", "j5", "jaw"];
+  var grp = {}, camParts = [];
+  GROUPS.forEach(function (g) { var G = new THREE.Group(); G.matrixAutoUpdate = false; grp[g] = G; scene.add(G); });
+  var POINTS = {};                 // 組 → 全関節 0 の座標の点(机との距離を測る)
+  Object.keys(SO101_VISUALS).forEach(function (link) {
+    var g = SO101.LINK_GROUP[link] || SO101.CAMERA_GROUP[link];
+    if (!g) return;
+    var isCam = !!SO101.CAMERA_GROUP[link];
+    SO101_VISUALS[link].forEach(function (v) {
+      var P = SO101.visualPose(link, v.xyz, v.rpy);
+      var M = new THREE.Matrix4().set(P.R[0], P.R[1], P.R[2], P.p[0], P.R[3], P.R[4], P.R[5], P.p[1],
+                                      P.R[6], P.R[7], P.R[8], P.p[2], 0, 0, 0, 1);
+      meshGeos(v.mesh).forEach(function (gg) {
+        var m = new THREE.Mesh(gg.geo, new THREE.MeshStandardMaterial({
+          color: isCam ? (v.mesh.indexOf("mount") >= 0 ? "#f0c070" : "#2a2a30") : gg.color, roughness: 0.6, metalness: 0.05 }));
+        m.matrixAutoUpdate = false; m.matrix.copy(M);
+        grp[g].add(m);
+        if (isCam) camParts.push(m);
+      });
+      var raw = SO101_POINTS[v.mesh], key = isCam ? "cam" : g, arr = POINTS[key] || (POINTS[key] = { g: g, p: [] });
+      for (var i = 0; i < raw.length; i += 3) {
+        var w = SO101.mv(P.R, [raw[i] * 1e-4, raw[i + 1] * 1e-4, raw[i + 2] * 1e-4]);
+        arr.p.push(w[0] + P.p[0], w[1] + P.p[1], w[2] + P.p[2]);
+      }
+    });
+  });
+  // ---------- 上のカメラの台(URDF の外。置き場所は so101.js の OVERHEAD) ----------
+  //  台を出すと机(合板)は腕の原点の 2.4mm 下(土台の底のリブ。so101.js の overheadTableY)。2026-11-19 まで本家の板を敷いて 9.6mm
+  var overhead = new THREE.Group(); scene.add(overhead);
+  // 置き方 C(2026-11-19 から hardware/C_台の設計.md の値): 柱・吊る腕・吊る板・カメラ・柱の足の金具(so101.js の overheadRig。軸にそろった箱)。本家の板は使わない
+  var STAND = [], STAND_PART = [];   // 台の点(画面の座標)と、その点がどの部品か。腕との近さを測る
+  SO101.overheadRig().forEach(function (g) {   // 箱を描き、表面に 3mm ほどの間隔で点を置く(腕との近さ用)
+    var lo = g.lo, hi = g.hi, sz = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
+    var m = new THREE.Mesh(new THREE.BoxGeometry(sz[0], sz[1], sz[2]), new THREE.MeshStandardMaterial({ color: "#8a8f99", roughness: 0.6 }));
+    m.position.set((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2); overhead.add(m);
+    var n = sz.map(function (d) { return Math.max(1, Math.ceil(d / 0.003)); });
+    for (var ax = 0; ax < 3; ax++) for (var side = 0; side < 2; side++) {     // 6 つの面
+      var u = (ax + 1) % 3, v = (ax + 2) % 3;
+      for (var iu = 0; iu <= n[u]; iu++) for (var iv = 0; iv <= n[v]; iv++) {
+        var w = [0, 0, 0]; w[ax] = side ? hi[ax] : lo[ax]; w[u] = lo[u] + sz[u] * iu / n[u]; w[v] = lo[v] + sz[v] * iv / n[v];
+        STAND.push(w[0], w[1], w[2]); STAND_PART.push(g.id);
+      }
+    }
+  });
+  var OHC = SO101.overheadCamera();
+  (function () {                    // カメラの形(公式の 32×32 の STL。z = レンズの向き、y = 絵の上)
+    var z = new THREE.Vector3().fromArray(OHC.dir).normalize(), y = new THREE.Vector3().fromArray(OHC.up).normalize();
+    var x = new THREE.Vector3().crossVectors(y, z);
+    var M = new THREE.Matrix4().makeBasis(x, y, z).setPosition(OHC.face[0], OHC.face[1], OHC.face[2]);
+    meshGeos("wrist_camera_so101_v1").forEach(function (gg) {
+      var m = new THREE.Mesh(gg.geo, new THREE.MeshStandardMaterial({ color: "#2a2a30", roughness: 0.6 }));
+      m.matrixAutoUpdate = false; m.matrix.copy(M); overhead.add(m);
+    });
+  })();
+  // 台の点を 10mm の升に分けておく(腕の点の近くだけ見る)
+  var CELL = 0.01, standHash = {}, standLo = [1, 1, 1], standHi = [-1, -1, -1];
+  for (var si = 0; si < STAND.length; si += 3) {
+    var key = Math.floor(STAND[si] / CELL) + "," + Math.floor(STAND[si + 1] / CELL) + "," + Math.floor(STAND[si + 2] / CELL);
+    (standHash[key] || (standHash[key] = [])).push(si);
+    for (var kk = 0; kk < 3; kk++) { standLo[kk] = Math.min(standLo[kk], STAND[si + kk]); standHi[kk] = Math.max(standHi[kk], STAND[si + kk]); }
+  }
+  var STAND_NAME = { c_pole: "C の柱", c_arm: "C の吊る腕", c_cam: "C のカメラ", c_foot: "C の柱の足の金具", c_hanger: "C の吊る板", c_bracket: "C の吊る腕の金具" };
+  function tableY() { return overhead.visible ? SO101.overheadTableY() : 0; }
+  function placeTable() {
+    var y = tableY(); table.position.y = y - 0.005; grid.position.y = y + 0.0005;
+  }
+
+  // 道具の点(つかむ点の目安)の印
+  var toolMark = new THREE.Mesh(new THREE.SphereGeometry(0.003, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff3366 }));
+  toolMark.position.set(SO101.tool.pos[0], SO101.tool.pos[1], SO101.tool.pos[2]);
+  grp.j5.add(toolMark);
+  // 目標の点の印
+  var targetMark = new THREE.Mesh(new THREE.SphereGeometry(0.005, 12, 8),
+                                  new THREE.MeshBasicMaterial({ color: 0x33ddff, transparent: true, opacity: 0.8 }));
+  targetMark.visible = false; scene.add(targetMark);
+
+  function setMat(G, R, p, o) {     // G.matrix = [R | p − R·o]
+    var Ro = SO101.mv(R, o);
+    G.matrix.set(R[0], R[1], R[2], p[0] - Ro[0], R[3], R[4], R[5], p[1] - Ro[1],
+                 R[6], R[7], R[8], p[2] - Ro[2], 0, 0, 0, 1);
+    G.matrixWorldNeedsUpdate = true;
+  }
+  var groupRT = {};                 // 組 → {R, t}(点を動かすのに使う: x' = R·x + t)
+  function pose() {
+    var st = KIN.fk(SO101.axes, q, SO101.tool);
+    groupRT.base = { R: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, 0, 0] };
+    for (var i = 0; i < 5; i++) {
+      var f = st.frames[i], Ro = SO101.mv(f.R, f.o);
+      setMat(grp["j" + (i + 1)], f.R, f.p, f.o);
+      groupRT["j" + (i + 1)] = { R: f.R, t: [f.p[0] - Ro[0], f.p[1] - Ro[1], f.p[2] - Ro[2]] };
+    }
+    // 動く爪: j5 の中で、爪の軸のまわりに回す
+    var Rj = KIN.rotAA(SO101.jaw.axis, jaw * DEG), oj = SO101.jaw.origin, Rjo = SO101.mv(Rj, oj);
+    var Lj = { R: Rj, t: [oj[0] - Rjo[0], oj[1] - Rjo[1], oj[2] - Rjo[2]] }, J5 = groupRT.j5;
+    var Rw = SO101.mm(J5.R, Lj.R), tw = SO101.mv(J5.R, Lj.t);
+    groupRT.jaw = { R: Rw, t: [tw[0] + J5.t[0], tw[1] + J5.t[1], tw[2] + J5.t[2]] };
+    grp.jaw.matrix.set(Rw[0], Rw[1], Rw[2], groupRT.jaw.t[0], Rw[3], Rw[4], Rw[5], groupRT.jaw.t[1],
+                       Rw[6], Rw[7], Rw[8], groupRT.jaw.t[2], 0, 0, 0, 1);
+    grp.jaw.matrixWorldNeedsUpdate = true;
+    return st;
+  }
+
+  // ---------- 台との近さ(腕の点 ⇄ 台の点。点の間隔 約 3mm なので、近さはその程度の粗さ) ----------
+  function nearStand() {
+    if (!overhead.visible) return null;
+    var best = { d: 1, key: null, with: null };
+    Object.keys(POINTS).forEach(function (key) {
+      var P = POINTS[key];
+      if (P.g === "base") return;
+      var T = groupRT[P.g], R = T.R, t = T.t, a = P.p;
+      for (var i = 0; i < a.length; i += 3) {
+        var x = R[0] * a[i] + R[1] * a[i + 1] + R[2] * a[i + 2] + t[0];
+        var y = R[3] * a[i] + R[4] * a[i + 1] + R[5] * a[i + 2] + t[1];
+        var z = R[6] * a[i] + R[7] * a[i + 1] + R[8] * a[i + 2] + t[2];
+        if (x < standLo[0] - 0.02 || x > standHi[0] + 0.02 || y < standLo[1] - 0.02 || y > standHi[1] + 0.02 ||
+            z < standLo[2] - 0.02 || z > standHi[2] + 0.02) continue;
+        var cx = Math.floor(x / CELL), cy = Math.floor(y / CELL), cz = Math.floor(z / CELL);
+        for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) for (var dz = -1; dz <= 1; dz++) {
+          var L = standHash[(cx + dx) + "," + (cy + dy) + "," + (cz + dz)];
+          if (!L) continue;
+          for (var k = 0; k < L.length; k++) {
+            var s = L[k], d = Math.hypot(x - STAND[s], y - STAND[s + 1], z - STAND[s + 2]);
+            if (d < best.d) { best.d = d; best.key = key; best.with = STAND_PART[s / 3]; }
+          }
+        }
+      }
+    });
+    return best.key ? best : { d: null, key: null, with: null };
+  }
+
+  // ---------- 机との距離(形の点のいちばん低い所) ----------
+  function lowest() {
+    var res = [], ty = tableY();
+    Object.keys(POINTS).forEach(function (key) {
+      var P = POINTS[key];
+      if (P.g === "base") return;                       // 土台は机の上に置いてある
+      var T = groupRT[P.g], R = T.R, t = T.t, a = P.p, lo = 1;
+      for (var i = 0; i < a.length; i += 3) {
+        var y = R[3] * a[i] + R[4] * a[i + 1] + R[5] * a[i + 2] + t[1];
+        if (y < lo) lo = y;
+      }
+      res.push({ key: key, y: lo - ty });                // 机の上の面からの高さ
+    });
+    res.sort(function (a, b) { return a.y - b.y; });
+    return res;
+  }
+  var GROUP_NAME = { j1: "肩", j2: "上腕", j3: "前腕", j4: "手首", j5: "爪の付け根", jaw: "動く爪", cam: "手首のカメラ" };
+
+  // ---------- 手首のカメラ ----------
+  var camCanvas = document.getElementById("camCanvas");
+  var camRenderer = new THREE.WebGLRenderer({ canvas: camCanvas, antialias: true });
+  var wristCam = new THREE.PerspectiveCamera(70, 640 / 480, 0.005, 5);
+  var LENS_TIP = 0.0263;           // STL の座標で、レンズの先(+z)。32×32 の基板から筒が出ている
+  function placeWristCam() {
+    var F = SO101.urdfFK(q.map(function (d) { return d * DEG; }), jaw * DEG).wrist_camera_link;
+    var R = F.R, d = [R[2], R[5], R[8]], up = [R[1], R[4], R[7]];   // 局所の z = レンズの向き、局所の y = 上【仮】
+    var tip = [F.p[0] + d[0] * LENS_TIP, F.p[1] + d[1] * LENS_TIP, F.p[2] + d[2] * LENS_TIP];
+    wristCam.position.set(tip[0], tip[1], tip[2]);
+    wristCam.up.set(up[0], up[1], up[2]);
+    wristCam.lookAt(tip[0] + d[0], tip[1] + d[1], tip[2] + d[2]);
+    return { tip: tip, dir: d };
+  }
+
+  var ohCanvas = document.getElementById("ohCanvas");
+  var ohRenderer = new THREE.WebGLRenderer({ canvas: ohCanvas, antialias: true });
+  var ohCam = new THREE.PerspectiveCamera(60, 640 / 480, 0.005, 5);
+  ohCam.position.fromArray(OHC.tip); ohCam.up.fromArray(OHC.up);
+  ohCam.lookAt(OHC.tip[0] + OHC.dir[0], OHC.tip[1] + OHC.dir[1], OHC.tip[2] + OHC.dir[2]);
+
+  // ---------- 欄 ----------
+  var sliderEls = [], valEls = [];
+  var sd = document.getElementById("sliders");
+  function addSlider(label, lo, hi, get, set) {
+    var row = document.createElement("div"); row.className = "row";
+    row.innerHTML = '<div class="top"><span></span><span class="vl"></span></div>';
+    row.querySelector("span").textContent = label + "  [" + lo.toFixed(0) + "〜" + hi.toFixed(0) + "]";
+    var sl = document.createElement("input"); sl.type = "range"; sl.min = lo; sl.max = hi; sl.step = 0.5; sl.value = get();
+    sl.addEventListener("input", function () { anim = null; set(parseFloat(sl.value)); update(); });
+    row.appendChild(sl); sd.appendChild(row);
+    sliderEls.push({ el: sl, get: get }); valEls.push({ el: row.querySelector(".vl"), get: get });
+  }
+  for (var i = 0; i < 5; i++) (function (i) {
+    addSlider(NAMES[i], LIM[i][0], LIM[i][1], function () { return q[i]; }, function (v) { q[i] = v; });
+  })(i);
+  addSlider("gripper（爪）", JAWLIM[0], JAWLIM[1], function () { return jaw; }, function (v) { jaw = v; });
+
+  var stateEl = document.getElementById("state"), ikMsg = document.getElementById("ikMsg").querySelector(".v");
+  function ir(k, v, cls) { return '<div class="ir"><span class="k">' + k + '</span><span class="v ' + (cls || "") + '">' + v + "</span></div>"; }
+  function f1(x) { return (x * 1000).toFixed(1); }
+  var last = null;
+  function update() {
+    var st = pose();
+    sliderEls.forEach(function (s) { s.el.value = s.get(); });
+    valEls.forEach(function (s) { s.el.textContent = s.get().toFixed(1) + "°"; });
+    var u = SO101.urdfFK(q.map(function (d) { return d * DEG; }), jaw * DEG).gripper_frame.p;
+    var diff = Math.hypot(u[0] - st.pos[0], u[1] - st.pos[1], u[2] - st.pos[2]);
+    var pu = [st.pos[0], -st.pos[2], st.pos[1]];          // 画面 → URDF(X, Y, Z = 高さ)
+    var low = lowest(), lo = low[0], ns = nearStand();
+    var loCls = lo.y < 0 ? "ng" : (lo.y < 0.005 ? "warn" : "ok");
+    var down = -st.dir[1];
+    var nsCls = !ns ? "" : (ns.d === null ? "ok" : (ns.d < 0.004 ? "ng" : (ns.d < 0.015 ? "warn" : "ok")));
+    var html = ir("道具の点 X / Y / 高さ", f1(pu[0]) + " / " + f1(pu[1]) + " / " + f1(pu[2]) + " mm") +
+      ir("（高さは腕の土台の底から。机からは）", f1(pu[2] - tableY()) + " mm") +
+      ir("指先の向き（真下 = 0°）", (Math.acos(Math.max(-1, Math.min(1, down))) / DEG).toFixed(1) + "°") +
+      ir("爪の向き（水平）", MOTION.jawYawDeg(q).toFixed(1) + "°") +
+      ir("机にいちばん近い部品", (GROUP_NAME[lo.key] || lo.key) + " " + f1(lo.y) + " mm" + (lo.y < 0 ? "（机の下！）" : ""), loCls) +
+      (ns ? ir("上のカメラの台にいちばん近い部品", ns.d === null ? "近くに無い（20mm より遠い）" :
+               ((GROUP_NAME[ns.key] || ns.key) + " ⇄ " + (STAND_NAME[ns.with] || ns.with) + " " + f1(ns.d) + " mm（点の間隔 約 3mm の粗さ）"), nsCls) : "") +
+      ir("検算: 2 つの計算の差", (diff * 1000).toFixed(4) + " mm", diff < 1e-6 ? "ok" : "ng") +
+      ir("見ていないもの", "腕どうしの当たり・物理", "warn");
+    stateEl.innerHTML = html;
+    last = { q: q.slice(), jaw: jaw, tool_urdf_mm: pu.map(function (v) { return +(v * 1000).toFixed(2); }),
+             lowest: { part: lo.key, mm: +(lo.y * 1000).toFixed(2) }, fkDiffMm: diff * 1000,
+             stand: ns ? { part: ns.key, with: ns.with, mm: ns.d === null ? null : +(ns.d * 1000).toFixed(2) } : null };
+    return last;
+  }
+
+  // ---------- 目標の点へ ----------
+  var tx = document.getElementById("tx"), ty = document.getElementById("ty"), tz = document.getElementById("tz"),
+      tyaw = document.getElementById("tyaw");
+  function putHere() {
+    var st = KIN.fk(SO101.axes, q, SO101.tool);
+    tx.value = (st.pos[0] * 1000).toFixed(0); ty.value = (-st.pos[2] * 1000).toFixed(0);
+    tz.value = (st.pos[1] * 1000).toFixed(0); tyaw.value = MOTION.jawYawDeg(q).toFixed(0);
+  }
+  function goTarget() {
+    var X = +tx.value / 1000, Y = +ty.value / 1000, Z = +tz.value / 1000, yaw = +tyaw.value || 0;
+    var posView = [X, Z, -Y];
+    targetMark.position.set(posView[0], posView[1], posView[2]); targetMark.visible = true;
+    var r = MOTION.topDown(posView, yaw, q, {});
+    if (!r.ok) { ikMsg.textContent = "届かない: " + r.reason; ikMsg.className = "v ng"; return r; }
+    ikMsg.textContent = "解けた（位置の差 " + (r.posErr * 1000).toFixed(2) + " mm）"; ikMsg.className = "v ok";
+    startMove(r.q, jaw, 1.2);
+    return r;
+  }
+  function startMove(qTo, jawTo, dur) {
+    anim = { keys: [{ t: 0, q: q.slice(), jaw: jaw }, { t: dur, q: qTo.slice(), jaw: jawTo }], t: 0 };
+  }
+  // 動きの例:真上から下りて、つかんで、持ち上げて、横へ運んで、置く(ピースは無い。動きだけ)
+  function demo() {
+    var keys = [{ t: 0, q: q.slice(), jaw: jaw }], t = 0, cur = q.slice(), j = jaw, ok = true;
+    function to(X, Y, Z, yaw, jw, dur) {
+      if (!ok) return;
+      var r = MOTION.topDown([X, Z, -Y], yaw, cur, {});
+      if (!r.ok) { ok = false; ikMsg.textContent = "例が解けない: " + r.reason; ikMsg.className = "v ng"; return; }
+      t += dur; cur = r.q.slice(); j = jw; keys.push({ t: t, q: cur.slice(), jaw: j });
+    }
+    function grip(jw, dur) { if (!ok) return; t += dur; j = jw; keys.push({ t: t, q: cur.slice(), jaw: j }); }
+    to(0.20, 0.06, 0.08, 0, 30, 1.5); to(0.20, 0.06, 0.015, 0, 30, 1.0); grip(5, 0.6);
+    to(0.20, 0.06, 0.08, 0, 5, 0.8); to(0.16, -0.10, 0.08, 90, 5, 1.6); to(0.16, -0.10, 0.015, 90, 5, 1.0);
+    grip(30, 0.6); to(0.16, -0.10, 0.08, 90, 30, 0.8);
+    if (ok) { anim = { keys: keys, t: 0 }; ikMsg.textContent = "例を再生中（ピースは無い）"; ikMsg.className = "v ok"; }
+  }
+  function stepAnim(dt) {
+    if (!anim) return;
+    anim.t += dt;
+    var K = anim.keys, T = anim.t;
+    if (T >= K[K.length - 1].t) { q = K[K.length - 1].q.slice(); jaw = K[K.length - 1].jaw; anim = null; update(); return; }
+    var k = 1; while (K[k].t < T) k++;
+    var a = K[k - 1], b = K[k], u = (T - a.t) / (b.t - a.t);
+    u = u * u * (3 - 2 * u);                                  // なめらかに出て、なめらかに止まる
+    q = a.q.map(function (v, i) { return v + (b.q[i] - v) * u; });
+    jaw = a.jaw + (b.jaw - a.jaw) * u;
+    update();
+  }
+
+  document.getElementById("btnZero").onclick = function () { startMove([0, 0, 0, 0, 0], 0, 1.0); };
+  document.getElementById("btnDemo").onclick = demo;
+  document.getElementById("btnGo").onclick = goTarget;
+  document.getElementById("btnHere").onclick = putHere;
+  var chkCam = document.getElementById("chkCam"), chkCamView = document.getElementById("chkCamView"),
+      camBox = document.getElementById("camBox"), fov = document.getElementById("fov"), fovVl = document.getElementById("fovVl");
+  chkCam.onchange = function () { camParts.forEach(function (m) { m.visible = chkCam.checked; }); };
+  var chkStand = document.getElementById("chkStand"), chkOhView = document.getElementById("chkOhView"),
+      ohBox = document.getElementById("ohBox"), ohFov = document.getElementById("ohFov"), ohFovVl = document.getElementById("ohFovVl");
+  chkStand.onchange = function () { overhead.visible = chkStand.checked; placeTable(); update(); };
+  chkOhView.onchange = function () { ohBox.style.display = chkOhView.checked ? "" : "none"; };
+  ohFov.value = SO101.CAM_FOV.top; fov.value = SO101.CAM_FOV.wrist;   // 画角の初期値は so101.js の 1 か所から(2026-11-17。それまで手首は 70 だった)
+  ohFov.oninput = function () { ohCam.fov = +ohFov.value; ohCam.updateProjectionMatrix(); ohFovVl.textContent = ohFov.value + "°"; };
+  ohFov.oninput(); placeTable();
+  chkCamView.onchange = function () { camBox.style.display = chkCamView.checked ? "" : "none"; };
+  fov.oninput = function () { wristCam.fov = +fov.value; wristCam.updateProjectionMatrix(); fovVl.textContent = fov.value + "°"; };
+  fov.oninput();
+
+  // ---------- 描画 ----------
+  function onResize() {
+    var w = host.clientWidth, h = host.clientHeight;
+    renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", onResize); onResize();
+  var clock = new THREE.Clock();
+  function tick() {
+    requestAnimationFrame(tick);
+    stepAnim(Math.min(clock.getDelta(), 0.1));
+    controls.update();
+    renderer.render(scene, camera);
+    if (chkOhView.checked && overhead.visible) ohRenderer.render(scene, ohCam);
+    if (chkCamView.checked) {
+      var vis = camParts.map(function (m) { return m.visible; });
+      camParts.forEach(function (m) { m.visible = false; });   // 自分の筒は写さない
+      placeWristCam(); camRenderer.render(scene, wristCam);
+      camParts.forEach(function (m, i) { m.visible = vis[i]; });
+    }
+  }
+  update(); putHere(); tick();
+
+  // 検算・撮影用の出口(開発者ツールや自動の確認から使う)
+  window.__jog = {
+    set: function (qDeg, jawDeg) { anim = null; q = qDeg.slice(); if (jawDeg !== undefined) jaw = jawDeg; return update(); },
+    target: function (X, Y, Z, yaw) { tx.value = X; ty.value = Y; tz.value = Z; tyaw.value = yaw || 0; anim = null;
+      var r = goTarget(); if (r.ok) { anim = null; q = r.q.slice(); update(); } return { ok: r.ok, reason: r.reason, q: r.q, state: last }; },
+    state: function () { return last; },
+    view: function (pos, tgt) { camera.position.set(pos[0], pos[1], pos[2]); controls.target.set(tgt[0], tgt[1], tgt[2]); controls.update(); },
+    stand: function (on) { chkStand.checked = on; chkStand.onchange(); return last; },
+    overheadCamera: function () { return OHC; },
+    showArm: function (on) { GROUPS.forEach(function (g) { grp[g].visible = on; }); },
+    camera: function () { return placeWristCam(); }
+  };
+})();
+</script>
+</body>
+</html>

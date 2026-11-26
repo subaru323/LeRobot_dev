@@ -1,0 +1,113 @@
+INFO 2026-11-16 17:11:30 _rollout.py:250 Building rollout context...
+INFO 2026-11-16 17:11:30 e\client.py:129 Remote client lerobot_version=0.7.0 protocol=1
+INFO 2026-11-16 17:11:30 e\client.py:187 Remote server deployment=pusht instance=9250bc7de8f14900a0245320d488aad5 software={'lerobot_version': '0.7.0'} protocol=1
+INFO 2026-11-16 17:11:31 \context.py:380 Connecting robot (sim_robot)...
+INFO 2026-11-16 17:11:31 \context.py:382 Robot connected: sim_robot
+INFO 2026-11-16 17:11:31 \context.py:385 Captured initial robot position (0 keys)
+INFO 2026-11-16 17:11:31 e\client.py:334 Remote session ready: deployment=pusht instance=9250bc7de8f14900a0245320d488aad5 session=91551021064040a7b33fcb7c4cf57115 mode=chunk merge=aligned action_rate=10.0 Hz horizon=2.000s; contract verified
+INFO 2026-11-16 17:11:31 \context.py:871 Remote rollout admitted: deployment=pusht instance=9250bc7de8f14900a0245320d488aad5 mode=chunk
+INFO 2026-11-16 17:11:31 _rollout.py:254 Rollout strategy: base
+INFO 2026-11-16 17:11:31 _rollout.py:255 Robot: sim | FPS: 10 | Duration: 30.0s
+INFO 2026-11-16 17:11:31 ies\core.py:110 Starting inference engine...
+INFO 2026-11-16 17:11:31 e\engine.py:190 Remote session reset requested; previous motion is invalidated
+INFO 2026-11-16 17:11:31 ies\core.py:114 Inference engine started
+INFO 2026-11-16 17:11:31 e\engine.py:154 Remote execution: mode=chunk merge=aligned blend_steps=0 incoming_weight=0.50; action_rate=10.0 Hz horizon=2.000s refill=0.500s (effective=0.500s); max_source_age=5.000s action_timeout=5.000s startup_timeout=10.000s starvation_grace=1.000s
+INFO 2026-11-16 17:11:31 gies\base.py:42 Base strategy ready
+INFO 2026-11-16 17:11:31 _rollout.py:270 Rollout setup complete, starting rollout...
+INFO 2026-11-16 17:11:31 gies\base.py:60 Base strategy control loop started
+INFO 2026-11-16 17:11:36 e\engine.py:211 Remote progress: accepted=4 rejected=0 cancelled=0 failed=0 waits=0 resumes=0 invalidations=0 over 5.0s; cancelled wait max=0.000s (server completion unknown) invalidation wait max=0.000s; turnaround mean/max=0.085/0.113s (last 4 completed results only), estimated submission headroom min=0.417s; queued playback=1.400s effective_refill=0.500s; diagnostic_events_dropped=0
+INFO 2026-11-16 17:11:36 t\status.py:113 Rollout: loop 10.0/10 Hz · over budget 0/49 · starved 0 · turnaround 74.1 ms (worst 82.2)
+INFO 2026-11-16 17:11:40 e\engine.py:172 Remote action starvation: requesting a local hold before fresh resumption
+ERROR 2026-11-16 17:11:40 e\engine.py:846 Remote inference worker fault
+Traceback (most recent call last):
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 213, in _query
+    return query_reply(
+        self.transport,
+    ...<6 lines>...
+        cancelled=cancelled,
+    )
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\transport\protocol\client.py", line 46, in query_reply
+    replies = transport.query(key, encoder(request), timeout, **query_options)
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\transport\zenoh.py", line 406, in query
+    raise QueryCancelled("Query wait cancelled before publication")
+lerobot.transport.zenoh.QueryCancelled: Query wait cancelled before publication
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\engine.py", line 697, in _loop
+    self.client.control(
+    ~~~~~~~~~~~~~~~~~~~^
+        operation,
+        ^^^^^^^^^^
+        generation,
+        ^^^^^^^^^^^
+        cancelled=lambda: self._stop_event.is_set() or self.failed,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 386, in control
+    response = self._query(
+        self._key + "/control",
+    ...<3 lines>...
+        cancelled=lambda: (cancelled is not None and cancelled()) or not self.present,
+    )
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 225, in _query
+    raise ConnectionError("Server presence was lost during control acknowledgement") from exc
+ConnectionError: Server presence was lost during control acknowledgement
+WARNING 2026-11-16 17:11:40 e\engine.py:175 Remote actions exhausted; retaining last target for up to 1.000s
+ERROR 2026-11-16 17:11:40 e\engine.py:257 Remote inference stopped: Server presence was lost during control acknowledgement. Policy motion is revoked; rollout requests a local hold and follows its configured shutdown/return procedure. Last submission playback=0.500s; recent completed turnaround max=0.113s; refill configured/effective=0.500/0.500s. Check the client/server error details and loaded contract before starting a new rollout. Request details: --inference.log_level=DEBUG; deployment=pusht session=91551021064040a7b33fcb7c4cf57115
+INFO 2026-11-16 17:11:40 gies\base.py:93 Base strategy control loop ended
+INFO 2026-11-16 17:11:40 le_timer.py:617 Cadence summary — whole run · target 10 Hz (100.0 ms budget per tick): 94 ticks, 93 judged
+  effective cadence: 10.00 Hz over 9.3 s measured
+  ticks over the 100.0 ms work budget: 0/93 (0.0%) — work mean 8.4 ms, worst 56.4 ms
+  loop-body steps (share of measured work):
+    observe      mean   0.06 ms · worst   0.20 ms ·   0.8% of work · 94 calls
+    process_obs  mean   0.61 ms · worst  14.99 ms ·   7.4% of work · 94 calls
+    telemetry    mean   0.00 ms · worst   0.01 ms ·   0.0% of work · 94 calls
+    query        mean   0.02 ms · worst   0.03 ms ·   0.2% of work · 94 calls
+    infer        mean   0.15 ms · worst   0.49 ms ·   1.7% of work · 91 calls
+    send         mean   7.44 ms · worst  54.96 ms ·  85.9% of work · 90 calls
+  pacing headroom: 91.7 ms slept per tick on average (max 99.6 ms) — near zero means the loop is saturated
+INFO 2026-11-16 17:11:40 ies\core.py:297 Stopping inference engine...
+INFO 2026-11-16 17:11:41 e\engine.py:854 Remote transport closed without a server acknowledgement
+INFO 2026-11-16 17:11:41 ies\core.py:317 Skipping return-to-initial-position: no initial position captured
+INFO 2026-11-16 17:11:41 ies\core.py:325 Disconnecting robot: disable_torque_on_disconnect=unspecified; a prior hold command does not guarantee pose retention after disconnect
+INFO 2026-11-16 17:11:41 ies\base.py:102 Base strategy teardown complete
+ERROR 2026-11-16 17:11:41 _rollout.py:281 Rollout ended by a terminal fault: Traceback (most recent call last):
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 213, in _query
+    return query_reply(
+        self.transport,
+    ...<6 lines>...
+        cancelled=cancelled,
+    )
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\transport\protocol\client.py", line 46, in query_reply
+    replies = transport.query(key, encoder(request), timeout, **query_options)
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\transport\zenoh.py", line 406, in query
+    raise QueryCancelled("Query wait cancelled before publication")
+lerobot.transport.zenoh.QueryCancelled: Query wait cancelled before publication
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\engine.py", line 697, in _loop
+    self.client.control(
+    ~~~~~~~~~~~~~~~~~~~^
+        operation,
+        ^^^^^^^^^^
+        generation,
+        ^^^^^^^^^^^
+        cancelled=lambda: self._stop_event.is_set() or self.failed,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 386, in control
+    response = self._query(
+        self._key + "/control",
+    ...<3 lines>...
+        cancelled=lambda: (cancelled is not None and cancelled()) or not self.present,
+    )
+  File "C:\Users\genes\Documents\PROJECTS\PRACTICE\lerobot_v0.7.0\.venv\Lib\site-packages\lerobot\remote_inference\client.py", line 225, in _query
+    raise ConnectionError("Server presence was lost during control acknowledgement") from exc
+ConnectionError: Server presence was lost during control acknowledgement
+

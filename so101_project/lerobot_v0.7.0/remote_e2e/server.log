@@ -1,0 +1,12 @@
+INFO 2026-11-16 17:07:40 cy_server.py:43 Policy server lerobot_version=0.7.0 protocol=1
+INFO 2026-11-16 17:07:40 cy_server.py:44 Loading deployment=pusht model=remote_e2e/act_pusht_tiny/checkpoints/000040/pretrained_model revision=default device=cpu; readiness follows model warmup
+INFO 2026-11-16 17:07:42 cy_server.py:64 Deployment warmed: name=pusht instance=e2ba41bbb92a4a45801c6a0e96a4cff4 modes=chunk action_rate=10.0 Hz horizon=2.000s language=False; waiting for transport readiness
+INFO 2026-11-16 17:07:43 e\server.py:994 Policy server ready: deployment=pusht instance=e2ba41bbb92a4a45801c6a0e96a4cff4; awaiting one client
+INFO 2026-11-16 17:08:56 e\server.py:543 Session admitted instance=e2ba41bbb92a4a45801c6a0e96a4cff4 session=7b943f13438d44b4b1ca1d685f07dc7d
+INFO 2026-11-16 17:08:56 e\server.py:795 Session awaiting initial presence instance=e2ba41bbb92a4a45801c6a0e96a4cff4 session=7b943f13438d44b4b1ca1d685f07dc7d grace_s=60.000 inference_pending=False
+INFO 2026-11-16 17:08:56 e\server.py:776 Session initial presence established instance=e2ba41bbb92a4a45801c6a0e96a4cff4 session=7b943f13438d44b4b1ca1d685f07dc7d
+INFO 2026-11-16 17:09:02 e\server.py:728 Policy progress: deployment=pusht actions=5 text_queries=0 errors=0 stale=0 invalidations=0 resets=2 control wait max=0.000s over 6.1s; queue mean/max=0.000/0.001s worker mean/max=0.111/0.139s (last 5 operations, all outcomes); client logs include transport delay and playback headroom
+INFO 2026-11-16 17:09:08 e\server.py:728 Policy progress: deployment=pusht actions=4 text_queries=0 errors=0 stale=0 invalidations=0 resets=0 control wait max=0.000s over 5.6s; queue mean/max=0.000/0.001s worker mean/max=0.108/0.146s (last 9 operations, all outcomes); client logs include transport delay and playback headroom
+INFO 2026-11-16 17:09:14 e\server.py:728 Policy progress: deployment=pusht actions=4 text_queries=0 errors=0 stale=0 invalidations=0 resets=0 control wait max=0.000s over 5.6s; queue mean/max=0.000/0.001s worker mean/max=0.105/0.146s (last 13 operations, all outcomes); client logs include transport delay and playback headroom
+INFO 2026-11-16 17:09:16 e\server.py:403 Session cleanup queued instance=e2ba41bbb92a4a45801c6a0e96a4cff4 session=7b943f13438d44b4b1ca1d685f07dc7d reason=client_close inference_pending=False; ownership releases only after worker close/reset completes
+INFO 2026-11-16 17:09:16 e\server.py:572 Session released instance=e2ba41bbb92a4a45801c6a0e96a4cff4 session=7b943f13438d44b4b1ca1d685f07dc7d reason=client_close; deployment available for a new session

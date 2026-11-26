@@ -1,0 +1,19 @@
+{
+ "package": "knowhow-seeds",
+ "version": "2026-11-26.1347",
+ "seed": "framing-business-strategy",
+ "状態": "試作",
+ "能力": "提案・企画・機能・広げ先を、事業戦略の視点（3〜5年後・業界の構造・真似されない理由）で組み立て、1枚にする・見直す",
+ "items": [
+  "K-0046",
+  "K-0028"
+ ],
+ "earliest_review_due": "2027-05-16",
+ "master": "C:\\Users\\genes\\Documents\\PROJECTS\\ASSETS\\Claude_knowhow",
+ "files": {
+  "references/ノウハウ.md": "7602669ea5fabf4baba87f56a274520c5b6810d0148bda77480d9e25ea939ee4",
+  "references/一枚の型.md": "204dfa07daa0a4319def56e6dc38f43395eadd95c00431eeef2bd7d9d57b040c",
+  "references/型.md": "a75ccd85c5f3c1aa699886a0b9799f44deafd592bce395887b917a0cfccc3bb4",
+  "SKILL.md": "ab4f2a5161b45ee09e9cb99c1bf8d0883384351c98cf159fdfae45ed480302b6"
+ }
+}

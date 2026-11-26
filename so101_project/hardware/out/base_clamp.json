@@ -1,0 +1,117 @@
+{
+ "source": "hardware/make_base_clamp.py",
+ "base_stl": "sim/models/src/assets/base_so101_v2.stl",
+ "frame": "arm (URDF): x forward, y left, z up, origin 2.4 mm above the plywood",
+ "params": {
+  "CLEAR": 0.4,
+  "WALL": 5.0,
+  "LIP_IN": 6.0,
+  "LIP_T": 4.0,
+  "LIP_GAP": 0.0,
+  "FLANGE": 14.0,
+  "FLANGE_T": 5.0,
+  "BODY_KEEP": 2.0,
+  "SCREW_D": 3.8,
+  "SCREW_HEAD": 7.5,
+  "SCREW_LEN": 12.0,
+  "WING_TOP": 17.5
+ },
+ "cleats": {
+  "back_right": {
+   "box_arm_mm": {
+    "x": [
+     -41.8,
+     -10.4
+    ],
+    "y": [
+     -48.0,
+     -24.0
+    ],
+    "z": [
+     -2.4,
+     19.1
+    ]
+   },
+   "height_above_plywood_mm": 21.5,
+   "screw_arm_mm": [
+    -34.8,
+    -40.9
+   ],
+   "screw_edge_margin_mm": 6.99,
+   "lip_area_mm2": 160.8,
+   "volume_mm3": 5839
+  },
+  "back_left": {
+   "box_arm_mm": {
+    "x": [
+     -41.8,
+     -10.4
+    ],
+    "y": [
+     24.0,
+     48.0
+    ],
+    "z": [
+     -2.4,
+     19.1
+    ]
+   },
+   "height_above_plywood_mm": 21.5,
+   "screw_arm_mm": [
+    -34.8,
+    40.6
+   ],
+   "screw_edge_margin_mm": 7.0,
+   "lip_area_mm2": 160.8,
+   "volume_mm3": 5841
+  },
+  "side_right": {
+   "box_arm_mm": {
+    "x": [
+     5.6,
+     33.6
+    ],
+    "y": [
+     -74.9,
+     -46.0
+    ],
+    "z": [
+     -2.4,
+     19.1
+    ]
+   },
+   "height_above_plywood_mm": 21.5,
+   "screw_arm_mm": [
+    19.4,
+    -67.9
+   ],
+   "screw_edge_margin_mm": 7.0,
+   "lip_area_mm2": 185.0,
+   "volume_mm3": 5997
+  },
+  "side_left": {
+   "box_arm_mm": {
+    "x": [
+     5.6,
+     33.6
+    ],
+    "y": [
+     46.0,
+     74.9
+    ],
+    "z": [
+     -2.4,
+     19.1
+    ]
+   },
+   "height_above_plywood_mm": 21.5,
+   "screw_arm_mm": [
+    19.4,
+    67.9
+   ],
+   "screw_edge_margin_mm": 7.0,
+   "lip_area_mm2": 185.0,
+   "volume_mm3": 5998
+  }
+ }
+}
